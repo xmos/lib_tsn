@@ -1,1 +1,0 @@
-#define SLICEKIT_ENABLE_FLASH 1

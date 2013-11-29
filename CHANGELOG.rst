@@ -1,9 +1,10 @@
-sw_avb Change Log
+sc_avb Change Log
 =================
 
 6.0.0
 -----
   * First release supporting daisy chain AVB
+  * Refactoring sw_avb modules into sc_avb
 
 5.2.0
 -----
