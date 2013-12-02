@@ -13,6 +13,7 @@
 #include <assert.h>
 #endif
 #include "avb_1722_1_app_hooks.h"
+#include "avb_1722_def.h"
 #include "avb_1722_1.h"
 
 /* Inflight command defines */
@@ -114,7 +115,7 @@ void avb_1722_1_create_acmp_packet(avb_1722_1_acmp_cmd_resp *cr, int message_typ
     set_64(pkt->controller_guid, cr->controller_guid.c);
     set_64(pkt->listener_guid, cr->listener_guid.c);
     set_64(pkt->talker_guid, cr->talker_guid.c);
-    hton_32(pkt->default_format, cr->default_format);
+    hton_16(pkt->vlan_id, cr->vlan_id);
     hton_16(pkt->talker_unique_id, cr->talker_unique_id);
     hton_16(pkt->listener_unique_id, cr->listener_unique_id);
     hton_16(pkt->connection_count, cr->connection_count);
@@ -338,7 +339,7 @@ static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp
     get_64(store->controller_guid.c, pkt->controller_guid);
     get_64(store->listener_guid.c, pkt->listener_guid);
     get_64(store->talker_guid.c, pkt->talker_guid);
-    store->default_format = ntoh_32(pkt->default_format);
+    store->vlan_id = ntoh_16(pkt->vlan_id);
     store->talker_unique_id = ntoh_16(pkt->talker_unique_id);
     store->listener_unique_id = ntoh_16(pkt->listener_unique_id);
     store->connection_count = ntoh_16(pkt->connection_count);
@@ -387,8 +388,15 @@ avb_1722_1_acmp_status_t acmp_listener_get_state(void)
     acmp_listener_rcvd_cmd_resp.talker_guid = acmp_listener_streams[unique_id].talker_guid;
     acmp_listener_rcvd_cmd_resp.talker_unique_id = acmp_listener_streams[unique_id].talker_unique_id;
     acmp_listener_rcvd_cmd_resp.connection_count = acmp_listener_streams[unique_id].connected;
-    /* TODO: Add flags */
-    /* TODO: Add stream_vlan */
+    if (acmp_listener_rcvd_cmd_resp.stream_id.l)
+    {
+        acmp_listener_rcvd_cmd_resp.vlan_id = AVB_DEFAULT_VLAN;
+    }
+    else
+    {
+        acmp_listener_rcvd_cmd_resp.vlan_id = 0;
+    }
+
 
     /* If for some reason we couldn't get the state, we could return a STATE_UNVAILABLE status instead */
 
@@ -402,8 +410,14 @@ avb_1722_1_acmp_status_t acmp_talker_get_state(void)
     acmp_talker_rcvd_cmd_resp.stream_id = acmp_talker_streams[unique_id].stream_id;
     memcpy(acmp_talker_rcvd_cmd_resp.stream_dest_mac, acmp_talker_streams[unique_id].destination_mac, 6);
     acmp_talker_rcvd_cmd_resp.connection_count = acmp_talker_streams[unique_id].connection_count;
-
-    /* TODO: Add stream_vlan */
+    if (acmp_talker_rcvd_cmd_resp.stream_id.l)
+    {
+        acmp_talker_rcvd_cmd_resp.vlan_id = AVB_DEFAULT_VLAN;
+    }
+    else
+    {
+        acmp_talker_rcvd_cmd_resp.vlan_id = 0;
+    }
 
     return ACMP_STATUS_SUCCESS;
 }
@@ -424,6 +438,7 @@ avb_1722_1_acmp_status_t acmp_talker_get_connection(void)
 
     acmp_talker_rcvd_cmd_resp.listener_guid.l = acmp_talker_streams[unique_id].connected_listeners[connection].guid.l;
     acmp_talker_rcvd_cmd_resp.listener_unique_id = acmp_talker_streams[unique_id].connected_listeners[connection].unique_id;
+    acmp_talker_rcvd_cmd_resp.vlan_id = AVB_DEFAULT_VLAN;
 
     return ACMP_STATUS_SUCCESS;
 }
