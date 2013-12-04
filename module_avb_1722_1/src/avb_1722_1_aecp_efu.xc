@@ -47,7 +47,7 @@ static int fl_get_next_boot_image(client interface spi_interface i_spi, fl_boot_
     return 1;
   while (sector_num < NUM_SECTORS) {
     unsigned sector_address = fl_get_sector_address(sector_num);
-    spi_flash_read(i_spi, sector_address, (unsigned char*)tmpbuf, 6 * sizeof(int));
+    spi_flash_read(i_spi, sector_address, (unsigned char*)tmpbuf, 7 * sizeof(int));
     if (sortbits(tmpbuf[0]) == IMAGE_TAG_13) {
       boot_image_info->startAddress = sector_address;
       boot_image_info->size         = sortbits(tmpbuf[IMAGE_LENGTH_OFFSET_13]);
