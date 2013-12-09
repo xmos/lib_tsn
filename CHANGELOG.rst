@@ -1,6 +1,11 @@
 sc_avb Change Log
 =================
 
+6.0.1
+-----
+  * VLAN ID is now reported via 1722.1 ACMP
+  * Fixed XC pointer issue for v13.0.1 tools
+
 6.0.0
 -----
   * First release supporting daisy chain AVB
