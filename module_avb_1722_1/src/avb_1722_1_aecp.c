@@ -247,7 +247,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
       {
         hton_16(audio_map->mappings[i].mapping_stream_index, read_id);
         hton_16(audio_map->mappings[i].mapping_stream_channel, i);
-        hton_16(audio_map->mappings[i].mapping_cluster_offset, (read_id < AVB_NUM_SOURCES) ? i%AVB_NUM_SOURCES : i%AVB_NUM_SINKS);
+        hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
         hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // Single channel audio clusters
       }
 
