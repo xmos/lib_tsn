@@ -298,7 +298,9 @@
 
 
 /*** AVB Interface Descriptor *********************************/
-#define AEM_INTERFACE_FLAGS_AS_GM_SUPPORTED		0x0001
+#define AEM_INTERFACE_FLAGS_GPTP_GRANDMASTER_SUPPORTED		0x0001
+#define AEM_INTERFACE_FLAGS_GPTP_SUPPORTED                  0x0002
+#define AEM_INTERFACE_FLAGS_SRP_SUPPORTED                   0x0004
 
 /*** Clock Source Descriptors *********************************/
 
