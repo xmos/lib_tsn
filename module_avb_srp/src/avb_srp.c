@@ -296,7 +296,7 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
           avb_1722_disable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
           stream_table[entry].bw_reserved[attr->port_num] = 0;
           // Propagate Listener leave only if we are not also Listening to this stream
-          if (matched_stream_id_opposite_port->propagated)
+          if (matched_stream_id_opposite_port->propagated && !matched_stream_id_opposite_port->here)
           {
             mrp_mad_leave(matched_stream_id_opposite_port);
           }
@@ -442,15 +442,14 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
     avb_srp_map_leave(attr);
   }
 
-  if (stream != -1u)
-  {
-      if (stream_table[entry].bw_reserved[attr->port_num] == 1) {
-        srp_decrease_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
-        if (matched_listener_opposite_port) { // Transmitting on both ports
-          set_avb_source_port(stream, !attr->port_num);
-        }
-        stream_table[entry].bw_reserved[attr->port_num] = 0;
+  if (stream != -1u) {
+    if (stream_table[entry].bw_reserved[attr->port_num] == 1) {
+      srp_decrease_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
+      if (matched_listener_opposite_port) { // Transmitting on both ports
+        set_avb_source_port(stream, !attr->port_num);
       }
+      stream_table[entry].bw_reserved[attr->port_num] = 0;
+    }
     avb_get_source_state(avb, stream, &state);
 
     if (state == AVB_SOURCE_STATE_ENABLED && !matched_listener_opposite_port) {
