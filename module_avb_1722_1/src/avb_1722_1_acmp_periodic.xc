@@ -400,17 +400,10 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                                 inflight->command.sequence_id);
     #endif
 
-                            /* FIXME: Make stream ID representation consistent: we have long long, 2 ints and 6 chars */
+                        /* FIXME: Make stream ID representation consistent: we have long long, 2 ints and 6 chars */
 
-                            stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
-                            stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
-
-                            avb_listener_on_talker_disconnect(avb,
-                                                        acmp_listener_rcvd_cmd_resp.listener_unique_id,
-                                                        acmp_listener_rcvd_cmd_resp.talker_guid,
-                                                        acmp_listener_rcvd_cmd_resp.stream_dest_mac,
-                                                        stream_id,
-                                                        my_guid);
+                        stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
+                        stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
 
                         acmp_listener_rcvd_cmd_resp.status =
                             avb_listener_on_talker_connect(avb,
