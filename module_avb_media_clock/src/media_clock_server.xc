@@ -502,6 +502,9 @@ void media_clock_server(chanend media_clock_ctl,
               media_clock_ctl :> type;
               }
               media_clocks[media_clock_num].clock_type = type;
+              printstr("Setting clock source: ");
+              if (type) printstrln("LOCAL_CLOCK");
+              else printstrln("INPUT_STREAM_DERIVED");
             }
             break;
           case MEDIA_CLOCK_GET_TYPE:
