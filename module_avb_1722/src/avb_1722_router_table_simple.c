@@ -6,7 +6,7 @@
 
 #include <xs1.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "swlock.h"
 #include "string.h"
 #include "avb_1722_router_table.h"

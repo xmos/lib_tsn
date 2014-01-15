@@ -3,7 +3,7 @@
 #include "avb_1722_1_aecp.h"
 #include <string.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "xccompat.h"
 #include "avb_flash.h"
 
@@ -78,7 +78,7 @@ static int get_factory_image(client interface spi_interface i_spi, fl_boot_image
 }
 
 static void write_and_update_address(client interface spi_interface i_spi, unsigned char data[PAGE_SIZE]) {
-    simple_printf("Wrote offset %d at %x \n", write_offset, write_address);
+    debug_printf("Wrote offset %d at %x \n", write_offset, write_address);
     spi_flash_write_small(i_spi, write_address, data, PAGE_SIZE);
     write_address += PAGE_SIZE;
     write_offset += PAGE_SIZE;
@@ -88,7 +88,7 @@ static void erase_sectors(client interface spi_interface i_spi, unsigned int ima
     unsigned int sector_address = write_address;
     do {
       spi_flash_erase(i_spi, sector_address, SECTOR_SIZE);
-      simple_printf("Erased sector %x\n", sector_address);
+      debug_printf("Erased sector %x\n", sector_address);
       sector_address += SECTOR_SIZE;
     } while(sector_address < write_address + image_size);
 }
@@ -100,12 +100,12 @@ int avb_write_upgrade_image_page(client interface spi_interface i_spi, int addre
     write_address = 0;
     write_offset = 0;
     if (get_factory_image(i_spi, &image) != 0) {
-      printstrln("No factory image!");
+      debug_printf("No factory image!\n");
       return 1;
     } else {
       if (fl_get_next_boot_image(i_spi, &image) != 0) {
         // No upgrade image exists, add one
-        printstrln("No upgrade");
+        debug_printf("No upgrade\n");
         unsigned sectorNum = fl_get_sector_at_or_after(image.startAddress + image.size);
         write_address = fl_get_sector_address(sectorNum);
 
@@ -115,7 +115,7 @@ int avb_write_upgrade_image_page(client interface spi_interface i_spi, int addre
       }
       else {
         // Replace the upgrade image
-        printstrln("Upgrade exists");
+        debug_printf("Upgrade exists\n");
         write_address = image.startAddress;
 
         erase_sectors(i_spi, image.size);

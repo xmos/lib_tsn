@@ -5,7 +5,7 @@
 #include "avb_srp_pdu.h"
 #include <string.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "xccompat.h"
 #include "avb_1722_1.h"
 #include "avb_1722_1_aecp_controls.h"
@@ -366,13 +366,11 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
       {
         *status = AECP_AEM_STATUS_SUCCESS;
         entity_acquired_status = AEM_ENTITY_NOT_ACQUIRED;
-        printstr("1722.1 Controller ");
+        debug_printf("1722.1 Controller %x%x released entity\n", acquired_controller_guid.l<<32, acquired_controller_guid.l);
         for(int i=0; i < 8; i++)
         {
-          printhex(acquired_controller_guid.c[7-i]);
           acquired_controller_guid.c[7-i] = 0;
         }
-        printstrln(" released entity");
         memset(&acquired_controller_mac, 0, 6);
       }
       else
@@ -401,14 +399,12 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
           {
             entity_acquired_status = AEM_ENTITY_ACQUIRED;
           }
-          printstr("1722.1 Controller ");
           for(int i=0; i < 8; i++)
           {
             acquired_controller_guid.c[7-i] = pkt->controller_guid[i];
             pkt->data.aem.command.acquire_entity_cmd.owner_guid[i] = acquired_controller_guid.c[7-i];
-            printhex(acquired_controller_guid.c[7-i]);
           }
-          printstrln(" acquired entity");
+          debug_printf("1722.1 Controller %x%x acquired entity\n", acquired_controller_guid.l<<32, acquired_controller_guid.l);
           memcpy(&acquired_controller_mac, &src_addr, 6);
           break;
 
@@ -786,14 +782,13 @@ void avb_1722_1_aecp_aem_periodic(chanend c_tx)
         {
           entity_acquired_status = AEM_ENTITY_ACQUIRED;
         }
-        printstr("1722.1 Controller ");
         for(int i=0; i < 8; i++)
         {
           acquired_controller_guid.c[7-i] = pending_controller_guid.c[7-i];
           //pkt->data.aem.command.acquire_entity_cmd.owner_guid[i] = acquired_controller_guid.c[7-i] = pending_controller_guid[7-i];
-          printhex(acquired_controller_guid.c[7-i]);
         }
-        printstrln(" acquired entity after timeout");
+        debug_printf("1722.1 Controller %x%x acquired entity after timeout\n", acquired_controller_guid.l<<32, acquired_controller_guid.l);
+
         memcpy(&acquired_controller_mac, &pending_controller_mac, 6);
 
         //TODO: Construct and send response to pending controller

@@ -15,7 +15,7 @@
 #include "ethernet_rx_client.h"
 #include "misc_timer.h"
 #include "print.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb_util.h"
 
 //#define GPTP_DEBUG 1
@@ -244,7 +244,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   if (new_role == PTP_SLAVE) {
 
-    simple_printf("PTP Port %d Role: Slave\n", port_num);
+    debug_printf("PTP Port %d Role: Slave\n", port_num);
 
     // Reset synotization variables
     ptp_path_delay_valid = 0;
@@ -262,7 +262,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   if (new_role == PTP_MASTER) {
 
-    simple_printf("PTP Port %d Role: Master\n", port_num);
+    debug_printf("PTP Port %d Role: Master\n", port_num);
 
     // Now we are the master so no rate matching is needed
     g_ptp_adjust = 0;
@@ -316,7 +316,7 @@ static int update_adjust(ptp_timestamp *master_ts,
 #if PTP_THROW_AWAY_SYNC_OUTLIERS
     if (master_diff > 150000000 || master_diff < 100000000) {
       prev_adjust_valid = 0;
-      simple_printf("PTP threw away Sync outlier (master_diff %d)\n", master_diff);
+      debug_printf("PTP threw away Sync outlier (master_diff %d)\n", master_diff);
       return 1;
     }
 #endif
@@ -355,7 +355,7 @@ static int update_adjust(ptp_timestamp *master_ts,
         if (diff < PTP_SYNC_LOCK_ACCEPTABLE_VARIATION) {
           sync_count++;
           if (sync_count > PTP_SYNC_LOCK_STABILITY_COUNT) {
-            printstr("PTP sync locked\n");
+            debug_printf("PTP sync locked\n");
             sync_lock = 1;
             sync_count = 0;
           }
@@ -367,7 +367,7 @@ static int update_adjust(ptp_timestamp *master_ts,
         if (diff > PTP_SYNC_LOCK_ACCEPTABLE_VARIATION) {
           sync_count++;
           if (sync_count > PTP_SYNC_LOCK_STABILITY_COUNT) {
-            printstr("PTP sync lock lost\n");
+            debug_printf("PTP sync lock lost\n");
             sync_lock = 0;
             sync_count = 0;
             prev_adjust_valid = 0;
@@ -584,7 +584,7 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
 
     {
 #if DEBUG_PRINT_ANNOUNCE
-      simple_printf("NEW BEST: %d\n", port_num);
+      debug_printf("NEW BEST: %d\n", port_num);
 #endif
       set_new_role(PTP_SLAVE, port_num, t);
       if (PTP_NUM_PORTS == 2) {
@@ -815,7 +815,7 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
   ptp_tx(c_tx, buf0, ANNOUNCE_PACKET_SIZE-(PTP_MAXIMUM_PATH_TRACE_TLV-(steps_removed_from_gm+1))*8, port_num);
 
 #if DEBUG_PRINT_ANNOUNCE
-  simple_printf("TX Announce, Port %d\n", port_num);
+  debug_printf("TX Announce, Port %d\n", port_num);
 #endif
 
    return;
@@ -884,7 +884,7 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
                port_num);
 
 #if DEBUG_PRINT
-  simple_printf("TX sync, Port %d\n", port_num);
+  debug_printf("TX sync, Port %d\n", port_num);
 #endif
 
   // Send Follow_Up message
@@ -917,7 +917,7 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   ptp_tx(c_tx, buf0, FOLLOWUP_PACKET_SIZE, port_num);
 
 #if DEBUG_PRINT
-  simple_printf("TX sync follow up, Port %d\n", port_num);
+  debug_printf("TX sync follow up, Port %d\n", port_num);
 #endif
 
   return;
@@ -981,7 +981,7 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
   pdelay_request_sent = 1;
 
 #if DEBUG_PRINT
-  simple_printf("TX Pdelay req, Port %d\n", port_num);
+  debug_printf("TX Pdelay req, Port %d\n", port_num);
 #endif
 
   return;
@@ -1072,7 +1072,7 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
 
   ptp_tx_timed(c_tx,  buf0, PDELAY_RESP_PACKET_SIZE, &local_resp_ts, port_num);
 #if DEBUG_PRINT
-  simple_printf("TX Pdelay resp, Port %d\n", port_num);
+  debug_printf("TX Pdelay resp, Port %d\n", port_num);
 #endif
 
   /* Now send the follow up */
@@ -1087,7 +1087,7 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
 
   ptp_tx(c_tx, buf0, PDELAY_RESP_PACKET_SIZE, port_num);
 #if DEBUG_PRINT
-  simple_printf("TX Pdelay resp follow up, Port %d\n", port_num);
+  debug_printf("TX Pdelay resp follow up, Port %d\n", port_num);
 #endif
 
   return;
@@ -1123,7 +1123,7 @@ void ptp_recv(chanend c_tx,
         AnnounceMessage *announce_msg = (AnnounceMessage *) (msg + 1);
 
 #if DEBUG_PRINT_ANNOUNCE
-      simple_printf("RX Announce, Port %d\n", src_port);
+      debug_printf("RX Announce, Port %d\n", src_port);
 #endif
 
       bmca_update_roles((char *) msg, local_ingress_ts, src_port);
@@ -1144,7 +1144,7 @@ void ptp_recv(chanend c_tx,
         received_sync_id = ntoh16(msg->sequenceId);
         received_sync_ts = local_ingress_ts;
 #if DEBUG_PRINT
-        simple_printf("RX Sync, Port %d\n", src_port);
+        debug_printf("RX Sync, Port %d\n", src_port);
 #endif
       }
       break;
@@ -1168,7 +1168,7 @@ void ptp_recv(chanend c_tx,
           update_reference_timestamps(&master_egress_ts, received_sync_ts);
         }
 #if DEBUG_PRINT
-        simple_printf("RX Follow Up, Port %d\n", src_port);
+        debug_printf("RX Follow Up, Port %d\n", src_port);
 #endif
       received_sync = 2;
       }
@@ -1179,7 +1179,7 @@ void ptp_recv(chanend c_tx,
       break;
     case PTP_PDELAY_REQ_MESG:
 #if DEBUG_PRINT
-      simple_printf("RX Pdelay req, Port %d\n", src_port);
+      debug_printf("RX Pdelay req, Port %d\n", src_port);
 #endif
       send_ptp_pdelay_resp_msg(c_tx, (char *) msg, local_ingress_ts, src_port);
       break;
@@ -1195,7 +1195,7 @@ void ptp_recv(chanend c_tx,
           network_to_ptp_timestamp(&pdelay_request_receipt_ts,
                                    &resp_msg->requestReceiptTimestamp);
 #if DEBUG_PRINT
-          simple_printf("RX Pdelay resp, Port %d\n", src_port);
+          debug_printf("RX Pdelay resp, Port %d\n", src_port);
 #endif
         }
         pdelay_request_sent = 0;
@@ -1216,7 +1216,7 @@ void ptp_recv(chanend c_tx,
                             pdelay_request_sent_ts,
                             pdelay_resp_ingress_ts);
 #if DEBUG_PRINT
-          simple_printf("RX Pdelay resp follow up, Port %d\n", src_port);
+          debug_printf("RX Pdelay resp follow up, Port %d\n", src_port);
 #endif
 
         }
@@ -1285,7 +1285,7 @@ void ptp_periodic(chanend c_tx, unsigned t)
         last_received_announce_time[i] = t;
         last_announce_time[i] = t - ANNOUNCE_PERIOD - 1;
 #if DEBUG_PRINT_ANNOUNCE
-        simple_printf("RX Announce timeout, Port %d\n", i);
+        debug_printf("RX Announce timeout, Port %d\n", i);
 #endif
       }
       else

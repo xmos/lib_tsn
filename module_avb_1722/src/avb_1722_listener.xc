@@ -19,7 +19,7 @@
 #include "avb_unit.h"
 #include "mac_filter.h"
 #include "avb_conf.h"
- #include <simple_printf.h>
+ #include <debug_print.h>
 
 #define TIMEINFO_UPDATE_INTERVAL 50000000
 

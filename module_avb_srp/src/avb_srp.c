@@ -10,7 +10,7 @@
 #include <print.h>
 #include "avb_control_types.h"
 #include "stdlib.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb_1722_router.h"
 #include "avb_api.h"
 #include "ethernet_tx_client.h"
@@ -75,14 +75,14 @@ static int srp_calculate_stream_bandwidth(int max_frame_size, int extra_byte) {
 static void srp_increase_port_bandwidth(int max_frame_size, int extra_byte, int port) {
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] += stream_bandwidth_bps;
-  simple_printf("Increasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
+  debug_printf("Increasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
   mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
 }
 
 static void srp_decrease_port_bandwidth(int max_frame_size, int extra_byte, int port) {
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] -= stream_bandwidth_bps;
-   simple_printf("Decreasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
+   debug_printf("Decreasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
   if (port_bandwidth[port] < 0) __builtin_trap();
   mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
 }
@@ -131,9 +131,9 @@ avb_stream_entry *srp_add_reservation_entry_stream_id_only(unsigned int stream_i
     stream_table[entry].reservation.stream_id[0] = stream_id[0];
     stream_table[entry].reservation.stream_id[1] = stream_id[1];
     stream_table[entry].listener_present = 1;
-    simple_printf("Added stream:\n ID: %x%x\n", stream_id[0], stream_id[1]);
+    debug_printf("Added stream:\n ID: %x%x\n", stream_id[0], stream_id[1]);
   } else {
-    printstrln("Assert: Out of stream entries");
+    debug_printf("Assert: Out of stream entries\n");
     __builtin_trap();
     return NULL;
   }
@@ -146,17 +146,17 @@ avb_stream_entry *srp_add_reservation_entry(avb_srp_info_t *reservation) {
 
   if (entry >= 0) {
     memcpy(&stream_table[entry].reservation, reservation, sizeof(avb_srp_info_t));
-    simple_printf("Added stream:\n ID: %x%x\n DA:", reservation->stream_id[0], reservation->stream_id[1]);
+    debug_printf("Added stream:\n ID: %x%x\n DA:", reservation->stream_id[0], reservation->stream_id[1]);
     for (int i=0; i < 6; i++) {
       printhex(stream_table[entry].reservation.dest_mac_addr[i]); printchar(':');
     }
-    simple_printf("\n max size: %d\n interval: %d\n",
+    debug_printf("\n max size: %d\n interval: %d\n",
                 stream_table[entry].reservation.tspec_max_frame_size,
                 stream_table[entry].reservation.tspec_max_interval
                 );
     stream_table[entry].talker_present = 1;
   } else {
-    printstrln("Assert: Out of stream entries");
+    debug_printf("Assert: Out of stream entries\n");
     // __builtin_trap();
     return NULL;
   }
@@ -168,13 +168,13 @@ void srp_remove_reservation_entry(avb_srp_info_t *reservation) {
   int entry = srp_match_reservation_entry_by_id(reservation->stream_id);
 
   if (entry >= 0) {
-    simple_printf("Removed stream:\n ID: %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
+    debug_printf("Removed stream:\n ID: %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
     if (stream_table[entry].reservation.stream_id[0] < 10 && stream_table[entry].reservation.stream_id[1] < 5) {
       __builtin_trap();
     }
     memset(&stream_table[entry], 0x00, sizeof(avb_stream_entry));
   } else {
-    simple_printf("Assert: Tried to remove a reservation that isn't stored: %x%d", reservation->stream_id[0], reservation->stream_id[1]);
+    debug_printf("Assert: Tried to remove a reservation that isn't stored: %x%d", reservation->stream_id[0], reservation->stream_id[1]);
     __builtin_trap();
   }
 }
@@ -205,7 +205,7 @@ static void create_propagated_attribute_and_join(mrp_attribute_state *attr, int 
   avb_srp_info_t *stream_data = attr->attribute_info;
   mrp_attribute_init(st, attr->attribute_type, !attr->port_num, 0, stream_data);
 #if 0
-  simple_printf("JOIN mrp_attribute_init: %d, %d, STREAM_ID[0]: %x\n", attr->attribute_type, !attr->port_num, stream_data->stream_id[0]);
+  debug_printf("JOIN mrp_attribute_init: %d, %d, STREAM_ID[0]: %x\n", attr->attribute_type, !attr->port_num, stream_data->stream_id[0]);
 #endif
   mrp_mad_begin(st);
   mrp_mad_join(st, new);
@@ -225,7 +225,7 @@ static void avb_srp_map_join(mrp_attribute_state *attr, int new, int listener)
   mrp_attribute_state *matched_stream_id_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1);
 
 #if 0
-  simple_printf("matched_talker_listener: %d(here:%d, prop:%d, new:%d), matched_stream_id_opposite_port: %d\n", matched_talker_listener,
+  debug_printf("matched_talker_listener: %d(here:%d, prop:%d, new:%d), matched_stream_id_opposite_port: %d\n", matched_talker_listener,
    matched_talker_listener ? matched_talker_listener->propagated : 0, matched_talker_listener ? matched_talker_listener->here : 0, new, matched_stream_id_opposite_port);
 #endif
   // Attribute propagation:
@@ -733,7 +733,7 @@ static int encode_listener_message(char *buf,
       int port_to_transmit = st->port_num;
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        simple_printf("Port %d out: MSRP_LISTENER, stream %x:%x\n", port_to_transmit, streamId[0], streamId[1]);
+        debug_printf("Port %d out: MSRP_LISTENER, stream %x:%x\n", port_to_transmit, streamId[0], streamId[1]);
       }
 
     }
@@ -907,7 +907,7 @@ static int encode_talker_message(char *buf,
       int port_to_transmit = st->port_num;
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        simple_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", port_to_transmit, attribute_info->stream_id[0], attribute_info->stream_id[1]);
+        debug_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", port_to_transmit, attribute_info->stream_id[0], attribute_info->stream_id[1]);
       }
 
       hton_16(first_value->VlanID, attribute_info->vlan_id);

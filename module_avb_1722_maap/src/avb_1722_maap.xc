@@ -143,8 +143,7 @@ void avb_1722_maap_request_addresses(int num_addr, char (&?start_address)[])
 
   timeout_val = MAAP_PROBE_INTERVAL_BASE_CS+(maap_addr.base[5]&7);
 #if AVB_DEBUG_MAAP
-  printstr("MAAP: Set probe interval ");
-  printintln(timeout_val*10);
+  debug_printf("MAAP: Set probe interval %d\n", timeout_val*10)
 #endif
   start_avb_timer(maap_timer, timeout_val);
 }
@@ -195,8 +194,7 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
         maap_addr.immediately = 1;
         timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (maap_addr.base[5]&0x1F);
       #if AVB_DEBUG_MAAP
-        printstr("MAAP: Set announce interval ");
-        printintln(timeout_val*10);
+        debug_printf("MAAP: Set announce interval %d\n", timeout_val*10);
       #endif
 
         init_avb_timer(maap_timer, MAAP_ANNOUNCE_INTERVAL_MULTIPLIER);
@@ -283,10 +281,8 @@ static int maap_conflict(unsigned char remote_addr[6], int remote_count, unsigne
   conflict_hi = conflict_lo + remote_count;
 
 #if AVB_DEBUG_MAAP
-  printstr("my_addr_lo: "); printintln(my_addr_lo);
-  printstr("my_addr_hi: "); printintln(my_addr_hi);
-  printstr("conflict_lo: "); printintln(conflict_lo);
-  printstr("conflict_hi: "); printintln(conflict_hi);
+  debug_printf("my_addr_lo: %d, my_addr_hi: %d, conflict_lo: %d, conflict_hi: %d\n",
+    my_addr_lo, my_addr_hi, conflict_lo, conflict_hi);
 #endif
 
   // We need to find the "first allocated address that conflicts with the requested address range"
@@ -372,12 +368,12 @@ void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes
   {
   case MAAP_PROBE:
   #if AVB_DEBUG_MAAP
-    printstrln("MAAP: Rx probe");
+    debug_printf("MAAP: Rx probe\n");
   #endif
     if (maap_conflict(test_addr, test_count, conflict_addr, conflict_count))
     {
     #if AVB_DEBUG_MAAP
-      printstrln("MAAP: Conflict");
+      debug_printf("MAAP: Conflict\n");
     #endif
       if (maap_addr.state == MAAP_PROBING)
       {
@@ -398,7 +394,7 @@ void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes
                                   conflict_count);
         mac_tx(c_tx, maap_buf, len, -1);
       #if AVB_DEBUG_MAAP
-        printstrln("MAAP: Tx defend");
+        debug_printf("MAAP: Tx defend\n");
       #endif
       }
     }
@@ -406,7 +402,7 @@ void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes
 #pragma fallthrough
   case MAAP_DEFEND:
   #if AVB_DEBUG_MAAP
-    printstrln("MAAP: Rx defend");
+    debug_printf("MAAP: Rx defend\n");
   #endif
     test_addr = &maap_pkt->conflict_start_address[0];
     test_count = GET_MAAP_CONFLICT_COUNT(maap_pkt);

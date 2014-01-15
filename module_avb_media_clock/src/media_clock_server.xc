@@ -8,7 +8,7 @@
 #include "media_clock_server.h"
 #include "media_clock_internal.h"
 #include "media_output_fifo.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb_media_clock_def.h"
 #include "gptp.h"
 #include "avb_control_types.h"
@@ -195,14 +195,14 @@ static void manage_buffer(buf_info_t &b,
       if (fill - sample_diff > max_adjust ||
           fill - sample_diff < -max_adjust) {
 #ifdef DEBUG_MEDIA_CLOCK
-    	simple_printf("Media output %d compensation too large: %d samples\n", index, sample_diff);
+    	debug_printf("Media output %d compensation too large: %d samples\n", index, sample_diff);
 #endif
         buf_ctl <: b.fifo;
         buf_ctl <: BUF_CTL_RESET;
         inct(buf_ctl);
       } else {
 #ifdef DEBUG_MEDIA_CLOCK
-        simple_printf("Media output %d locked: %d samples shorter\n", index, sample_diff);
+        debug_printf("Media output %d locked: %d samples shorter\n", index, sample_diff);
 #endif
         inform_media_clocks_of_lock(index);
         b.lock_count = 0;
@@ -218,7 +218,7 @@ static void manage_buffer(buf_info_t &b,
             fill < MIN_FILL_LEVEL))
   {
 #ifdef DEBUG_MEDIA_CLOCK
-      simple_printf("Media output %d lost lock\n", index);
+      debug_printf("Media output %d lost lock\n", index);
 #endif
       buf_ctl <: b.fifo;
       buf_ctl <: BUF_CTL_RESET;
@@ -502,9 +502,9 @@ void media_clock_server(chanend media_clock_ctl,
               media_clock_ctl :> type;
               }
               media_clocks[media_clock_num].clock_type = type;
-              printstr("Setting clock source: ");
-              if (type) printstrln("LOCAL_CLOCK");
-              else printstrln("INPUT_STREAM_DERIVED");
+              char clksrc_str[] = "Setting clock source:";
+              if (type) debug_printf("%s LOCAL_CLOCK\n", clksrc_str);
+              else debug_printf("%s INPUT_STREAM_DERIVED\n", clksrc_str);
             }
             break;
           case MEDIA_CLOCK_GET_TYPE:

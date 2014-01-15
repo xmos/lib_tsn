@@ -9,7 +9,7 @@
 #include "ethernet_tx_client.h"
 #include <string.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb_mrp_debug_strings.h"
 
 
@@ -77,7 +77,7 @@ void debug_print_applicant_state_change(mrp_attribute_state *st, mrp_event event
         stream_id[1] = sink_info->reservation.stream_id[1];
       }
 
-    simple_printf("AP: %s %x:%d:%d:%d\t %s: %s -> %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_mrp_event[(event)], debug_mrp_applicant_state[(st)->applicant_state], debug_mrp_applicant_state[new]);
+    debug_printf("AP: %s %x:%d:%d:%d\t %s: %s -> %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_mrp_event[(event)], debug_mrp_applicant_state[(st)->applicant_state], debug_mrp_applicant_state[new]);
   }
 }
 
@@ -91,7 +91,7 @@ void debug_print_registrar_state_change(mrp_attribute_state *st, mrp_event event
       stream_id[0] = sink_info->reservation.stream_id[0];
       stream_id[1] = sink_info->reservation.stream_id[1];
     }
-    simple_printf("RG: %s %x:%d:%d:%d\t %s: %s -> %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_mrp_event[(event)], debug_mrp_registrar_state[(st)->registrar_state], debug_mrp_registrar_state[new]);
+    debug_printf("RG: %s %x:%d:%d:%d\t %s: %s -> %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_mrp_event[(event)], debug_mrp_registrar_state[(st)->registrar_state], debug_mrp_registrar_state[new]);
   }
 }
 
@@ -105,7 +105,7 @@ void debug_print_tx_event(mrp_attribute_state *st, mrp_event event)
       stream_id[0] = sink_info->reservation.stream_id[0];
       stream_id[1] = sink_info->reservation.stream_id[1];
     }
-    simple_printf("TX: %s %x:%d:%d:%d\t %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_attribute_event[(event)]);
+    debug_printf("TX: %s %x:%d:%d:%d\t %s \n", debug_attribute_type[(st)->attribute_type], stream_id[1], st->port_num, st->here, st->propagated, debug_attribute_event[(event)]);
   }
 }
 
@@ -470,7 +470,7 @@ static void doTx(mrp_attribute_state *st,
         stream_id[0] = sink_info->reservation.stream_id[0];
         stream_id[1] = sink_info->reservation.stream_id[1];
       }
-      simple_printf("Port %d out: %s %s, stream %x:%x\n", port_to_transmit, debug_attribute_type[(st)->attribute_type], debug_attribute_event[(vector)], stream_id[0], stream_id[1]);
+      debug_printf("Port %d out: %s %s, stream %x:%x\n", port_to_transmit, debug_attribute_type[(st)->attribute_type], debug_attribute_event[(vector)], stream_id[0], stream_id[1]);
     }
   }
   send(c_mac_tx, port_to_transmit);
@@ -749,8 +749,8 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
 void mrp_debug_dump_attrs(void)
 {
 #if 0
-  printstrln("port_num | type                   | disabled | here | propagated | stream_id");
-  printstrln("---------+------------------------+----------+------+------------+----------");
+  debug_printf("port_num | type                   | disabled | here | propagated | stream_id\n \
+                ---------+------------------------+----------+------+------------+----------\n");
   for (int i=0;i<MRP_MAX_ATTRS;i++) {
 
     if (attrs[i].applicant_state != MRP_UNUSED) {
@@ -767,7 +767,7 @@ void mrp_debug_dump_attrs(void)
       attr_string[23] = '\0';
       strncpy(attr_string, debug_attribute_type[attrs[i].attribute_type],strlen(debug_attribute_type[attrs[i].attribute_type]));
 
-      simple_printf("%d        | %s| %d        | %d    | %d          | %x:%x\n",
+      debug_printf("%d        | %s| %d        | %d    | %d          | %x:%x\n",
         attrs[i].port_num, attr_string, attrs[i].applicant_state == MRP_DISABLED, attrs[i].here, attrs[i].propagated, stream_id[0], stream_id[1]);
 
     }
@@ -800,8 +800,8 @@ void mrp_mad_begin(mrp_attribute_state *st)
 void mrp_mad_join(mrp_attribute_state *st, int new)
 {
 #if MRP_DEBUG_STATE_CHANGE
-  if (st->attribute_type == MSRP_LISTENER) printstr("Listener MAD_Join");
-  else if (st->attribute_type == MSRP_TALKER_ADVERTISE) printstr("Talker MAD_Join");
+  if (st->attribute_type == MSRP_LISTENER) debug_printf("Listener MAD_Join\n");
+  else if (st->attribute_type == MSRP_TALKER_ADVERTISE) debug_printf("Talker MAD_Join\n");
 
 
   if (st->attribute_type == MSRP_LISTENER || st->attribute_type == MSRP_TALKER_ADVERTISE) {
@@ -812,7 +812,7 @@ void mrp_mad_join(mrp_attribute_state *st, int new)
       stream_id[0] = sink_info->reservation.stream_id[0];
       stream_id[1] = sink_info->reservation.stream_id[1];
     }
-    simple_printf(" %x:%x, Port:%d, Here:%d, propagated:%d\n", stream_id[0], stream_id[1], st->port_num, st->here, st->propagated);
+    debug_printf(" %x:%x, Port:%d, Here:%d, propagated:%d\n", stream_id[0], stream_id[1], st->port_num, st->here, st->propagated);
   }
 #endif
 
@@ -825,8 +825,8 @@ void mrp_mad_join(mrp_attribute_state *st, int new)
 
 void mrp_mad_leave(mrp_attribute_state *st)
 {
-  if (st->attribute_type == MSRP_LISTENER) printstrln("Listener MAD_Leave");
-  else if (st->attribute_type == MSRP_TALKER_ADVERTISE) printstrln("Talker MAD_Leave");
+  if (st->attribute_type == MSRP_LISTENER) debug_printf("Listener MAD_Leave\n");
+  else if (st->attribute_type == MSRP_TALKER_ADVERTISE) debug_printf("Talker MAD_Leave\n");
   mrp_update_state(MRP_EVENT_LV, st, 0, st->port_num);
 }
 
@@ -1391,8 +1391,8 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
 
         if (MRP_DEBUG_ATTR_INGRESS)
         {
-          if (attr_type == MSRP_LISTENER) simple_printf("Port %d in: MSRP_LISTENER\n", port_num);
-          if (attr_type == MSRP_TALKER_ADVERTISE) simple_printf("Port %d in: MSRP_TALKER_ADVERTISE\n", port_num);
+          if (attr_type == MSRP_LISTENER) debug_printf("Port %d in: MSRP_LISTENER\n", port_num);
+          if (attr_type == MSRP_TALKER_ADVERTISE) debug_printf("Port %d in: MSRP_TALKER_ADVERTISE\n", port_num);
         }
 
         // This allows the application state machines to respond to the message

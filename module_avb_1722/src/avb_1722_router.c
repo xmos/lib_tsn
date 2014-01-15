@@ -7,7 +7,7 @@
 #include "avb_1722_router.h"
 #include "avb_1722_router_table.h"
 #include "print.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "ethernet_tx_client.h"
 static chanend avb_1722_links[MAX_AVB_1722_ROUTER_LINKS];
 
@@ -61,7 +61,7 @@ void avb_1722_enable_stream_forwarding(chanend c_tx,
   keys_from_stream_id(stream_id, &key0, &key1);
 
   if (DEBUG_1722_ROUTER) {
-    simple_printf("1722 router: Enabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
+    debug_printf("1722 router: Enabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
   mac_1722_router_enable_forwarding(c_tx, key0, key1);
@@ -73,7 +73,7 @@ void avb_1722_disable_stream_forwarding(chanend c_tx,
   keys_from_stream_id(stream_id, &key0, &key1);
 
   if (DEBUG_1722_ROUTER) {
-    simple_printf("1722 router: Disabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
+    debug_printf("1722 router: Disabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
   mac_1722_router_disable_forwarding(c_tx, key0, key1);
@@ -87,7 +87,7 @@ void avb_1722_add_stream_mapping(chanend c_tx,
   keys_from_stream_id(stream_id, &key0, &key1);
 
   if (DEBUG_1722_ROUTER) {
-    simple_printf("1722 router: Enabled map for stream %x%x (link_num:%x, hash:%x)\n", stream_id[0], stream_id[1], link_num, avb_hash);
+    debug_printf("1722 router: Enabled map for stream %x%x (link_num:%x, hash:%x)\n", stream_id[0], stream_id[1], link_num, avb_hash);
   }
 
   mac_1722_update_router(c_tx, AVB_1722_ROUTER_UPDATE, key0, key1,
@@ -104,7 +104,7 @@ void avb_1722_remove_stream_mapping(chanend c_tx,
   keys_from_stream_id(stream_id, &key0, &key1);
 
   if (DEBUG_1722_ROUTER) {
-    simple_printf("1722 router: Disabled map for stream %x%x\n", stream_id[0], stream_id[1]);
+    debug_printf("1722 router: Disabled map for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
   mac_1722_update_router(c_tx, AVB_1722_ROUTER_UPDATE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);
@@ -118,7 +118,7 @@ void avb_1722_remove_stream_from_table(chanend c_tx,
   keys_from_stream_id(stream_id, &key0, &key1);
 
   if (DEBUG_1722_ROUTER) {
-    simple_printf("1722 router: Removed entry for stream %x%x\n", stream_id[0], stream_id[1]);
+    debug_printf("1722 router: Removed entry for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
   mac_1722_update_router(c_tx, AVB_1722_ROUTER_REMOVE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);

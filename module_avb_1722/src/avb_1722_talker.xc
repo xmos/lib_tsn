@@ -18,7 +18,7 @@
 #include "avb_srp.h"
 #include "avb_unit.h"
 #include "avb_conf.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 
 #if AVB_NUM_SOURCES != 0
 
@@ -187,7 +187,7 @@ void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
       int stream_num;
       c_talker_ctl :> stream_num;
       c_talker_ctl :> st.talker_streams[stream_num].txport;
-      simple_printf("Setting stream %d 1722 TX port to %d\n", stream_num, st.talker_streams[stream_num].txport);
+      debug_printf("Setting stream %d 1722 TX port to %d\n", stream_num, st.talker_streams[stream_num].txport);
       break;
     }
     case AVB1722_SET_VLAN:

@@ -77,7 +77,7 @@ int media_input_fifo_enable(media_input_fifo_t media_input_fifo0,
 	   case 96000:	packetSize = 16; break;
 	   case 176400:	packetSize = 32; break;
 	   case 192000:	packetSize = 32; break;
-	   default: printstrln("ERROR: Invalid sample rate"); break;
+	   default: __builtin_trap(); break;
   }
 #else
   packetSize = ((rate+(AVB1722_PACKET_RATE-1))/AVB1722_PACKET_RATE);

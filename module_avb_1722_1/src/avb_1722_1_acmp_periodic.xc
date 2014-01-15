@@ -3,7 +3,7 @@
 #include "avb_1722_common.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_acmp.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
 #include "avb_1722_1_acmp_debug.h"
 #endif
@@ -159,7 +159,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
                 acmp_controller_inflight_commands[i].in_use = 0;
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                simple_printf("ACMP Controller: Removed inflight %s with timed out retry - seq id: %d\n",
+                debug_printf("ACMP Controller: Removed inflight %s with timed out retry - seq id: %d\n",
                         debug_acmp_message_s[acmp_controller_inflight_commands[i].command.message_type],
                         acmp_controller_inflight_commands[i].original_sequence_id);
 #endif
@@ -170,7 +170,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
                                         &acmp_controller_inflight_commands[i].command, TRUE, i, c_tx);
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                simple_printf("ACMP Controller: Sent retry for timed out %s - seq id: %d\n",
+                debug_printf("ACMP Controller: Sent retry for timed out %s - seq id: %d\n",
                         debug_acmp_message_s[acmp_controller_inflight_commands[i].command.message_type],
                         acmp_controller_inflight_commands[i].original_sequence_id);
 #endif
@@ -206,7 +206,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
             avb_1722_1_acmp_inflight_command *inflight = acmp_remove_inflight(CONTROLLER);
             if (inflight)
             {
-                simple_printf("ACMP Controller: Removed inflight %s with response %s - seq id: %d\n",
+                debug_printf("ACMP Controller: Removed inflight %s with response %s - seq id: %d\n",
                 debug_acmp_message_s[inflight->command.message_type],
                 debug_acmp_status_s[inflight->command.status],
                 inflight->original_sequence_id);
@@ -395,7 +395,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                         acmp_listener_rcvd_cmd_resp.sequence_id = inflight->original_sequence_id; // FIXME: This is a bit messy
 
     #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                        simple_printf("ACMP Listener: Removed inflight CONNECT_TX_COMMAND with response %s - seq id: %d\n",
+                        debug_printf("ACMP Listener: Removed inflight CONNECT_TX_COMMAND with response %s - seq id: %d\n",
                                 debug_acmp_status_s[inflight->command.status],
                                 inflight->command.sequence_id);
     #endif
@@ -439,7 +439,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                         acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
 
         #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                        simple_printf("ACMP Listener: Removed inflight %d DISCONNECT_TX_COMMAND with response %s - seq id: %d\n",
+                        debug_printf("ACMP Listener: Removed inflight %d DISCONNECT_TX_COMMAND with response %s - seq id: %d\n",
                                 (int)inflight,
                                 debug_acmp_status_s[inflight->command.status],
                                 inflight->command.sequence_id);
@@ -487,7 +487,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                 inflight->in_use = 0;
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                simple_printf("ACMP Listener: Removed inflight %d %s with timed out retry - seq id: %d\n",
+                debug_printf("ACMP Listener: Removed inflight %d %s with timed out retry - seq id: %d\n",
                         (int)inflight,
                         debug_acmp_message_s[inflight->command.message_type],
                         inflight->command.sequence_id);
@@ -500,7 +500,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                 acmp_send_command(LISTENER, message_type, &inflight->command, TRUE, i, c_tx);
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-                simple_printf("ACMP Listener:  Sent retry for timed out %d %s - seq id: %d\n",
+                debug_printf("ACMP Listener:  Sent retry for timed out %d %s - seq id: %d\n",
                         (int)inflight,
                         debug_acmp_message_s[inflight->command.message_type],
                         inflight->command.sequence_id);

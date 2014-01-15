@@ -1,6 +1,6 @@
 #include <xccompat.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb.h"
 #include "avb_conf.h"
 #include "avb_1722_common.h"
@@ -14,7 +14,7 @@ void __attribute__((weak)) avb_talker_on_source_address_reserved(int source_num,
   enum avb_source_state_t state;
   get_avb_source_state(source_num, &state);
   // Do some debug print
-  simple_printf("MAAP reserved Talker stream #%d address: %x:%x:%x:%x:%x:%x\n", source_num,
+  debug_printf("MAAP reserved Talker stream #%d address: %x:%x:%x:%x:%x:%x\n", source_num,
                             mac_addr[0],
                             mac_addr[1],
                             mac_addr[2],

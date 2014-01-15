@@ -1,6 +1,6 @@
 #include <xccompat.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb.h"
 #include "avb_conf.h"
 #include "avb_1722_common.h"
@@ -28,7 +28,7 @@ void __attribute__((weak)) avb_talker_on_listener_connect(client interface avb_i
   avb.get_source_state(source_num, state);
   avb.get_source_id(source_num, stream_id);
 
-  simple_printf("CONNECTING Talker stream #%d (%x%x) -> Listener ", source_num, stream_id[0], stream_id[1]); print_guid_ln(listener_guid);
+  debug_printf("CONNECTING Talker stream #%d (%x%x) -> Listener ", source_num, stream_id[0], stream_id[1]); print_guid_ln(listener_guid);
 
   // If this is the first listener to connect to this talker stream, we do a stream registration
   // to reserve the necessary bandwidth on the network
@@ -48,7 +48,7 @@ void __attribute__((weak)) avb_talker_on_listener_disconnect(client interface av
   avb.get_source_state(source_num, state);
   avb.get_source_id(source_num, stream_id);
 
-  simple_printf("DISCONNECTING Talker stream #%d (%x%x) -> Listener ", source_num, stream_id[0], stream_id[1]); print_guid_ln(listener_guid);
+  debug_printf("DISCONNECTING Talker stream #%d (%x%x) -> Listener ", source_num, stream_id[0], stream_id[1]); print_guid_ln(listener_guid);
 
   if ((state > AVB_SOURCE_STATE_DISABLED) && (connection_count == 0))
   {
@@ -62,7 +62,7 @@ avb_1722_1_acmp_status_t __attribute__((weak)) avb_listener_on_talker_connect(cl
   int map[AVB_NUM_MEDIA_OUTPUTS];
   for (int i = 0; i < AVB_NUM_MEDIA_OUTPUTS; i++) map[i] = i;
 
-  simple_printf("CONNECTING Listener sink #%d -> Talker stream %x%x, DA: ", sink_num, stream_id[0], stream_id[1]); print_mac_ln(dest_addr);
+  debug_printf("CONNECTING Listener sink #%d -> Talker stream %x%x, DA: ", sink_num, stream_id[0], stream_id[1]); print_mac_ln(dest_addr);
 
   avb.set_sink_sync(sink_num, 0);
   avb.set_sink_channels(sink_num, AVB_NUM_MEDIA_OUTPUTS);
@@ -78,7 +78,7 @@ avb_1722_1_acmp_status_t __attribute__((weak)) avb_listener_on_talker_connect(cl
 /* The controller has indicated to disconnect this listener sink from a talker stream */
 void __attribute__((weak)) avb_listener_on_talker_disconnect(client interface avb_interface avb, int sink_num, const_guid_ref_t talker_guid, unsigned char dest_addr[6], unsigned int stream_id[2], const_guid_ref_t my_guid)
 {
-  simple_printf("DISCONNECTING Listener sink #%d -> Talker stream %x%x, DA: ", sink_num, stream_id[0], stream_id[1]); print_mac_ln(dest_addr);
+  debug_printf("DISCONNECTING Listener sink #%d -> Talker stream %x%x, DA: ", sink_num, stream_id[0], stream_id[1]); print_mac_ln(dest_addr);
 
   avb.set_sink_state(sink_num, AVB_SINK_STATE_DISABLED);
 }

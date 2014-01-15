@@ -1,4 +1,4 @@
-#include <print.h>
+#include <debug_print.h>
 #include "avb.h"
 #include "avb_api.h"
 #include "avb_mrp.h"
@@ -60,7 +60,7 @@ void avb_srp_task(client interface avb_interface i_avb,
       case i_srp.register_stream_request(avb_srp_info_t stream_info):
       {
         avb_srp_info_t local_stream_info = stream_info;
-        printstrln("REGISTER STREAM REQUEST");
+        debug_printf("REGISTER STREAM REQUEST\n");
         avb_srp_create_and_join_talker_advertise_attrs(&local_stream_info);
         break;
       }
@@ -69,7 +69,7 @@ void avb_srp_task(client interface avb_interface i_avb,
          unsigned int local_stream_id[2];
         local_stream_id[0] = stream_id[0];
         local_stream_id[1] = stream_id[1];
-        printstrln("DEREGISTER STREAM REQUEST");
+        debug_printf("DEREGISTER STREAM REQUEST\n");
         avb_srp_leave_talker_attrs(local_stream_id);
         break;
       }
@@ -79,7 +79,7 @@ void avb_srp_task(client interface avb_interface i_avb,
         local_stream_id[0] = stream_id[0];
         local_stream_id[1] = stream_id[1];
         avb_srp_join_listener_attrs(local_stream_id);
-        printstrln("REGISTER ATTACH REQUEST");
+        debug_printf("REGISTER ATTACH REQUEST\n");
         break;
       }
       case i_srp.deregister_attach_request(unsigned stream_id[2]):
@@ -88,7 +88,7 @@ void avb_srp_task(client interface avb_interface i_avb,
         local_stream_id[0] = stream_id[0];
         local_stream_id[1] = stream_id[1];
         avb_srp_leave_listener_attrs(local_stream_id);
-        printstrln("DEREGISTER ATTACH REQUEST");
+        debug_printf("DEREGISTER ATTACH REQUEST\n");
         break;
       }
     }

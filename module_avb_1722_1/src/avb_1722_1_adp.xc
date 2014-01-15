@@ -7,7 +7,7 @@
 #include <string.h>
 #include "xccompat.h"
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "avb_1722_1_app_hooks.h"
 #include "avb_1722_1.h"
 

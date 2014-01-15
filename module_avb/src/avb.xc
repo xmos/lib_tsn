@@ -8,7 +8,7 @@
 #include "avb_control_types.h"
 #include "avb_media_clock.h"
 #include <string.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include <print.h>
 #include "ethernet_tx_client.h"
 #include "ethernet_rx_client.h"
@@ -174,7 +174,7 @@ static void set_sink_state0(unsigned sink_num,
         state == AVB_SINK_STATE_POTENTIAL) {
 
       chanend *unsafe clk_ctl = outputs[sink->map[0]].clk_ctl;
-      simple_printf("Listener sink #%d chan map:\n", sink_num);
+      debug_printf("Listener sink #%d chan map:\n", sink_num);
       master {
         *c <: AVB1722_CONFIGURE_LISTENER_STREAM;
         *c <: (int)sink->stream.local_id;
@@ -185,11 +185,11 @@ static void set_sink_state0(unsigned sink_num,
         for (int i=0;i<sink->stream.num_channels;i++) {
           if (sink->map[i] == AVB_CHANNEL_UNMAPPED) {
             *c <: 0;
-            simple_printf("  %d unmapped\n", i);
+            debug_printf("  %d unmapped\n", i);
           }
           else {
             *c <: outputs[sink->map[i]].fifo;
-            simple_printf("  %d -> %x\n", i, sink->map[i]);
+            debug_printf("  %d -> %x\n", i, sink->map[i]);
           }
         }
       }
@@ -258,7 +258,7 @@ static void local_set_source_state(unsigned source_num,
                                   chanend ?c_media_clock_ctl,
                                   client interface srp_interface i_srp) {
   unsafe {
-    char stream_string[] = "Talker stream ";
+    char stream_string[] = "Talker stream";
     avb_source_info_t *source = &sources[source_num];
     chanend *unsafe c = source->talker_ctl;
     if (source->stream.state == AVB_SOURCE_STATE_DISABLED &&
@@ -332,10 +332,10 @@ static void local_set_source_state(unsigned source_num,
           *c <: AVB1722_TALKER_GO;
           *c <: (int)source->stream.local_id;
 
-          printstr(stream_string); simple_printf("#%d on\n", source_num);
+          debug_printf("%s #%d on\n", stream_string, source_num);
         }
     #else
-        printstr(stream_string); simple_printf("#%d ready\n", source_num);
+        debug_printf("%s #%d ready\n", stream_string, source_num);
     #endif
 
       }
@@ -349,13 +349,13 @@ static void local_set_source_state(unsigned source_num,
           *c <: (int)source->stream.local_id;
         }
 
-        printstr(stream_string); simple_printf("#%d off\n", source_num);
+        debug_printf("%s #%d off\n", stream_string, source_num);
     }
     else if (source->stream.state == AVB_SOURCE_STATE_POTENTIAL &&
              state == AVB_SOURCE_STATE_ENABLED) {
       // start transmitting
 
-      printstr(stream_string); simple_printf("#%d on\n", source_num);
+      debug_printf("%s #%d on\n", stream_string, source_num);
       master {
         *c <: AVB1722_TALKER_GO;
         *c <: (int)source->stream.local_id;
@@ -373,7 +373,7 @@ static void local_set_source_state(unsigned source_num,
           *c <: (int)source->stream.local_id;
         }
 
-        printstr(stream_string); simple_printf("#%d off\n", source_num);
+        debug_printf("%s #%d off\n", stream_string, source_num);
 
     #if MRP_NUM_PORTS == 1
       if (source->reservation.vlan_id) {

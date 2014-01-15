@@ -7,7 +7,7 @@
 #include "avb_srp_pdu.h"
 #include <string.h>
 #include <print.h>
-#include "simple_printf.h"
+#include "debug_print.h"
 #include "xccompat.h"
 #include "avb_1722_1.h"
 
@@ -60,7 +60,7 @@ unsafe void process_aem_cmd_getset_sampling_rate(avb_1722_1_aecp_packet_t *unsaf
 
     if (avb.set_device_media_clock_rate(media_clock_id, rate))
     {
-      simple_printf("SET SAMPLING RATE TO %d\n", rate);
+      debug_printf("SET SAMPLING RATE TO %d\n", rate);
       // Success
       return;
     }

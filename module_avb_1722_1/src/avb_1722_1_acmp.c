@@ -3,7 +3,7 @@
 #include "avb_1722_common.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_acmp.h"
-#include "simple_printf.h"
+#include "debug_print.h"
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
 #include "avb_1722_1_acmp_debug.h"
 #endif
@@ -188,8 +188,6 @@ static void acmp_update_inflight_timeout(int entity_type, avb_1722_1_acmp_inflig
     else
     {
         inflight->timeout = 0;
-        // TODO: Define behaviour for invalid packets in production firmware
-        printstrln("Error: Invalid message_type in acmp_update_inflight_timeout()");
     }
 }
 
@@ -254,7 +252,7 @@ avb_1722_1_acmp_inflight_command *acmp_remove_inflight(int entity_type)
     else
     {
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-        simple_printf("ACMP %s: Trying to find entry for seq id: %d but it doesn't exist\n",
+        debug_printf("ACMP %s: Trying to find entry for seq id: %d but it doesn't exist\n",
                         (CONTROLLER == entity_type) ? "Controller" : "Listener",
                         acmp_command->sequence_id);
 #endif
