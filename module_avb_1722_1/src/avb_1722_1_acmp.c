@@ -455,7 +455,10 @@ void acmp_add_talker_stream_info(void)
             // Listener already connected
             return;
         }
+    }
 
+    for (i = 0; i < AVB_1722_1_MAX_LISTENERS_PER_TALKER; i++)
+    {
         if (acmp_talker_streams[unique_id].connected_listeners[i].guid.l == 0) // The first empty connected_listeners field
         {
             acmp_talker_streams[unique_id].connected_listeners[i].guid.l = acmp_talker_rcvd_cmd_resp.listener_guid.l;
