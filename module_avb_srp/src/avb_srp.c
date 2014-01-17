@@ -300,6 +300,9 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
           {
             mrp_mad_leave(matched_stream_id_opposite_port);
           }
+
+          // Kill Listener attr - Fix for bug 15177
+          mrp_change_applicant_state(attr, MRP_EVENT_DUMMY, MRP_UNUSED);
         }
       }
     }
