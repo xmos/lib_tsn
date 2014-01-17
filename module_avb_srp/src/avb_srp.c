@@ -539,10 +539,9 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
 
     // LJ3. Join Listener Ready on the Talker advertise port
 
-    // If we are attaching to a stream already being Listener to down stream, mark it as not propagated
+    // If we are attaching to a stream already being Listener to down stream, mark it as originating here
     // so that we do not propagate a Leave when we disconnect
-    matched_listener_same_port->propagated = 0;
-
+    matched_listener_same_port->here = 1;
     mrp_mad_join(matched_listener_same_port, 1);
   }
   else { // LJ4: If the Talker advertise hasn't matched, then it probably hasn't arrived yet
