@@ -336,12 +336,6 @@ static int update_adjust(ptp_timestamp *master_ts,
     adjust >>= (ADJUST_CALC_PREC - PTP_ADJUST_PREC);
     inv_adjust >>= (ADJUST_CALC_PREC - PTP_ADJUST_PREC);
 
-    if (adjust >> 32) {
-    // Overflow on adjust!!
-      prev_adjust_valid = 0;
-      return 1;
-    }
-
     /* Re-average the adjust with a given weighting.
        This method loses a few bits of precision */
     if (g_ptp_adjust_valid) {
@@ -397,12 +391,7 @@ static int update_adjust(ptp_timestamp *master_ts,
   prev_adjust_master_ts = *master_ts;
   prev_adjust_valid = 1;
 
-  if (prev_adjust_valid) {
-    return 0;
-  }
-  else {
-    return 1;
-  }
+  return 0;
 }
 
 static void update_reference_timestamps(ptp_timestamp *master_egress_ts,
@@ -1170,7 +1159,7 @@ void ptp_recv(chanend c_tx,
 #if DEBUG_PRINT
         debug_printf("RX Follow Up, Port %d\n", src_port);
 #endif
-      received_sync = 2;
+        received_sync = 2;
       }
       else
       {
