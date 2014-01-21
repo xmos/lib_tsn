@@ -505,6 +505,10 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
     // LL2: If there is a non-propagated Listener attr on the opposite port, then there is another Listener
     // Do not leave
     if (matched_listener_opposite_port) {
+      if (matched_listener_this_port) {
+        // Reset the here flag so that the Lv is propagated when a Listener down the chain leaves - bug 15186
+        matched_listener_this_port->here = 0;
+      }
       // Do nothing
     }
     else {
