@@ -777,7 +777,12 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
    pAnnounceMesg->grandmasterIdentity.data[i] = best_announce_msg.grandmasterIdentity.data[i];
 
   steps_removed_from_gm = ntoh16(best_announce_msg.stepsRemoved);
-  steps_removed_from_gm++;
+
+  if ((PTP_NUM_PORTS == 2) &&
+      ((ptp_port_info[0].role_state == PTP_MASTER) ^ (ptp_port_info[1].role_state == PTP_MASTER))) {
+    // Only increment steps removed if we are not the grandmaster
+    steps_removed_from_gm++;
+  }
 
   pAnnounceMesg->stepsRemoved = hton16(steps_removed_from_gm);
 
