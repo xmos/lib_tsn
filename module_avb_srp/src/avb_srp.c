@@ -477,7 +477,7 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
 
 void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
   for (int i=0; i < MRP_NUM_PORTS; i++) {
-    mrp_attribute_state *matched_talker_advertise = mrp_match_talker_non_prop_attribute(stream_id, i);
+    mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, i);
 
     if (matched_talker_advertise) {
       mrp_mad_leave(matched_talker_advertise);
@@ -503,7 +503,7 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
 
 void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
   // LL1: Find Talker advertise attribute that has not been propagated
-  mrp_attribute_state *matched_talker_advertise = mrp_match_talker_non_prop_attribute(stream_id, -1);
+  mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
 
   if (matched_talker_advertise) {
     mrp_attribute_state *matched_listener_opposite_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 1, 0);
@@ -532,7 +532,7 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
 
 void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
   // LJ1. Find Talker advertise attribute that has not been propagated
-  mrp_attribute_state *matched_talker_advertise = mrp_match_talker_non_prop_attribute(stream_id, -1);
+  mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
 
   if (matched_talker_advertise) {
     mrp_attribute_state *matched_listener_same_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 0, 0);

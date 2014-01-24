@@ -1172,12 +1172,12 @@ int mrp_is_observer(mrp_attribute_state *st)
     }
 }
 
-mrp_attribute_state *mrp_match_talker_non_prop_attribute(unsigned stream_id[2], int port_num) {
+mrp_attribute_state *mrp_match_type_non_prop_attribute(int attr_type, unsigned stream_id[2], int port_num) {
   for (int j=0;j<MRP_MAX_ATTRS;j++) {
     if (attrs[j].applicant_state == MRP_UNUSED || attrs[j].applicant_state == MRP_DISABLED) {
       continue;
     }
-    if (MSRP_TALKER_ADVERTISE == attrs[j].attribute_type &&
+    if (attr_type == attrs[j].attribute_type &&
         !attrs[j].propagated &&
         (port_num == -1 || attrs[j].port_num == port_num))
     {

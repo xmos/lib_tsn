@@ -155,7 +155,7 @@ void mrp_mad_join(mrp_attribute_state *st, int new);
 */
 void mrp_mad_leave(mrp_attribute_state *st);
 
-mrp_attribute_state *mrp_match_talker_non_prop_attribute(unsigned stream_id[2], int port_num);
+mrp_attribute_state *mrp_match_type_non_prop_attribute(int attr_type, unsigned stream_id[2], int port_num);
 
 mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr, int opposite_port);
 int mrp_match_multiple_attrs_by_stream_and_type(mrp_attribute_state *attr, int opposite_port);
