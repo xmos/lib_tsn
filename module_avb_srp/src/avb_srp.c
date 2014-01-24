@@ -316,6 +316,15 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
   }
   else if (attr->attribute_type == MSRP_TALKER_ADVERTISE)
   {
+    avb_srp_info_t *attribute_info = attr->attribute_info;
+    int entry = srp_match_reservation_entry_by_id(attribute_info->stream_id);
+
+    if (matched_talker_listener && stream_table[entry].bw_reserved[matched_talker_listener->port_num]) {
+      srp_decrease_port_bandwidth(attribute_info->tspec_max_frame_size, 1, matched_talker_listener->port_num);
+      avb_1722_disable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
+      stream_table[entry].bw_reserved[matched_talker_listener->port_num] = 0;
+    }
+
     if (matched_stream_id_opposite_port) {
       // Propagate Talker leave:
       mrp_mad_leave(matched_stream_id_opposite_port);
