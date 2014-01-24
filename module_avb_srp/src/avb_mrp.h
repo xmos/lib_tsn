@@ -51,8 +51,9 @@
        do { \
           if (MRP_DEBUG_STATE_CHANGE) debug_print_applicant_state_change((st), (event), (new)); \
           if ((MRP_NUM_PORTS == 2) && (new == MRP_UNUSED)) { debug_print_applicant_state_change((st), (event), (new)); \
-            srp_cleanup_reservation_entry((st)); \
+            srp_cleanup_reservation_entry((event), (st)); \
           } \
+          else \
          (st)->applicant_state = (new);        \
        } while(0)
 
