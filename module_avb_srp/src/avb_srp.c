@@ -330,12 +330,14 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
       mrp_mad_leave(matched_stream_id_opposite_port);
     }
 
-    if (matched_talker_listener) {
+    mrp_attribute_state *matched_listener_this_port = mrp_match_attribute_pair_by_stream_id(attr, 0, 0);
+
+    if (matched_listener_this_port) {
       /* Special case of behaviour described in 25.3.4.4.1.
        * "the Bridge shall act as a proxy for the Listener(s) and automatically generate a
        *  MAD_Leave.request back toward the Talker for those Listener attributes"
        */
-      mrp_mad_leave(matched_talker_listener);
+      mrp_mad_leave(matched_listener_this_port);
     }
   }
 }
