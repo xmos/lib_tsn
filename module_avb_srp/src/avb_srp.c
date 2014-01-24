@@ -500,13 +500,17 @@ void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
 void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation) {
   avb_stream_entry *stream_ptr = srp_add_reservation_entry(reservation);
 
-  // FIXME: Can we get duplication of Talker attributes here?
-
   for (int i=0; i < MRP_NUM_PORTS; i++) {
-    mrp_attribute_state *attr = mrp_get_attr();
-    mrp_attribute_init(attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
-    mrp_mad_begin(attr);
-    mrp_mad_join(attr, 1);
+    mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
+    if (!matched_talker_advertise) {
+      mrp_attribute_state *attr = mrp_get_attr();
+      mrp_attribute_init(attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
+      mrp_mad_begin(attr);
+      mrp_mad_join(attr, 1);
+    }
+    else {
+      mrp_mad_join(matched_talker_advertise, 1);
+    }
   }
   mrp_debug_dump_attrs();
 }
