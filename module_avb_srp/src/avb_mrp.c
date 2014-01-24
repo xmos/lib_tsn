@@ -748,9 +748,9 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
 
 void mrp_debug_dump_attrs(void)
 {
-#if 0
-  debug_printf("port_num | type                   | disabled | here | propagated | stream_id\n \
-                ---------+------------------------+----------+------+------------+----------\n");
+#if 1
+  debug_printf("port_num | type                   | disabled | here | propagated | stream_id\n"
+                "---------+------------------------+----------+------+------------+----------\n");
   for (int i=0;i<MRP_MAX_ATTRS;i++) {
 
     if (attrs[i].applicant_state != MRP_UNUSED) {
