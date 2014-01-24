@@ -574,16 +574,19 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
     // LJ5: Create Listener attrs on both ports but leave them disabled
     avb_stream_entry *stream_ptr = srp_add_reservation_entry_stream_id_only(stream_id);
     for (int i=0; i < MRP_NUM_PORTS; i++) {
+      mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, i);
+      if (!matched_listener) {
         mrp_attribute_state *listener_attr = mrp_get_attr();
         mrp_attribute_init(listener_attr,
                            MSRP_LISTENER,
                            i,
                            1,
                            stream_ptr);
+      }
     }
   }
 
-  mrp_debug_dump_attrs();
+  // mrp_debug_dump_attrs();
 }
 
 
