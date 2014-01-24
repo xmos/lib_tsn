@@ -169,9 +169,6 @@ void srp_remove_reservation_entry(avb_srp_info_t *reservation) {
 
   if (entry >= 0) {
     debug_printf("Removed stream:\n ID: %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
-    if (stream_table[entry].reservation.stream_id[0] < 10 && stream_table[entry].reservation.stream_id[1] < 5) {
-      __builtin_trap();
-    }
     memset(&stream_table[entry], 0x00, sizeof(avb_stream_entry));
   } else {
     debug_printf("Assert: Tried to remove a reservation that isn't stored: %x%d", reservation->stream_id[0], reservation->stream_id[1]);
