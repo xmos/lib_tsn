@@ -4,7 +4,7 @@
 #include "avb_mrp_pdu.h"
 #include "avb_mvrp_pdu.h"
 #include <xccompat.h>
-#include "print.h"
+#include "debug_print.h"
 
 void *memcpy(void *dest, const void *src, int n);
 
@@ -32,23 +32,28 @@ int avb_join_vlan(int vlan, int port_num)
 {
   int found = -1;
 
-  for (int i=0;i<AVB_MAX_NUM_VLAN;i++)
+  for (int i=0;i<AVB_MAX_NUM_VLAN*MRP_NUM_PORTS;i++) {
     if (entries[i].active && (entries[i].vlan == vlan) && (entries[i].attr->port_num == port_num))
       found = i;
+  }
 
-  if (found == -1)
-    for (int i=0;i<AVB_MAX_NUM_VLAN;i++)
+  if (found == -1) {
+    for (int i=0;i<AVB_MAX_NUM_VLAN*MRP_NUM_PORTS;i++) {
       if (!entries[i].active && (entries[i].attr->port_num == port_num)) {
         found = i;
         break;
       }
+    }
+  }
 
-  if (found == -1)
-    for (int i=0;i<AVB_MAX_NUM_VLAN;i++)
+  if (found == -1) {
+    for (int i=0;i<AVB_MAX_NUM_VLAN*MRP_NUM_PORTS;i++) {
       if (entries[i].active && mrp_is_observer(entries[i].attr) && (entries[i].attr->port_num == port_num)) {
         found = i;
         break;
       }
+    }
+  }
 
   if (found != -1) {
     entries[found].active = 1;
@@ -64,9 +69,10 @@ int avb_join_vlan(int vlan, int port_num)
 void avb_leave_vlan(int vlan)
 {
   int found = -1;
-  for (int i=0;i<AVB_MAX_NUM_VLAN;i++)
+  for (int i=0;i<AVB_MAX_NUM_VLAN*MRP_NUM_PORTS;i++) {
     if (entries[i].active && (entries[i].vlan == vlan))
       found = i;
+  }
 
   if (found != -1) {
     mrp_mad_leave(entries[found].attr);
