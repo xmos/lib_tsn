@@ -201,7 +201,7 @@ void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
       }
     }
 
-    if (!st->here) st->applicant_state = MRP_UNUSED;
+    if (st->attribute_type == MSRP_LISTENER || !st->here) st->applicant_state = MRP_UNUSED;
 
     mrp_debug_dump_attrs();
   }
