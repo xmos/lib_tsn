@@ -180,6 +180,10 @@ void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
   if (event == MRP_EVENT_DUMMY) {
     st->applicant_state = MRP_UNUSED;
   }
+  if (st->attribute_type == MSRP_LISTENER || !st->here) {
+    st->applicant_state = MRP_UNUSED;
+  }
+
   if (st->attribute_type == MSRP_TALKER_ADVERTISE ||
       st->attribute_type == MSRP_TALKER_FAILED ||
       st->attribute_type == MSRP_LISTENER) {
@@ -193,15 +197,9 @@ void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
       avb_srp_info_t *attribute_info = st->attribute_info;
       if (attribute_info == NULL) __builtin_trap();
 
-      if (attribute_info->stream_id[0] != 0 && attribute_info->stream_id[1] != 0) {
-          // int entry = srp_match_reservation_entry_by_id(attribute_info->stream_id);
-        if (!st->here) avb_1722_disable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
-        avb_1722_remove_stream_from_table(c_mac_tx, attribute_info->stream_id);
-        srp_remove_reservation_entry(attribute_info);
-      }
+      avb_1722_remove_stream_from_table(c_mac_tx, attribute_info->stream_id);
+      srp_remove_reservation_entry(attribute_info);
     }
-
-    if (st->attribute_type == MSRP_LISTENER || !st->here) st->applicant_state = MRP_UNUSED;
 
     mrp_debug_dump_attrs();
   }
