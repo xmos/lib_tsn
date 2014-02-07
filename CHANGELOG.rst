@@ -1,6 +1,10 @@
 sc_avb Change Log
 =================
 
+6.0.2
+-----
+  * Interim release for production manufacture
+
 6.0.1
 -----
   * VLAN ID is now reported via 1722.1 ACMP
