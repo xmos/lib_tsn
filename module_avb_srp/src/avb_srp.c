@@ -667,7 +667,6 @@ void avb_srp_talker_join_ind(mrp_attribute_state *attr, int new)
      * we also trigger join for the Listener attribute on the same port if it already exists.
      * We also need to mark the disabled Listener attr we created on the other port as unused
      */
-    if (stream != -1u && matched_listener_this_port)
     if (stream != -1u && matched_listener_this_port && matched_listener_this_port->here)
     {
       mrp_attribute_state *matched_listener_opposite_port = mrp_match_attribute_pair_by_stream_id(attr, 1, 1);
