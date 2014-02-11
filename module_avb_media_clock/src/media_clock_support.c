@@ -116,7 +116,7 @@ unsigned int update_media_clock(chanend ptp_svr,
 								int period0) {
 	clock_info_t *clock_info = &clock_states[clock_index];
 	long long diff_local;
-	int clock_type = mclock->clock_type;
+	int clock_type = mclock->info.clock_type;
 
 	switch (clock_type) {
 	case LOCAL_CLOCK:

@@ -9,7 +9,6 @@
 #include "media_clock_internal.h"
 #include "media_output_fifo.h"
 #include "debug_print.h"
-#include "avb_media_clock_def.h"
 #include "gptp.h"
 #include "avb_control_types.h"
 
@@ -51,9 +50,9 @@ void update_stream_derived_clocks(int source_num,
                                   int fill)
 {
   for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
-    if (media_clocks[i].active &&
-        media_clocks[i].clock_type == INPUT_STREAM_DERIVED &&
-        media_clocks[i].source == source_num)
+    if (media_clocks[i].info.active &&
+        media_clocks[i].info.clock_type == INPUT_STREAM_DERIVED &&
+        media_clocks[i].info.source == source_num)
       {
         update_media_clock_stream_info(i,
                                        local_ts,
@@ -69,9 +68,9 @@ void update_stream_derived_clocks(int source_num,
 void inform_media_clocks_of_lock(int source_num)
 {
  for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
-    if (media_clocks[i].active &&
-        media_clocks[i].clock_type == INPUT_STREAM_DERIVED &&
-        media_clocks[i].source == source_num)
+    if (media_clocks[i].info.active &&
+        media_clocks[i].info.clock_type == INPUT_STREAM_DERIVED &&
+        media_clocks[i].info.source == source_num)
       {
         inform_media_clock_of_lock(i);
       }
@@ -251,7 +250,7 @@ static void init_media_clock(media_clock_t &clk,
                              timer tmr,
                              out buffered port:32 p) {
   int ptime, time;
-  clk.active = 0;
+  clk.info.active = 0;
   clk.count = 0;
   clk.wordLength = 0x8235556;
   update_media_clock_divide(clk);
@@ -296,7 +295,7 @@ static void do_media_clock_output(media_clock_t &clk,
 static void update_media_clocks(chanend ?ptp_svr, int clk_time)
 {
   for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
-    if (media_clocks[i].active) {
+    if (media_clocks[i].info.active) {
       media_clocks[i].wordLength =
         update_media_clock(ptp_svr,
                            i,
@@ -309,7 +308,7 @@ static void update_media_clocks(chanend ?ptp_svr, int clk_time)
   }
 }
 
-void media_clock_server(chanend media_clock_ctl,
+void media_clock_server(server interface media_clock_if media_clock_ctl,
                         chanend ?ptp_svr,
                         chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                         out buffered port:32 p_fs[]
@@ -331,6 +330,8 @@ void media_clock_server(chanend media_clock_ctl,
   unsigned char buf_ctl_cmd;
 #endif
   timer clk_timers[AVB_NUM_MEDIA_CLOCKS];
+  unsigned fifo_init_count = AVB_NUM_MEDIA_OUTPUTS;
+
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
   ptp_server_init(c_rx, c_tx, server_type, tmr, ptp_timeout);
@@ -338,17 +339,13 @@ void media_clock_server(chanend media_clock_ctl,
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
   init_buffers();
-
-  for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i++) {
-    media_clock_ctl :> buf_info[i].fifo;
-  }
 #endif
 
   for (int i=0;i<MAX_CLK_CTL_CLIENTS;i++)
     registered[i] = -1;
 
   for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++)
-    media_clocks[i].active = 0;
+    media_clocks[i].info.active = 0;
 
   tmr :> clk_time;
 
@@ -398,7 +395,8 @@ void media_clock_server(chanend media_clock_ctl,
 #endif
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
-      case (int i=0;i<num_buf_ctl;i++) inuchar_byref(buf_ctl[i], buf_ctl_cmd):
+      case (int i=0;i<num_buf_ctl;i++)
+        (fifo_init_count == 0) => inuchar_byref(buf_ctl[i], buf_ctl_cmd):
         {
           int fifo, buf_index;
           unsigned x;
@@ -408,7 +406,6 @@ void media_clock_server(chanend media_clock_ctl,
           fifo = fifo + x;
           fifo |= 0x10000;
           (void) inct(buf_ctl[i]);
-
           buf_index = get_buf_info(fifo);
           switch (buf_ctl_cmd)
             {
@@ -432,111 +429,27 @@ void media_clock_server(chanend media_clock_ctl,
         }
 #endif
 
-      case media_clock_ctl :> int cmd:
-        switch (cmd)
-          {
-          case MEDIA_CLOCK_REGISTER:
-            { int i;
-              int clock_num;
-              slave {
-                media_clock_ctl :> i;
-                media_clock_ctl :> clock_num;
-              }
-              registered[i] = clock_num;
-            }
-            break;
-          case MEDIA_CLOCK_SET_STATE:
-            { int state;
-              int clock_num;
-              slave {
-                media_clock_ctl :> clock_num;
-                media_clock_ctl :> state;
-              }
-              if (state == DEVICE_MEDIA_CLOCK_STATE_ENABLED) {
-                init_media_clock_recovery(ptp_svr,
-                                          clock_num,
-                                          clk_time - CLOCK_RECOVERY_PERIOD,
-                                          media_clocks[clock_num].rate);
-                media_clocks[clock_num].active = 1;
-              }
-              else {
-                media_clocks[clock_num].active = 0;
-              }
-            }
-            break;
-          case MEDIA_CLOCK_GET_STATE:
-            { int media_clock_num;
-              slave {
-                media_clock_ctl :> media_clock_num;
-                if (media_clocks[media_clock_num].active)
-                  media_clock_ctl <: DEVICE_MEDIA_CLOCK_STATE_ENABLED;
-                else
-                  media_clock_ctl <: DEVICE_MEDIA_CLOCK_STATE_DISABLED;
-              }
-            }
-            break;
-
-          case MEDIA_CLOCK_SET_RATE:
-            { int media_clock_num;
-              int rate;
-              slave {
-              media_clock_ctl :> media_clock_num;
-              media_clock_ctl :> rate;
-              }
-            media_clocks[media_clock_num].rate = rate;
-            }
-            break;
-          case MEDIA_CLOCK_GET_RATE:
-            { int media_clock_num;
-              slave {
-                media_clock_ctl :> media_clock_num;
-                media_clock_ctl <: media_clocks[media_clock_num].rate;
-              }
-            }
-            break;
-          case MEDIA_CLOCK_SET_TYPE:
-            { int media_clock_num;
-              int type;
-              slave {
-                media_clock_ctl :> media_clock_num;
-              media_clock_ctl :> type;
-              }
-              media_clocks[media_clock_num].clock_type = type;
-              char clksrc_str[] = "Setting clock source:";
-              if (type) debug_printf("%s LOCAL_CLOCK\n", clksrc_str);
-              else debug_printf("%s INPUT_STREAM_DERIVED\n", clksrc_str);
-            }
-            break;
-          case MEDIA_CLOCK_GET_TYPE:
-            { int media_clock_num;
-              slave {
-                media_clock_ctl :> media_clock_num;
-                media_clock_ctl <: media_clocks[media_clock_num].clock_type;
-              }
-            }
-            break;
-          case MEDIA_CLOCK_SET_SOURCE:
-            { int media_clock_num;
-              int x;
-              slave {
-                media_clock_ctl :> media_clock_num;
-                media_clock_ctl :> x;
-              }
-              media_clocks[media_clock_num].source = x;
-            }
-
-            break;
-          case MEDIA_CLOCK_GET_SOURCE:
-            { int media_clock_num;
-              slave {
-                media_clock_ctl :> media_clock_num;
-                media_clock_ctl <: media_clocks[media_clock_num].source;
-              }
-            }
-            break;
-          default:
-            break;
-          }
+      case media_clock_ctl.set_buf_fifo(unsigned i, int fifo):
+        buf_info[i].fifo = fifo;
+        fifo_init_count--;
+        break;
+      case media_clock_ctl.register_clock(unsigned i, unsigned clock_num):
+        registered[i] = clock_num;
+        break;
+      case media_clock_ctl.get_clock_info(unsigned clock_num)
+                                                   -> media_clock_info_t info:
+        info = media_clocks[clock_num].info;
+        break;
+      case media_clock_ctl.set_clock_info(unsigned clock_num,
+                                           media_clock_info_t info):
+        int prev_active = media_clocks[clock_num].info.active;
+        media_clocks[clock_num].info = info;
+        if (!prev_active && info.active) {
+          init_media_clock_recovery(ptp_svr,
+                                    clock_num,
+                                    clk_time - CLOCK_RECOVERY_PERIOD,
+                                    media_clocks[clock_num].info.rate);
+        }
         break;
 
 
