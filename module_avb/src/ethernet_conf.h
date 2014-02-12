@@ -24,6 +24,10 @@
 #define ETHERNET_CUSTOM_FILTER_HEADER "avb_mac_filter.h"
 #endif
 
+#ifndef ETHERNET_FILTER_ENABLE_USER_DATA
+#define ETHERNET_FILTER_ENABLE_USER_DATA 1
+#endif
+
 #ifndef MAC_CUSTOM_FILTER
 #define MAC_CUSTOM_FILTER 1
 #endif
