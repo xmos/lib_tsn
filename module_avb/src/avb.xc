@@ -860,15 +860,15 @@ void avb_process_1722_control_packet(unsigned int buf0[],
     struct ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *) &buf0[0];
 
     int etype, eth_hdr_size;
-    int has_qtag = ethernet_hdr->ethertype[1]==0x18;
+    int has_qtag = ethernet_hdr->ethertype.data[1]==0x18;
     eth_hdr_size = has_qtag ? 18 : 14;
 
     if (has_qtag) {
       struct tagged_ethernet_hdr_t *tagged_ethernet_hdr = (tagged_ethernet_hdr_t *) &buf0[0];
-      etype = (int)(tagged_ethernet_hdr->ethertype[0] << 8) + (int)(tagged_ethernet_hdr->ethertype[1]);
+      etype = (int)(tagged_ethernet_hdr->ethertype.data[0] << 8) + (int)(tagged_ethernet_hdr->ethertype.data[1]);
     }
     else {
-      etype = (int)(ethernet_hdr->ethertype[0] << 8) + (int)(ethernet_hdr->ethertype[1]);
+      etype = (int)(ethernet_hdr->ethertype.data[0] << 8) + (int)(ethernet_hdr->ethertype.data[1]);
     }
     int len = nbytes - eth_hdr_size;
 
@@ -894,15 +894,15 @@ void avb_process_control_packet(client interface avb_interface avb, unsigned int
     struct ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *) &buf0[0];
 
     int etype, eth_hdr_size;
-    int has_qtag = ethernet_hdr->ethertype[1]==0x18;
+    int has_qtag = ethernet_hdr->ethertype.data[1]==0x18;
     eth_hdr_size = has_qtag ? 18 : 14;
 
     if (has_qtag) {
       struct tagged_ethernet_hdr_t *tagged_ethernet_hdr = (tagged_ethernet_hdr_t *) &buf0[0];
-      etype = (int)(tagged_ethernet_hdr->ethertype[0] << 8) + (int)(tagged_ethernet_hdr->ethertype[1]);
+      etype = (int)(tagged_ethernet_hdr->ethertype.data[0] << 8) + (int)(tagged_ethernet_hdr->ethertype.data[1]);
     }
     else {
-      etype = (int)(ethernet_hdr->ethertype[0] << 8) + (int)(ethernet_hdr->ethertype[1]);
+      etype = (int)(ethernet_hdr->ethertype.data[0] << 8) + (int)(ethernet_hdr->ethertype.data[1]);
     }
     int len = nbytes - eth_hdr_size;
 
