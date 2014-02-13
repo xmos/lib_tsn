@@ -157,7 +157,7 @@ void mrp_mad_leave(mrp_attribute_state *st);
 
 mrp_attribute_state *mrp_match_type_non_prop_attribute(int attr_type, unsigned stream_id[2], int port_num);
 
-mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr, int opposite_port);
+mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr, int opposite_port, int match_disabled);
 int mrp_match_multiple_attrs_by_stream_and_type(mrp_attribute_state *attr, int opposite_port);
 mrp_attribute_state *mrp_match_attribute_pair_by_stream_id(mrp_attribute_state *attr, int opposite_port, int match_disabled);
 

@@ -227,7 +227,7 @@ static void avb_srp_map_join(mrp_attribute_state *attr, int new, int listener)
   else printstrln("Talker MAP_Join.indication");
 #endif
   mrp_attribute_state *matched_talker_listener = mrp_match_attribute_pair_by_stream_id(attr, 1, 0);
-  mrp_attribute_state *matched_stream_id_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1);
+  mrp_attribute_state *matched_stream_id_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1, 0);
 
 #if 0
   debug_printf("matched_talker_listener: %d(here:%d, prop:%d, new:%d), matched_stream_id_opposite_port: %d\n", matched_talker_listener,
@@ -285,7 +285,7 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
   else if (attr->attribute_type == MSRP_TALKER_ADVERTISE) printstrln("Talker MAP_Leave.indication");
 #endif
   mrp_attribute_state *matched_talker_listener = mrp_match_attribute_pair_by_stream_id(attr, 1, 0);
-  mrp_attribute_state *matched_stream_id_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1);
+  mrp_attribute_state *matched_stream_id_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1, 0);
 
   mrp_debug_dump_attrs();
 
@@ -420,7 +420,7 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
 
     int entry = srp_match_reservation_entry_by_id(sink_info->reservation.stream_id);
 
-    if (mrp_match_attr_by_stream_and_type(attr, 1)) { // Listener ready on the other port also, therefore send on both ports
+    if (mrp_match_attr_by_stream_and_type(attr, 1, 0)) { // Listener ready on the other port also, therefore send on both ports
       if (stream_table[entry].bw_reserved[!attr->port_num] == 1 &&
           stream_table[entry].bw_reserved[attr->port_num] != 1) {
         srp_increase_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
@@ -453,7 +453,7 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
   enum avb_source_state_t state;
   avb_sink_info_t *sink_info = (avb_sink_info_t *) attr->attribute_info;
   unsigned stream = avb_get_source_stream_index_from_stream_id(sink_info->reservation.stream_id);
-  mrp_attribute_state *matched_listener_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1);
+  mrp_attribute_state *matched_listener_opposite_port = mrp_match_attr_by_stream_and_type(attr, 1, 0);
 
   int entry = srp_match_reservation_entry_by_id(sink_info->reservation.stream_id);
 

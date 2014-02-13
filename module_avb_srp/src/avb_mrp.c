@@ -1196,10 +1196,10 @@ mrp_attribute_state *mrp_match_type_non_prop_attribute(int attr_type, unsigned s
 }
 
 
-mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr, int opposite_port)
+mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr, int opposite_port, int match_disabled)
 {
   for (int j=0;j<MRP_MAX_ATTRS;j++) {
-    if (attrs[j].applicant_state == MRP_UNUSED || attrs[j].applicant_state == MRP_DISABLED) {
+    if (attrs[j].applicant_state == MRP_UNUSED || (!match_disabled && attrs[j].applicant_state == MRP_DISABLED)) {
       continue;
     }
     if ((opposite_port && (attr->port_num != attrs[j].port_num)) ||
