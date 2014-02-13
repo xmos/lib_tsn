@@ -534,6 +534,7 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
     else {
       // LL3: Else do leave on the Listener
       if (matched_listener_this_port) {
+        matched_listener_this_port->here = 0;
         mrp_mad_leave(matched_listener_this_port);
       }
     }
