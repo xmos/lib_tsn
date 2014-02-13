@@ -187,13 +187,14 @@ void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
   if (st->attribute_type == MSRP_TALKER_ADVERTISE ||
       st->attribute_type == MSRP_TALKER_FAILED ||
       st->attribute_type == MSRP_LISTENER) {
-    mrp_attribute_state *matched1 = mrp_match_attribute_pair_by_stream_id(st, 1, 0);
-    mrp_attribute_state *matched2 = mrp_match_attr_by_stream_and_type(st, 1);
-    mrp_attribute_state *matched3 = mrp_match_attr_by_stream_and_type(st, 0);
+    mrp_attribute_state *matched1 = mrp_match_attribute_pair_by_stream_id(st, 1, 1);
+    mrp_attribute_state *matched2 = mrp_match_attribute_pair_by_stream_id(st, 0, 1);
+    mrp_attribute_state *matched3 = mrp_match_attr_by_stream_and_type(st, 1, 1);
+    mrp_attribute_state *matched4 = mrp_match_attr_by_stream_and_type(st, 0, 1);
 
     // If there is no match, it is either because there is genuinely no attribute match or if the reservation entry has been zeroed
     // Hence the stream ID is zero
-    if (!matched1 && !matched2 && !matched3) {
+    if (!matched1 && !matched2 && !matched3 && !matched4) {
       avb_srp_info_t *attribute_info = st->attribute_info;
       if (attribute_info == NULL) __builtin_trap();
 
