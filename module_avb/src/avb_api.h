@@ -1,6 +1,7 @@
 #ifndef _api_h_
 #define _api_h_
 #include <xccompat.h>
+#include "debug_print.h"
 #include "xc2compat.h"
 #include "avb_control_types.h"
 #include "avb_stream.h"
@@ -843,6 +844,9 @@ extends client interface avb_interface : {
     media_clock_info_t info;
     info = i._get_media_clock_info(clock_num);
     info.clock_type = clock_type;
+    char clksrc_str[] = "Setting clock source:";
+    if (info.clock_type) debug_printf("%s LOCAL_CLOCK\n", clksrc_str);
+    else debug_printf("%s INPUT_STREAM_DERIVED\n", clksrc_str);
     i._set_media_clock_info(clock_num, info);
     return 1;
   }
