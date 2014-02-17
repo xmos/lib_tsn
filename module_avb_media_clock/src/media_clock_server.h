@@ -28,6 +28,23 @@ typedef enum media_clock_type_t {
   LOCAL_CLOCK
 } media_clock_type_t;
 
+typedef struct media_clock_info_t {
+  int active;
+  media_clock_type_t clock_type;  ///< The type of the clock
+  int source;               ///< If the clock is derived from a fifo
+                            ///  this is the id of the output
+                            ///  fifo it should be derived from.
+  int rate;                 ///<  The rate of the media clock in Hz
+} media_clock_info_t;
+
+#ifdef __XC__
+interface media_clock_if {
+  void register_clock(unsigned i, unsigned clock_num);
+  media_clock_info_t get_clock_info(unsigned clock_num);
+  void set_clock_info(unsigned clock_num, media_clock_info_t info);
+  void set_buf_fifo(unsigned i, int fifo);
+};
+#endif
 
 /** The media clock server.
  *
@@ -46,7 +63,7 @@ typedef enum media_clock_type_t {
                             or ``PTP_SLAVE_ONLY``)
  */
 #ifdef __XC__
-void media_clock_server(chanend media_clock_ctl,
+void media_clock_server(server interface media_clock_if media_clock_ctl,
                         chanend ?ptp_svr,
                         chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                         out buffered port:32 p_fs[]

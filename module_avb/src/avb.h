@@ -7,59 +7,10 @@
 #include "avb_srp_interface.h"
 #include "avb_1722_1_callbacks.h"
 #include "spi.h"
-
+#include "media_clock_server.h"
 
 #ifndef MAX_AVB_CONTROL_PACKET_SIZE
 #define MAX_AVB_CONTROL_PACKET_SIZE (1518)
-#endif
-
-
-/** Initialize the AVB control thread.
- *
- *  This function initializes the AVB system. It needs to be called in
- *  the main user control thread before any other AVB control call.
- *  The function takes chanends connected to other parts of the system and
- *  registers all of these components.
- *
- *  At this point the sinks, sources and media FIFOs are allocated numbers.
- *  The allocation
- *  is performed by registering numbers from 0 upwards working through the
- *  listener_ctl/talker_ctl/media_ctl arrays.
- *  Each component in this array may register
- *  several sink/sources/FIFOs. For example, if the listener_ctl array connects
- *  to two listener units each registering 3 sinks then the first unit will
- *  be allocated sink numbers 0,1,2 and the second 3,4,5.
- *
- *  Note that this call does not start any protocols communicating over the
- *  network (e.g. advertising talkers via IEEE 802.1Qat). That is deferred
- *  until the call to avb_start().
- *
- *  \param media_ctl    array of chanends connected to components that
- *                      register/control media FIFOs
- *  \param listener_ctl array of chanends connected to components
- *                      that register/control IEEE 1722 sinks
- *  \param talker_ctl   array of chanends connected to components that
- *                      register/control IEEE 1722 sources
- *  \param media_clock_ctl chanend connected to the media clock server
- *  \param c_mac_rx        chanend connected to the ethernet server (RX)
- *  \param c_mac_tx        chanend connected to the ethernet server (TX)
- *  \param c_ptp           chanend connected to the ptp server
- *
- **/
-#ifdef __XC__
-void avb_init(chanend c_media_ctl[],
-              chanend (&?c_listener_ctl)[],
-              chanend (&?c_talker_ctl)[],
-              chanend ?c_media_clock_ctl,
-              chanend c_ptp,
-              chanend c_mac_tx);
-#else
-void avb_init(chanend media_ctl[],
-              chanend listener_ctl[],
-              chanend talker_ctl[],
-              chanend media_clock_ctl,
-              chanend c_ptp,
-              chanend c_mac_tx);
 #endif
 
 void avb_init_srp_only(chanend c_mac_rx, chanend c_mac_tx);
@@ -88,7 +39,7 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
                  chanend c_mac_tx,
-                 chanend ?c_media_clock_ctl,
+                 client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp);
 
 void avb_process_1722_control_packet(unsigned int buf0[],

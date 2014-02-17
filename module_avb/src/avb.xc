@@ -6,7 +6,6 @@
 #include "avb_stream.h"
 #include "gptp_config.h"
 #include "avb_control_types.h"
-#include "avb_media_clock.h"
 #include <string.h>
 #include "debug_print.h"
 #include <print.h>
@@ -32,7 +31,7 @@
 
 typedef struct media_info_t {
   int tile_id;
-  chanend *unsafe clk_ctl;
+  unsigned clk_ctl;
   unsigned fifo;
   int local_id;
   int mapped_to;
@@ -109,7 +108,7 @@ static void register_media(chanend media_ctl[])
       int tile_id;
       int num_in;
       int num_out;
-      chanend *unsafe clk_ctl;
+      unsigned clk_ctl;
       media_ctl[i] :> tile_id;
       media_ctl[i] :> clk_ctl;
       media_ctl[i] :> num_in;
@@ -138,19 +137,20 @@ static void register_media(chanend media_ctl[])
   }
 }
 
-static void init_media_clock_server(chanend media_clock_ctl)
+static void init_media_clock_server(client interface media_clock_if
+                                    media_clock_ctl)
 {
-	if (!isnull(media_clock_ctl)) {
-		for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i++) {
-      media_clock_ctl <: outputs[i].fifo;
-		}
-	}
+  if (!isnull(media_clock_ctl)) {
+    for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i++) {
+      media_clock_ctl.set_buf_fifo(i, outputs[i].fifo);
+    }
+  }
 }
 
 void avb_init(chanend c_media_ctl[],
               chanend (&?c_listener_ctl)[],
               chanend (&?c_talker_ctl)[],
-              chanend ?c_media_clock_ctl,
+              client interface media_clock_if ?i_media_clock_ctl,
               chanend c_ptp,
               chanend c_mac_tx)
 {
@@ -162,18 +162,19 @@ void avb_init(chanend c_media_ctl[],
   }
 }
 
-static void set_sink_state0(unsigned sink_num,
-                            enum avb_sink_state_t state,
-                            chanend c_mac_tx,
-                            chanend ?c_media_clock_ctl,
-                            client interface srp_interface i_srp) {
+static void update_sink_state(unsigned sink_num,
+                              enum avb_sink_state_t prev,
+                              enum avb_sink_state_t state,
+                              chanend c_mac_tx,
+                              client interface media_clock_if ?i_media_clock_ctl,
+                              client interface srp_interface i_srp) {
   unsafe {
     avb_sink_info_t *sink = &sinks[sink_num];
     chanend *unsafe c = sink->listener_ctl;
-    if (sink->stream.state == AVB_SINK_STATE_DISABLED &&
+    if (prev == AVB_SINK_STATE_DISABLED &&
         state == AVB_SINK_STATE_POTENTIAL) {
 
-      chanend *unsafe clk_ctl = outputs[sink->map[0]].clk_ctl;
+      unsigned clk_ctl = outputs[sink->map[0]].clk_ctl;
       debug_printf("Listener sink #%d chan map:\n", sink_num);
       master {
         *c <: AVB1722_CONFIGURE_LISTENER_STREAM;
@@ -194,8 +195,8 @@ static void set_sink_state0(unsigned sink_num,
         }
       }
 
-      if (!isnull(c_media_clock_ctl)) {
-        media_clock_register(c_media_clock_ctl, clk_ctl, sink->stream.sync);
+      if (!isnull(i_media_clock_ctl)) {
+          i_media_clock_ctl.register_clock(clk_ctl, sink->stream.sync);
       }
 
       int router_link;
@@ -219,7 +220,7 @@ static void set_sink_state0(unsigned sink_num,
         i_srp.register_attach_request(sink->reservation.stream_id);
 
     }
-    else if (sink->stream.state != AVB_SINK_STATE_DISABLED &&
+    else if (prev != AVB_SINK_STATE_DISABLED &&
             state == AVB_SINK_STATE_DISABLED) {
 
       master {
@@ -237,7 +238,6 @@ static void set_sink_state0(unsigned sink_num,
       }
   #endif
     }
-    sink->stream.state = state;
   }
 }
 
@@ -252,20 +252,21 @@ static unsigned avb_srp_calculate_max_framesize(avb_source_info_t *source_info)
 #endif
 }
 
-static void local_set_source_state(unsigned source_num,
-                                  enum avb_source_state_t state,
-                                  chanend c_mac_tx,
-                                  chanend ?c_media_clock_ctl,
-                                  client interface srp_interface i_srp) {
+static void update_source_state(unsigned source_num,
+                                enum avb_source_state_t prev,
+                                enum avb_source_state_t state,
+                                chanend c_mac_tx,
+                                client interface media_clock_if ?i_media_clock_ctl,
+                                client interface srp_interface i_srp) {
   unsafe {
     char stream_string[] = "Talker stream";
     avb_source_info_t *source = &sources[source_num];
     chanend *unsafe c = source->talker_ctl;
-    if (source->stream.state == AVB_SOURCE_STATE_DISABLED &&
+    if (prev == AVB_SOURCE_STATE_DISABLED &&
         state == AVB_SOURCE_STATE_POTENTIAL) {
       // enable the source
       int valid = 1;
-      chanend *unsafe clk_ctl = inputs[source->map[0]].clk_ctl;
+      unsigned clk_ctl = inputs[source->map[0]].clk_ctl;
 
       if (source->stream.num_channels <= 0) {
         valid = 0;
@@ -323,8 +324,8 @@ static void local_set_source_state(unsigned source_num,
         source->reservation.tspec_max_frame_size = avb_srp_calculate_max_framesize(source);
         i_srp.register_stream_request(source->reservation);
 
-        if (!isnull(c_media_clock_ctl)) {
-          media_clock_register(c_media_clock_ctl, clk_ctl, source->stream.sync);
+        if (!isnull(i_media_clock_ctl)) {
+          i_media_clock_ctl.register_clock(clk_ctl, source->stream.sync);
         }
 
     #if defined(AVB_TRANSMIT_BEFORE_RESERVATION)
@@ -340,7 +341,7 @@ static void local_set_source_state(unsigned source_num,
 
       }
     }
-    else if (source->stream.state == AVB_SOURCE_STATE_ENABLED &&
+    else if (prev == AVB_SOURCE_STATE_ENABLED &&
         state == AVB_SOURCE_STATE_POTENTIAL) {
       // stop transmission
 
@@ -351,7 +352,7 @@ static void local_set_source_state(unsigned source_num,
 
         debug_printf("%s #%d off\n", stream_string, source_num);
     }
-    else if (source->stream.state == AVB_SOURCE_STATE_POTENTIAL &&
+    else if (prev == AVB_SOURCE_STATE_POTENTIAL &&
              state == AVB_SOURCE_STATE_ENABLED) {
       // start transmitting
 
@@ -361,7 +362,7 @@ static void local_set_source_state(unsigned source_num,
         *c <: (int)source->stream.local_id;
       }
     }
-    else if (source->stream.state != AVB_SOURCE_STATE_DISABLED &&
+    else if (prev != AVB_SOURCE_STATE_DISABLED &&
              state == AVB_SOURCE_STATE_DISABLED) {
       // disabled the source
         for (int i=0;i<source->stream.num_channels;i++) {
@@ -384,7 +385,6 @@ static void local_set_source_state(unsigned source_num,
       i_srp.deregister_stream_request(source->reservation.stream_id);
 
     }
-    source->stream.state = state;
   }
 }
 
@@ -408,396 +408,49 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
                  chanend c_mac_tx,
-                 chanend ?c_media_clock_ctl,
+                 client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp) {
 
   register_media(c_media_ctl);
-  init_media_clock_server(c_media_clock_ctl);
+  init_media_clock_server(i_media_clock_ctl);
 
   while (1) {
     select {
-      case avb[int i].initialise(void): {
-        unsafe {
-          avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, c_media_clock_ctl, c_ptp, c_mac_tx);
-        }
-        break;
+    case avb[int i].initialise(void):
+      unsafe {
+        avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, i_media_clock_ctl, c_ptp, c_mac_tx);
       }
-      case avb[int i].get_source_format(unsigned source_num, enum avb_stream_format_t &format, int &rate) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          format = source->stream.format;
-          rate = source->stream.rate;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
+      break;
+    case avb[int i]._get_source_info(unsigned source_num) -> avb_source_info_t info:
+      info = sources[source_num];
+      break;
+    case avb[int i]._set_source_info(unsigned source_num, avb_source_info_t info):
+      enum avb_source_state_t prev_state = sources[source_num].stream.state;
+      sources[source_num] = info;
+      unsafe {
+        update_source_state(source_num, prev_state, info.stream.state, c_mac_tx,
+                            i_media_clock_ctl, i_srp);
       }
-      case avb[int i].set_source_format(unsigned source_num, enum avb_stream_format_t format, int rate) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED) {
-          avb_source_info_t *source = &sources[source_num];
-          source->stream.format = format;
-          source->stream.rate = rate;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
+      break;
+    case avb[int i]._get_sink_info(unsigned sink_num) -> avb_sink_info_t info:
+      info = sinks[sink_num];
+      break;
+    case avb[int i]._set_sink_info(unsigned sink_num, avb_sink_info_t info):
+      enum avb_sink_state_t prev_state = sinks[sink_num].stream.state;
+      sinks[sink_num] = info;
+      unsafe {
+        update_sink_state(sink_num, prev_state, info.stream.state, c_mac_tx,
+                          i_media_clock_ctl, i_srp);
       }
-      case avb[int i].get_source_channels(unsigned source_num, int &channels) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          channels = source->stream.num_channels;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_channels(unsigned source_num, int channels) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED) {
-          avb_source_info_t *source = &sources[source_num];
-          source->stream.num_channels = channels;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_sync(unsigned source_num, int &sync) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          sync = source->stream.sync;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_sync(unsigned source_num, int sync) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED) {
-          avb_source_info_t *source = &sources[source_num];
-          source->stream.sync = sync;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_presentation(unsigned source_num, int &presentation) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          presentation = source->presentation;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_presentation(unsigned source_num, int presentation) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED) {
-          avb_source_info_t *source = &sources[source_num];
-          source->presentation = presentation;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_vlan(unsigned source_num, int &vlan) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          vlan = source->reservation.vlan_id;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_vlan(unsigned source_num, int vlan) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED) {
-          avb_source_info_t *source = &sources[source_num];
-          source->reservation.vlan_id = vlan;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_state(unsigned source_num, enum avb_source_state_t &state) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          state = source->stream.state;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_state(unsigned source_num, enum avb_source_state_t state) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          unsafe {
-            local_set_source_state(source_num, state, c_mac_tx, c_media_clock_ctl, i_srp);
-          }
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_map(unsigned source_num, int map[], int &len) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          len = source[source_num].stream.num_channels;
-          memcpy(map, source->map, len<<2);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_map(unsigned source_num, int map[len], unsigned len) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED &&
-          len <= AVB_MAX_CHANNELS_PER_TALKER_STREAM) {
-          avb_source_info_t *source = &sources[source_num];
-          memcpy(source->map, map, len<<2);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_dest(unsigned source_num, unsigned char addr[], int &len) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          len = 6;
-          memcpy(addr, source->reservation.dest_mac_addr, 6);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_source_dest(unsigned source_num, unsigned char addr[len], unsigned len) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES && sources[source_num].stream.state == AVB_SOURCE_STATE_DISABLED &&
-          len == 6) {
-          avb_source_info_t *source = &sources[source_num];
-          memcpy(source->reservation.dest_mac_addr, addr, 6);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_source_id(unsigned source_num, unsigned int id[2]) -> int return_val: {
-        if (source_num < AVB_NUM_SOURCES) {
-          avb_source_info_t *source = &sources[source_num];
-          memcpy(id, source->reservation.stream_id, 8);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_id(unsigned sink_num, unsigned int stream_id[2]) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          memcpy(stream_id, sink->reservation.stream_id, 8);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_id(unsigned sink_num, unsigned int stream_id[2]) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          memcpy(sink->reservation.stream_id, stream_id, 8);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_format(unsigned sink_num, enum avb_stream_format_t &format, int &rate) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          format = sink->stream.format;
-          rate = sink->stream.rate;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_format(unsigned sink_num, enum avb_stream_format_t format, int rate) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          sink->stream.format = format;
-          sink->stream.rate = rate;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_channels(unsigned sink_num, int &channels) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          channels = sink->stream.num_channels;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_channels(unsigned sink_num, int channels) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          sink->stream.num_channels = channels;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_sync(unsigned sink_num, int &sync) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          sync = sink->stream.sync;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_sync(unsigned sink_num, int sync) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          sink->stream.sync = sync;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_vlan(unsigned sink_num, int &vlan) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          vlan = sink->reservation.vlan_id;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_vlan(unsigned sink_num, int vlan) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          sink->reservation.vlan_id = vlan;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_addr(unsigned sink_num, unsigned char addr[], int &len) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          len = 6;
-          memcpy(addr, sink->reservation.dest_mac_addr, 6);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_addr(unsigned sink_num, unsigned char addr[len], unsigned len) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED && len == 6) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          memcpy(sink->reservation.dest_mac_addr, addr, 6);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_state(unsigned sink_num, enum avb_sink_state_t &state) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          state = sink->stream.state;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_state(unsigned sink_num, enum avb_sink_state_t state) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          unsafe {
-            set_sink_state0(sink_num, state, c_mac_tx, c_media_clock_ctl, i_srp);
-          }
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_sink_map(unsigned sink_num, int map[], int &len) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          len = sinks->stream.num_channels;
-          memcpy(map, sink->map, len<<2);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_sink_map(unsigned sink_num, int map[len], unsigned len) -> int return_val: {
-        if (sink_num < AVB_NUM_SINKS && sinks[sink_num].stream.state == AVB_SINK_STATE_DISABLED &&
-            len <= AVB_MAX_CHANNELS_PER_LISTENER_STREAM) {
-          avb_sink_info_t *sink = &sinks[sink_num];
-          memcpy(sink->map, map, len<<2);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_device_media_clock_rate(int clock_num, int &rate) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          rate = media_clock_get_rate(c_media_clock_ctl, clock_num);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_device_media_clock_rate(int clock_num, int rate) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          media_clock_set_rate(c_media_clock_ctl, clock_num, rate);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_device_media_clock_state(int clock_num, enum device_media_clock_state_t &state) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          state = media_clock_get_state(c_media_clock_ctl, clock_num);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_device_media_clock_state(int clock_num, enum device_media_clock_state_t state) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          media_clock_set_state(c_media_clock_ctl, clock_num, state);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_device_media_clock_source(int clock_num, int &source) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          int source0 = source;
-          media_clock_get_source(c_media_clock_ctl, clock_num, source0);
-          source = source0;
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_device_media_clock_source(int clock_num, int source) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          media_clock_set_source(c_media_clock_ctl, clock_num, source);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].get_device_media_clock_type(int clock_num, enum device_media_clock_type_t &clock_type) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          clock_type = media_clock_get_type(c_media_clock_ctl, clock_num);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
-      case avb[int i].set_device_media_clock_type(int clock_num, enum device_media_clock_type_t clock_type) -> int return_val: {
-        if (clock_num < AVB_NUM_MEDIA_CLOCKS && !isnull(c_media_clock_ctl)) {
-          media_clock_set_type(c_media_clock_ctl, clock_num, clock_type);
-          return_val = 1;
-        }
-        else return_val = 0;
-        break;
-      }
+      break;
+    case avb[int i]._get_media_clock_info(unsigned clock_num)
+      -> media_clock_info_t info:
+      info = i_media_clock_ctl.get_clock_info(clock_num);
+      break;
+    case avb[int i]._set_media_clock_info(unsigned clock_num,
+                                          media_clock_info_t info):
+      i_media_clock_ctl.set_clock_info(clock_num, info);
+      break;
     }
   }
 }

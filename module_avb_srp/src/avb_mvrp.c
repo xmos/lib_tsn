@@ -6,7 +6,6 @@
 #include <xccompat.h>
 #include "debug_print.h"
 
-void *memcpy(void *dest, const void *src, int n);
 
 struct mvrp_entry {
   int active;
