@@ -16,6 +16,7 @@
  *
  **/
 #include <xccompat.h>
+#include <xscope.h>
 #include "gptp.h"
 #include "avb_1722_def.h"
 #include "print.h"
@@ -170,6 +171,9 @@ unsigned int update_media_clock(chanend ptp_svr,
 #else
 			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 80)/11 - ((ierror / diff_local) * 1) / 5;
 #endif
+			xscope_longlong(MEDIA_CLOCK_WORDLEN, clock_info->wordlen);
+			xscope_longlong(MEDIA_CLOCK_IERROR, clock_info->ierror);
+			xscope_longlong(MEDIA_CLOCK_PERROR, perror);
 
 			clock_info->stream_info1 = clock_info->stream_info2;
 			clock_info->stream_info2.valid = 0;

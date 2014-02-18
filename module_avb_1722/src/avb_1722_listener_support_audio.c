@@ -16,8 +16,8 @@
 
 #if defined(AVB_1722_FORMAT_SAF) || defined(AVB_1722_FORMAT_61883_6)
 
-#ifdef AVB_1722_RECORD_ERRORS
-static unsigned avb_1722_listener_dbc_discontinuity = 0;
+#if AVB_1722_RECORD_ERRORS
+static unsigned char prev_seq_num = 0;
 #endif
 
 int avb_1722_listener_process_packet(chanend buf_ctl,
@@ -63,6 +63,13 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     return (0);
   }
 
+#if AVB_1722_RECORD_ERRORS
+  unsigned char seq_num = AVBTP_SEQUENCE_NUMBER(pAVBHdr);
+  if ((unsigned char)((unsigned char)seq_num - (unsigned char)prev_seq_num) != 1) {
+    xscope_char(LISTENER_1722_SEQ_NUM_MISMATCH, seq_num - prev_seq_num);
+  }
+  prev_seq_num = seq_num;
+#endif
 
 #if !AVB_1722_FORMAT_SAF
   dbc_value = (int) pAVB1722Hdr->DBC;
@@ -131,12 +138,6 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
 
     return 0;
   }
-#ifdef AVB_1722_RECORD_ERRORS
-  else if (dbc_diff != num_samples_in_payload)
-  {
-    avb_1722_listener_dbc_discontinuity++;
-  }
-#endif
 
 #if AVB_1722_FORMAT_SAF
   if ((AVBTP_TV(pAVBHdr)==1))
