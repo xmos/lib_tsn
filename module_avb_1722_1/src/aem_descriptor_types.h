@@ -315,6 +315,16 @@
 #define AEM_CLOCK_SOURCE_INPUT_STREAM           0x0002
 #define AEM_CLOCK_SOURCE_MEDIA_CLOCK_STREAM		0x0003
 
+/* MEMORY_OBJECT Types *****************************************/
+#define AEM_MEMORY_OBJECT_TYPE_FIRMWARE_IMAGE   0x0000
+
+/* MEMORY_OBJECT Operation Types *******************************/
+#define AEM_MEMORY_OBJECT_OPERATION_STORE               0x0000
+#define AEM_MEMORY_OBJECT_OPERATION_STORE_AND_REBOOT    0x0001
+#define AEM_MEMORY_OBJECT_OPERATION_READ                0x0002
+#define AEM_MEMORY_OBJECT_OPERATION_ERASE               0x0003
+#define AEM_MEMORY_OBJECT_OPERATION_UPLOAD              0x0004
+
 /*** Locale/String Descriptors *********************************/
 
-#define AEM_NO_STRING                           (0x1fff+7)
+#define AEM_NO_STRING                           ((0x1fff<<3)+7)
