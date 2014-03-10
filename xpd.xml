@@ -2,10 +2,10 @@
 <xpd>
     <components>
         <component description = "AVB stack control API" type = "demoCode" scope = "Example" path = "module_avb" local = "false" id = "module_avb" name = "module_avb">
-            <componentDependency repo = "git://github.com/xcore/sc_util" version = "1.0.3">module_locks</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_otp" version = "1.0.0">module_otp_board_info</componentDependency>
-            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.2.6">module_ethernet</componentDependency>
-            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.2.6">module_ethernet_smi</componentDependency>
+            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.0">module_ethernet</componentDependency>
+            <componentDependency repo = "git://github.com/xcore/sc_util" version = "1.0.4">module_locks</componentDependency>
+            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.0">module_ethernet_smi</componentDependency>
             <keyword>avb</keyword>
             <keyword>api</keyword>
             <keyword>control</keyword>
@@ -64,8 +64,9 @@
         <version>1.0.0rc0</version>
     </dependency>
     <dependency repo = "sc_ethernet">
-        <githash>a3b3134f5765fd6f4461a080f0e236361f432895</githash>
+        <githash>a1f8913263722603b8ae0ba33cacc85e1db9b81d</githash>
         <uri>https://github.com/xcore/sc_ethernet.git</uri>
+        <version>2.3.0beta0</version>
     </dependency>
     <description>AVB software stack</description>
     <docdir>doc</docdir>
@@ -101,7 +102,8 @@
     <release parenthash = "4dd27a32393434cac67d79dbf641603b3f4ecffa" version = "6.0.0alpha2" githash = "f41f217fb0a47c350ab039bec5ccef192d399e48"></release>
     <release parenthash = "a50b35d9f66435bb42810ca7076b90b54cf498b2" version = "6.0.0alpha3" githash = "f0e936e2a0dfd2c83ebd07b68b46f5627708d777"></release>
     <release parenthash = "d335b1f15d0ea097749eadaa0dbbcdd78a1937c9" version = "6.0.1alpha0" githash = "3d2a87ba214be0404f73c63b58888f994eeec095"></release>
-    <release parenthash = "36a5cbe6a85db8a3b02e54a095433df4c5b21815" version = "6.0.2alpha0"></release>
+    <release parenthash = "36a5cbe6a85db8a3b02e54a095433df4c5b21815" version = "6.0.2alpha0" githash = "1882e21474af418878be923c43f42e02f0a5824e"></release>
+    <release parenthash = "e9a67a1ea4d10ec6163392f5714552e13deedce0" version = "6.0.3beta0"></release>
     <subpartnumber>XM-004459-SM</subpartnumber>
     <vendor>XMOS</vendor>
     <version_defines></version_defines>
