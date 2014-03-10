@@ -470,13 +470,83 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
   return sizeof(avb_1722_1_aem_acquire_entity_command_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
 }
 
+static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
+                                                unsigned char src_addr[6],
+                                                unsigned char *status,
+                                                unsigned short command_type,
+                                                CLIENT_INTERFACE(spi_interface, i_spi),
+                                                chanend c_tx)
+{
+  avb_1722_1_aem_start_operation_t *cmd = (avb_1722_1_aem_start_operation_t *)(pkt->data.aem.command.payload);
+  unsigned short desc_type = ntoh_16(cmd->descriptor_type);
+  unsigned short desc_id = ntoh_16(cmd->descriptor_id);
+  unsigned short operation_type = ntoh_16(cmd->operation_type);
+
+  if (command_type == AECP_AEM_CMD_START_OPERATION &&
+      desc_type == AEM_MEMORY_OBJECT_TYPE &&
+      desc_id == 0) // descriptor ID of the AEM_MEMORY_OBJECT_TYPE descriptor
+  {
+    switch (operation_type)
+    {
+      case AEM_MEMORY_OBJECT_OPERATION_ERASE:
+      {
+        const int erase_operation_id = 1234;
+        hton_16(cmd->operation_id, erase_operation_id);
+        // Form response and send immediately
+        avb_1722_1_create_aecp_aem_response(src_addr, AECP_AEM_STATUS_SUCCESS, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        int num_tx_bytes = sizeof(avb_1722_1_aem_start_operation_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
+        if (num_tx_bytes < 64) num_tx_bytes = 64;
+        mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+
+        avb_1722_1_aecp_aem_msg_t *aem_msg = &(pkt->data.aem);
+        AEM_MSG_SET_U_FLAG(aem_msg, 1);
+        AEM_MSG_SET_COMMAND_TYPE(aem_msg, AECP_AEM_CMD_OPERATION_STATUS);
+        avb_1722_1_aem_operation_status_t *resp = (avb_1722_1_aem_operation_status_t *)(pkt->data.aem.command.payload);
+
+        hton_16(resp->operation_id, erase_operation_id);
+
+        if (!avb_erase_upgrade_image(i_spi))
+        {
+          hton_16(resp->percent_complete, 1000);
+        }
+        else
+        {
+          // Failed
+          hton_16(resp->percent_complete, 0);
+          *status = AECP_AEM_STATUS_ENTITY_MISBEHAVING;
+        }
+        avb_1722_1_create_aecp_aem_response(src_addr, *status, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+
+        return 0;
+        break;
+      }
+      default:
+      {
+        *status = AECP_AEM_STATUS_BAD_ARGUMENTS; // Other operation types not supported
+        break;
+      }
+    }
+  }
+  else if (command_type == AECP_AEM_CMD_ABORT_OPERATION)
+  {
+    *status = AECP_AEM_STATUS_NOT_IMPLEMENTED;
+  }
+  else
+  {
+    *status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+  }
+  return GET_1722_1_DATALENGTH(&pkt->header);
+}
+
 static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
                                             int message_type,
                                             int num_pkt_bytes,
                                             chanend c_tx,
                                             CLIENT_INTERFACE(avb_interface, i_avb_api),
-                                            CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
+                                            CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
+                                            CLIENT_INTERFACE(spi_interface, i_spi))
 {
   avb_1722_1_aecp_aem_msg_t *aem_msg = &(pkt->data.aem);
   unsigned short command_type = AEM_MSG_GET_COMMAND_TYPE(aem_msg);
@@ -583,6 +653,12 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         cd_len = process_aem_cmd_getset_control(pkt, &status, command_type, i_1722_1_entity) + sizeof(avb_1722_1_aem_getset_control_t) + AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
         break;
       }
+      case AECP_AEM_CMD_START_OPERATION:
+      case AECP_AEM_CMD_ABORT_OPERATION:
+      {
+        cd_len = process_aem_cmd_start_abort_operation(pkt, src_addr, &status, command_type, i_spi, c_tx);
+        break;
+      }
       default:
       {
         // AECP_AEM_STATUS_NOT_IMPLEMENTED
@@ -650,7 +726,7 @@ static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t 
                                             unsigned char src_addr[6],
                                             int message_type,
                                             int num_pkt_bytes,
-                                            CLIENT_INTERFACE(spi_inteface, i_spi),
+                                            CLIENT_INTERFACE(spi_interface, i_spi),
                                             chanend c_tx)
 {
   avb_1722_1_aecp_address_access_t *aa_cmd = &(pkt->data.address);
@@ -699,7 +775,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     chanend c_tx,
                                     CLIENT_INTERFACE(avb_interface, i_avb),
                                     CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                    CLIENT_INTERFACE(spi_inteface, i_spi))
+                                    CLIENT_INTERFACE(spi_interface, i_spi))
 {
   int message_type = GET_1722_1_MSG_TYPE(((avb_1722_1_packet_header_t*)pkt));
 
@@ -709,7 +785,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
     case AECP_CMD_AEM_RESPONSE:
     {
 #if AVB_1722_1_AEM_ENABLED
-      process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, c_tx, i_avb, i_1722_1_entity);
+      process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, c_tx, i_avb, i_1722_1_entity, i_spi);
 #endif
       break;
     }

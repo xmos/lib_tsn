@@ -8,7 +8,7 @@
 #include "avb_control_types.h"
 #include "avb_api.h"
 #include "avb_1722_1_callbacks.h"
-#include "spi_conf.h"
+#include "avb_flash.h"
 #include "spi.h"
 
 void avb_1722_1_aecp_aem_init(unsigned int serial_num);
@@ -28,6 +28,8 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
 #endif
 void avb_1722_1_aecp_aem_periodic(chanend c_tx);
 
-int avb_write_upgrade_image_page(CLIENT_INTERFACE(spi_interface, i_spi), int address, unsigned char data[PAGE_SIZE]);
+int avb_erase_upgrade_image(CLIENT_INTERFACE(spi_interface, i_spi));
+
+int avb_write_upgrade_image_page(CLIENT_INTERFACE(spi_interface, i_spi), int address, unsigned char data[FLASH_PAGE_SIZE]);
 
 #endif /* AVB_1722_1_AECP_H_ */

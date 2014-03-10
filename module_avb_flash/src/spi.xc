@@ -3,6 +3,7 @@
 #include "spi.h"
 #include <platform.h>
 #include <stdio.h>
+#include "debug_print.h"
 
 on tile[0]: out port spiSS              = PORT_SPI_SS;
 on tile[0]: buffered out port:32 spiCLK = PORT_SPI_CLK;
@@ -60,7 +61,7 @@ void spi_task(server interface spi_interface i_spi) {
       case i_spi.command_status(int cmd, unsigned returnBytes) -> int read_bytes:
         read_bytes = spi_command_status(cmd, returnBytes);
         break;
-      case i_spi.command_address_status(int cmd, unsigned int addr, unsigned char data[returnBytes], unsigned returnBytes):
+      case i_spi.command_address_status(int cmd, unsigned int addr, unsigned char data[], int returnBytes):
         spi_cmd(cmd);
         addr = bitrev(addr << 8);
         spiMOSI <: >> addr;

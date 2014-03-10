@@ -5,21 +5,6 @@
 #include "spi_conf.h"
 #endif
 
-#define SPI_CMD_WRITE_ENABLE   0x06    /**< SPI command to enable write and erase operations */
-#define SPI_CMD_WRITE_DISABLE  0x04
-#define SPI_CMD_WRITE          0x02
-#define SPI_CMD_READ           0x03
-#define SPI_CMD_READSR         0x05
-#define SPI_CMD_READID         0x9f
-
-#ifndef SPI_CMD_ERASE
-#define SPI_CMD_ERASE          0x20
-#endif
-
-#ifndef SPI_SECTOR_SIZE
-#define SPI_SECTOR_SIZE        4096
-#endif
-
 #ifndef SPI_CLK_MHZ
 #define SPI_CLK_MHZ              25
 #endif
@@ -60,7 +45,7 @@ interface spi_interface {
      *                    bytes will be read or written.
      *
      */
-    void command_address_status(int cmd, unsigned int address, unsigned char data[returnBytes], unsigned returnBytes);
+    void command_address_status(int cmd, unsigned int address, unsigned char data[], int returnBytes);
 };
 
 [[distributable]]

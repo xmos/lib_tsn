@@ -9,6 +9,6 @@
 # optimization level -O3).
 #
 # You can also set MODULE_XCC_C_FLAGS, MODULE_XCC_XC_FLAGS etc..
-OPTIONAL_HEADERS += spi_conf.h
+OPTIONAL_HEADERS += avb_flash_conf.h
 
 MODULE_XCC_FLAGS = -Os -g

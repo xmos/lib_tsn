@@ -7,11 +7,11 @@
 #include "xccompat.h"
 #include "avb_flash.h"
 
-#define FLASH_SIZE (NUM_PAGES * PAGE_SIZE)
-#define NUM_SECTORS (FLASH_SIZE / SECTOR_SIZE)
+#define FLASH_SIZE (FLASH_NUM_PAGES * FLASH_PAGE_SIZE)
+#define NUM_SECTORS (FLASH_SIZE / FLASH_SPI_SECTOR_SIZE)
 
 static unsigned write_address = 0;
-static unsigned write_offset = 0;
+static unsigned write_offset = -1;
 
 static unsigned int sortbits(unsigned int bits)
 {
@@ -20,7 +20,7 @@ static unsigned int sortbits(unsigned int bits)
 
 static int fl_get_sector_address(int sectorNum)
 {
-  return SECTOR_SIZE * sectorNum;
+  return FLASH_SPI_SECTOR_SIZE * sectorNum;
 }
 
 /**
@@ -77,56 +77,59 @@ static int get_factory_image(client interface spi_interface i_spi, fl_boot_image
   return 0;
 }
 
-static void write_and_update_address(client interface spi_interface i_spi, unsigned char data[PAGE_SIZE]) {
+static void write_and_update_address(client interface spi_interface i_spi, unsigned char data[FLASH_PAGE_SIZE]) {
     debug_printf("Wrote offset %d at %x \n", write_offset, write_address);
-    spi_flash_write_small(i_spi, write_address, data, PAGE_SIZE);
-    write_address += PAGE_SIZE;
-    write_offset += PAGE_SIZE;
+    spi_flash_write_small(i_spi, write_address, data, FLASH_PAGE_SIZE);
+    write_address += FLASH_PAGE_SIZE;
+    write_offset += FLASH_PAGE_SIZE;
 }
 
 static void erase_sectors(client interface spi_interface i_spi, unsigned int image_size) {
     unsigned int sector_address = write_address;
     do {
-      spi_flash_erase(i_spi, sector_address, SECTOR_SIZE);
+      spi_flash_erase(i_spi, sector_address, FLASH_SPI_SECTOR_SIZE);
       debug_printf("Erased sector %x\n", sector_address);
-      sector_address += SECTOR_SIZE;
+      sector_address += FLASH_SPI_SECTOR_SIZE;
     } while(sector_address < write_address + image_size);
 }
 
-int avb_write_upgrade_image_page(client interface spi_interface i_spi, int address, unsigned char data[PAGE_SIZE]) {
+int avb_erase_upgrade_image(client interface spi_interface i_spi)
+{
   fl_boot_image_info image;
+  int factory = get_factory_image(i_spi, &image);
 
-  if (address == 0) {
-    write_address = 0;
-    write_offset = 0;
-    if (get_factory_image(i_spi, &image) != 0) {
-      debug_printf("No factory image!\n");
-      return 1;
-    } else {
-      if (fl_get_next_boot_image(i_spi, &image) != 0) {
-        // No upgrade image exists, add one
-        debug_printf("No upgrade\n");
-        unsigned sectorNum = fl_get_sector_at_or_after(image.startAddress + image.size);
-        write_address = fl_get_sector_address(sectorNum);
+  if (factory) {
+    debug_printf("No factory image!\n");
+    return 1;
+  } else {
+    if (fl_get_next_boot_image(i_spi, &image) != 0) {
+      // No upgrade image exists in flash
+      debug_printf("No upgrade\n");
+      unsigned sectorNum = fl_get_sector_at_or_after(image.startAddress + image.size);
+      write_address = fl_get_sector_address(sectorNum);
 
-        erase_sectors(i_spi, MAX_UPGRADE_IMAGE_SIZE);
+      erase_sectors(i_spi, FLASH_MAX_UPGRADE_IMAGE_SIZE);
+    }
+    else {
+      // Replace the upgrade image
+      debug_printf("Upgrade exists\n");
+      write_address = image.startAddress;
 
-        write_and_update_address(i_spi, data);
-      }
-      else {
-        // Replace the upgrade image
-        debug_printf("Upgrade exists\n");
-        write_address = image.startAddress;
-
-        erase_sectors(i_spi, image.size);
-
-        write_and_update_address(i_spi, data);
-      }
+      erase_sectors(i_spi, image.size);
     }
   }
-  else if (address == write_offset) {
+
+  write_offset = 0;
+  return 0;
+}
+
+int avb_write_upgrade_image_page(client interface spi_interface i_spi, int address, unsigned char data[FLASH_PAGE_SIZE]) {
+
+  if (address == write_offset && write_offset <= FLASH_MAX_UPGRADE_IMAGE_SIZE) {
     write_and_update_address(i_spi, data);
+
+    return 0;
   }
 
-  return 0;
+  return 1;
 }

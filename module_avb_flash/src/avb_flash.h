@@ -1,7 +1,27 @@
 #ifndef FLASH_H
 #define FLASH_H
 
+#include <xccompat.h>
+#ifdef __avb_flash_conf_h_exists__
+#include "avb_flash_conf.h"
+#endif
+
 #include "spi.h"
+
+#define FLASH_SPI_CMD_WRITE_ENABLE   0x06    /**< SPI command to enable write and erase operations */
+#define FLASH_SPI_CMD_WRITE_DISABLE  0x04
+#define FLASH_SPI_CMD_WRITE          0x02
+#define FLASH_SPI_CMD_READ           0x03
+#define FLASH_SPI_CMD_READSR         0x05
+#define FLASH_SPI_CMD_READID         0x9f
+
+#ifndef FLASH_SPI_CMD_ERASE
+#define FLASH_SPI_CMD_ERASE          0xD8
+#endif
+
+#ifndef FLASH_SPI_SECTOR_SIZE
+#define FLASH_SPI_SECTOR_SIZE        65536
+#endif
 
 /** Struct describing a bootable image. */
 typedef struct {
@@ -37,7 +57,7 @@ typedef struct {
  *                into ``data``.
  *
  */
-void spi_flash_read(client interface spi_interface i_spi, unsigned int address, unsigned char data[], int bytes);
+void spi_flash_read(CLIENT_INTERFACE(spi_interface, i_spi), unsigned int address, unsigned char data[], int bytes);
 
 /** This function writes a small block of data to the flash at the given
  * address. "Small" means that all writes must happen in the same 256 byte
@@ -57,7 +77,7 @@ void spi_flash_read(client interface spi_interface i_spi, unsigned int address, 
  *                from ``data``.
  *
  */
-void spi_flash_write_small(client interface spi_interface i_spi, unsigned int address, unsigned char data[],int bytes);
+void spi_flash_write_small(CLIENT_INTERFACE(spi_interface, i_spi), unsigned int address, unsigned char data[],int bytes);
 
 /** This function erases a block of data in the flash at the given address.
  * This will replace the block with all '1' bits. The address should be
@@ -70,6 +90,6 @@ void spi_flash_write_small(client interface spi_interface i_spi, unsigned int ad
  * \param bytes   The number of bytes that are to be erased.
  *
  */
-void spi_flash_erase(client interface spi_interface i_spi, unsigned int address, int bytes);
+void spi_flash_erase(CLIENT_INTERFACE(spi_interface, i_spi), unsigned int address, int bytes);
 
 #endif

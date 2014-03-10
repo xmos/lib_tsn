@@ -108,4 +108,21 @@ typedef struct {
     unsigned char descriptor_index[2];
 } avb_1722_1_aem_identify_notification_t;
 
+/* 7.4.53 START_OPERATION Command */
+typedef struct {
+    unsigned char descriptor_type[2];
+    unsigned char descriptor_id[2];
+    unsigned char operation_id[2];
+    unsigned char operation_type[2];
+} avb_1722_1_aem_start_operation_t;
+
+/* 7.4.55 OPERATION_STATUS Unsolicited Response */
+typedef struct {
+    unsigned char descriptor_type[2];
+    unsigned char descriptor_id[2];
+    unsigned char operation_id[2];
+    unsigned char percent_complete[2];
+} avb_1722_1_aem_operation_status_t;
+
+
 #endif /* AVB_1722_1_AECP_AEM_H_ */
