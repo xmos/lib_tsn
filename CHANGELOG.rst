@@ -1,6 +1,11 @@
 sc_avb Change Log
 =================
 
+6.0.3
+-----
+  * Firmware upgrade functionality changed to support START_OPERATION commands to erase the flash
+  * Several SRP bug fixes that would cause long connect/disconnection sequences to fail
+
 6.0.2
 -----
   * Interim release for production manufacture
