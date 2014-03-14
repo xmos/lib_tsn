@@ -85,13 +85,13 @@ typedef struct
                                   // bit 1-7 : subtype
   unsigned char version_flags;    // bit 0   : sv. stream id field valid.
                                   // bit 1-3 : version.
-                                  // bit 4   : r. Reserved.
-                                  // bit 5   : lp. late presentation field valid.
+                                  // bit 4   : mr. media clock restart.
+                                  // bit 5   : r. Reserved
                                   // bit 6   : gv. gateway info field valid
                                   // bit 7   : tv. timestamp field valid
   unsigned char sequence_number;  //
-  unsigned char gm_discontinunity_holdover; // bit 0-6 : GM Discontinunity counter.
-                                            // bit 7   : h. holdover.
+  unsigned char reseved_tu;       // bit 0-6 : reserved
+                                  // bit 7   : tu. timestamp uncertain.
   unsigned char stream_id[8];     // 802.1Qat Stream ID
   unsigned char avb_timestamp[4]; //
   unsigned char gateway_info[4];  //
@@ -115,12 +115,10 @@ typedef struct
 #define AVBTP_SUBTYPE(x)               (x->subtype & 0x7F)
 #define AVBTP_SV(x)                    (x->version_flags >> 7)
 #define AVBTP_VERSION(x)               ((x->version_flags >> 4) & 0x7)
-#define AVBTP_LATE_PRESENTATION(x)     ((x->version_flags >> 2) & 0x1)
 #define AVBTP_GV(x)                    ((x->version_flags >> 1) & 0x1)
 #define AVBTP_TV(x)                    (x->version_flags & 0x1)
 #define AVBTP_SEQUENCE_NUMBER(x)       (x->sequence_number)
-#define AVBTP_GM_DISCONTINUNITY(x)     (x->gm_discontinunity_holdover >> 1)
-#define AVBTP_HOLDOVER(x)              (x->gm_discontinunity_holdover & 1)
+#define AVBTP_TU(x)                     (x->reseved_tu & 1)
 #define AVBTP_TIMESTAMP(x)             ((x->avb_timestamp[0] << 24) | \
                                         (x->avb_timestamp[1] << 16) | \
                                         (x->avb_timestamp[2] << 8) | \
@@ -141,24 +139,22 @@ typedef struct
 // Usgae:
 // 1. "x" in following macros are pointer to valid AVBTP_FrameHeader.
 // 2. "a" is the value in HOST byte order to set.
-#define SET_AVBTP_CD(x, a)                (x->subtype |= a << 7)
-#define SET_AVBTP_SUBTYPE(x, a)           (x->subtype |= (a & 0x7F))
-#define SET_AVBTP_SV(x, a)                (x->version_flags |= (a & 0x1) << 7)
-#define SET_AVBTP_VERSION(x, a)           (x->version_flags |= (a & 0x7) << 4)
-#define SET_AVBTP_LATE_PRESENTATION(x, a) (x->version_flags |= (a & 0x1) << 2)
-#define SET_AVBTP_GV(x, a)                (x->version_flags |= (a & 0x1) << 1)
-#define SET_AVBTP_TV(x, a)                (x->version_flags = (x->version_flags & ~0x1) | (a & 0x1))
-#define SET_AVBTP_SEQUENCE_NUMBER(x, a)   (x->sequence_number = (a & 0xff))
-#define SET_AVBTP_GM_DISCONTINUNITY(x, a) (x->gm_discontinunity_holdover |= (a & 0x7F) << 1)
-#define SET_AVBTP_HOLDOVER(x, a)          (x->gm_discontinunity_holdover |= a & 0x1)
+#define SET_AVBTP_CD(x, a)                ((x)->subtype |= (a) << 7)
+#define SET_AVBTP_SUBTYPE(x, a)           ((x)->subtype |= ((a) & 0x7F))
+#define SET_AVBTP_SV(x, a)                ((x)->version_flags |= ((a) & 0x1) << 7)
+#define SET_AVBTP_VERSION(x, a)           ((x)->version_flags |= ((a) & 0x7) << 4)
+#define SET_AVBTP_GV(x, a)                ((x)->version_flags |= ((a) & 0x1) << 1)
+#define SET_AVBTP_TV(x, a)                ((x)->version_flags = ((x)->version_flags & ~0x1) | ((a) & 0x1))
+#define SET_AVBTP_SEQUENCE_NUMBER(x, a)   ((x)->sequence_number = ((a) & 0xff))
+#define SET_AVBTP_TU(x, a)                ((x)->reseved_tu |= ((a) & 0x1))
 #define SET_AVBTP_TIMESTAMP(x, a)         hton_32((x)->avb_timestamp, (a))
 #define SET_AVBTP_STREAM_ID1(x, a)        hton_32(&(x)->stream_id[0], (a))
 #define SET_AVBTP_STREAM_ID0(x, a)        hton_32(&(x)->stream_id[4], (a))
 #define SET_AVBTP_GATEWAY_INFO(x, a)      hton_32((x)->gateway_info[0], (a))
-#define SET_AVBTP_PACKET_DATA_LENGTH(x, a)  do {x->packet_data_length[0] = a >> 8; \
-                                                x->packet_data_length[1] = a & 0xFF; } while (0)
-#define SET_AVBTP_PROTOCOL_SPECIFIC(x, a)   do {x->protocol_specific[0] = a >> 8; \
-                                                x->protocol_specific[1] = a & 0xFF; } while (0)
+#define SET_AVBTP_PACKET_DATA_LENGTH(x, a)  do {(x)->packet_data_length[0] = (a) >> 8; \
+                                                (x)->packet_data_length[1] = (a) & 0xFF; } while (0)
+#define SET_AVBTP_PROTOCOL_SPECIFIC(x, a)   do {(x)->protocol_specific[0] = (a) >> 8; \
+                                                (x)->protocol_specific[1] = (a) & 0xFF; } while (0)
 
 // constants.
 #define AVBTP_CD_DATA      (0)
