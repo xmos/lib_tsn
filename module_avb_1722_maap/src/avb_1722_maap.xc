@@ -192,7 +192,7 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
       {
         maap_addr.state = MAAP_RESERVED;
         maap_addr.immediately = 1;
-        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (maap_addr.base[5]&0x1F);
+        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (random_get_random_number(random_gen) % MAAP_ANNOUNCE_INTERVAL_VARIATION_CS);
       #if AVB_DEBUG_MAAP
         debug_printf("MAAP: Set announce interval %d\n", timeout_val*10);
       #endif
@@ -240,6 +240,7 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
       if (!maap_addr.immediately)
       {
         // reset timeout
+        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (random_get_random_number(random_gen) % MAAP_ANNOUNCE_INTERVAL_VARIATION_CS);
         start_avb_timer(maap_timer, timeout_val);
       }
       else
