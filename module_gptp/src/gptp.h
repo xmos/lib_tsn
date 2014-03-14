@@ -41,6 +41,7 @@ typedef struct ptp_time_info ptp_time_info;
  *  nanoseconds.
  */
 struct ptp_time_info_mod64 {
+  unsigned int uncertain_flag;
   unsigned int local_ts;
   unsigned int ptp_ts_hi;
   unsigned int ptp_ts_lo;
