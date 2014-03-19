@@ -23,7 +23,7 @@ The XMOS AVB solution implements the requirements for endpoints defined by *802.
 
 The 802.1Qav specification is available as a section in the `IEEE 802.1Q-2011 standard document`_  and is available to download free of charge via the IEEE Get Program.
 
-.. _`IEEE 802.1Q-2011 standard document`: http://standards.ieee.org/getieee802/download/802.1AS-2011.pdf
+.. _`IEEE 802.1Q-2011 standard document`: http://standards.ieee.org/getieee802/download/802.1Q-2011.pdf
 
 802.1Qat
 --------
@@ -53,11 +53,11 @@ The `IEEE 1722-2011 standard document`_ is available for purchase from the IEEE 
 
 .. _`IEEE 1722-2011 standard document`: http://standards.ieee.org/findstds/standard/1722-2011.html
 
-IEEE P1722.1
+IEEE 1722.1
 ------------
 
-*IEEE P1722.1* is a system control protocol, used for device discovery, connection management and enumeration and control of parameters exposed by the AVB endpoints.
+*IEEE 1722.1* is a system control protocol, used for device discovery, connection management and enumeration and control of parameters exposed by the AVB endpoints.
 
-The IEEE 1722.1 standard is currently in final draft and available to members of the `1722.1 Working Group`_
+The `IEEE 1722.1-2013 standard document`_ is available for purchase from the IEEE website.
 
-.. _`1722.1 Working Group`: http://grouper.ieee.org/groups/1722/1/AVB-DECC/IEEE-1722.1_Working_Group.html
+.. _`IEEE 1722.1-2013 standard document`: http://standards.ieee.org/findstds/standard/1722.1-2013.html

@@ -1,8 +1,7 @@
 Choosing the right chip
 -----------------------
 
-The number of audio channels the device can handle depends on the
-XMOS device used. The XS1 platform is very flexible and can provide
+The XS1 platform is very flexible and can provide
 other functions alongside audio (depending on how much audio is
 used) including DSP functionality, controlling inputs and
 displays on a device or controlling non-AVB ethernet
