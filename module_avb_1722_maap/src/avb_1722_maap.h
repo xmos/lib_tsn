@@ -61,15 +61,17 @@ void avb_1722_maap_rerequest_addresses();
  *  This function is called internally by the AVB general periodic function.
  *
  *  \param c_tx    Channel for ethernet transmission
+ *  \param i_avb   client interface of type avb_interface into avb_manager()
  */
-void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb);
+void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface i_avb);
 
 /** MAAP has indicated that a multicast address has been successfully reserved for this Talker stream
  *
+ * \param i_avb   client interface of type avb_interface into avb_manager()
  * \param source_num    The local source ID of the Talker
  * \param mac_addr      The destination MAC address reserved for this Talker
  */
-void avb_talker_on_source_address_reserved(client interface avb_interface avb, int source_num, unsigned char mac_addr[6]);
+void avb_talker_on_source_address_reserved(client interface avb_interface i_avb, int source_num, unsigned char mac_addr[6]);
 
 #endif
 

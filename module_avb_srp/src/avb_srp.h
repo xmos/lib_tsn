@@ -13,9 +13,24 @@
 #define AVB_SRP_ETHERTYPE (0x22ea)
 
 #define AVB_SRP_MACADDR { 0x01, 0x80, 0xc2, 0x00, 0x00, 0xe }
-#define AVB_SRP_LEGACY_MACADDR { 0x01, 0x00, 0x5e, 0x0, 1, 129 }
 
-#define MAX_AVB_SRP_PDU_SIZE (64)
+#ifdef __XC__
+/** SRP task that implements MSRP and MVRP protocols. Can be combined with other combinable tasks.
+  *
+  * \param i_avb  client interface of type avb_interface into the avb_manager()
+                  for API control of the stack
+    \param i_srp server interface of type srp_interface that offers client tasks 
+                  access to SRP reservation functionality
+    \param c_mac_rx chanend into the Ethernet RX server
+    \param c_mac_tx chanend into the Ethernet TX server
+  */
+[[combinable]]
+void avb_srp_task(client interface avb_interface i_avb,
+                  server interface srp_interface i_srp,
+                  chanend c_mac_rx,
+                  chanend c_mac_tx);
+#endif
+
 
 void avb_match_and_join_leave(mrp_attribute_state *unsafe attr, int join);
 
@@ -96,14 +111,6 @@ void avb_srp_domain_leave_ind(mrp_attribute_state *attr);
 
 void srp_domain_init(void);
 void srp_domain_join(void);
-
-#ifdef __XC__
-[[combinable]]
-void avb_srp_task(client interface avb_interface i_avb,
-                  server interface srp_interface i_srp,
-                  chanend c_mac_rx,
-                  chanend c_mac_tx);
-#endif
 
 void srp_store_mac_tx_chanend(chanend c_mac_tx0);
 

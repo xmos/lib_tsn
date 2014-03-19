@@ -11,11 +11,17 @@
 #ifdef __XC__
 interface avb_interface {
   void initialise(void);
+  /** Intended for internal use within client interface get and set extensions only */
   avb_source_info_t _get_source_info(unsigned source_num);
+  /** Intended for internal use within client interface get and set extensions only */
   void _set_source_info(unsigned source_num, avb_source_info_t info);
+  /** Intended for internal use within client interface get and set extensions only */
   avb_sink_info_t _get_sink_info(unsigned sink_num);
+  /** Intended for internal use within client interface get and set extensions only */
   void _set_sink_info(unsigned sink_num, avb_sink_info_t info);
+  /** Intended for internal use within client interface get and set extensions only */
   media_clock_info_t _get_media_clock_info(unsigned clock_num);
+  /** Intended for internal use within client interface get and set extensions only */
   void _set_media_clock_info(unsigned clock_num, media_clock_info_t info);
 };
 

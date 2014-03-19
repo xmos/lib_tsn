@@ -46,7 +46,7 @@ void avb_srp_task(client interface avb_interface i_avb,
     select {
       case avb_get_control_packet(c_mac_rx, buf, nbytes, port_num):
       {
-        avb_process_control_packet(i_avb, buf, nbytes, c_mac_tx, port_num);
+        avb_process_srp_control_packet(i_avb, buf, nbytes, c_mac_tx, port_num);
         break;
       }
       // Periodic processing

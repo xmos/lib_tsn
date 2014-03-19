@@ -48,12 +48,12 @@ interface media_clock_if {
 
 /** The media clock server.
  *
- *  \param media_clock_ctl  chanend connected to the main control thread
+ *  \param media_clock_ctl  server interface of type media_clock_if connected to the avb_manager() task
  *                          and passed into avb_init()
  *  \param ptp_svr          chanend connected to the PTP server
  *  \param buf_ctl[]        array of links to listener components
  *                          requiring buffer management
- *  \param buf_ctl_size     size of the buf_ctl array
+ *  \param num_buf_ctl      size of the buf_ctl array
  *  \param p_fs             output port to drive PLL reference clock
  *  \param c_rx             chanend connected to the ethernet server (receive)
  *  \param c_tx             chanend connected to the ethernet server (transmit)
@@ -75,19 +75,6 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
                         enum ptp_server_type server_type
 #endif
                         );
-#else
-void media_clock_server(chanend media_clock_ctl,
-                        chanend ptp_svr,
-                        chanend buf_ctl[], unsigned buf_ctl_size,
-                        port p_fs[]
-#if COMBINE_MEDIA_CLOCK_AND_PTP
-                        ,chanend c_rx,
-                        chanend c_tx,
-                        chanend c_ptp[],
-                        unsigned num_ptp,
-                        enum ptp_server_type server_type
-#endif
-);
 #endif
 
 #endif

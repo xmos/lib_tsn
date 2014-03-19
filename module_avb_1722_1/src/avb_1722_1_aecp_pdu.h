@@ -162,19 +162,19 @@ typedef enum {
 } avb_1722_1_aecp_aem_cmd_code;
 
 typedef enum {
-    AECP_AEM_STATUS_SUCCESS = 0,
-    AECP_AEM_STATUS_NOT_IMPLEMENTED = 1,
-    AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR = 2,
-    AECP_AEM_STATUS_ENTITY_LOCKED = 3,
-    AECP_AEM_STATUS_ENTITY_ACQUIRED = 4,
-    AECP_AEM_STATUS_NOT_AUTHORIZED = 5,
-    AECP_AEM_STATUS_INSUFFICIENT_PRIVILEDGES = 6,
-    AECP_AEM_STATUS_BAD_ARGUMENTS = 7,
-    AECP_AEM_STATUS_NO_RESOURCES = 8,
-    AECP_AEM_STATUS_IN_PROGRESS = 9,
-    AECP_AEM_STATUS_ENTITY_MISBEHAVING = 10,
-    AECP_AEM_STATUS_NOT_SUPPORTED = 11,
-    AECP_AEM_STATUS_STREAM_IS_RUNNING = 12,
+    AECP_AEM_STATUS_SUCCESS = 0, /**< The AVDECC Entity successfully performed the command and has valid results. */
+    AECP_AEM_STATUS_NOT_IMPLEMENTED = 1, /**< The AVDECC Entity does not support the command type. */
+    AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR = 2, /**< A descriptor with the descriptor_type and descriptor_index specified does not exist. */
+    AECP_AEM_STATUS_ENTITY_LOCKED = 3, /**< The AVDECC Entity has been locked by another AVDECC Controller. */
+    AECP_AEM_STATUS_ENTITY_ACQUIRED = 4, /**< The AVDECC Entity has been acquired by another AVDECC Controller. */
+    AECP_AEM_STATUS_NOT_AUTHORIZED = 5, /**< The AVDECC Controller is not authenticated with the AVDECC Entity. */
+    AECP_AEM_STATUS_INSUFFICIENT_PRIVILEDGES = 6, /**< The AVDECC Controller is trying to use an authentication command when authentication isn’t enable on the AVDECC Entity. */
+    AECP_AEM_STATUS_BAD_ARGUMENTS = 7, /**< One or more of the values in the fields of the frame were deemed to be bad by the AVDECC Entity (unsupported, incorrect combination, etc). */
+    AECP_AEM_STATUS_NO_RESOURCES = 8, /**< The AVDECC Entity cannot complete the command because it does not have the resources to support it. */
+    AECP_AEM_STATUS_IN_PROGRESS = 9, /**< The AVDECC Entity is processing the command and will send a second response at a later time with the result of the command. */
+    AECP_AEM_STATUS_ENTITY_MISBEHAVING = 10, /**< The AVDECC Entity is generated an internal error while trying to process the command. */
+    AECP_AEM_STATUS_NOT_SUPPORTED = 11, /**< The command is implemented but the target of the command is not supported. For example trying to set the value of a read-only Control. */
+    AECP_AEM_STATUS_STREAM_IS_RUNNING = 12, /**< The Stream is currently streaming and the command is one which cannot be executed on an Active Stream. */
 } avb_1722_1_aecp_aem_status_code;
 
 typedef enum {

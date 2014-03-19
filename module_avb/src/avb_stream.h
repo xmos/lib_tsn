@@ -5,14 +5,16 @@
 #include <xccompat.h>
 #include "avb_conf.h"
 
+/** Struct containing fields required for SRP reservations */
 typedef struct avb_srp_info_t {
-  unsigned stream_id[2];
-  unsigned char dest_mac_addr[6];
-  short vlan_id;
-  short tspec_max_frame_size;
-  short tspec_max_interval;
-  unsigned char tspec;
-  unsigned accumulated_latency;
+  unsigned stream_id[2];          /**< 64-bit Stream ID of the stream */
+  unsigned char dest_mac_addr[6]; /**< Stream destination MAC address */
+  short vlan_id;                  /**< VLAN ID for Stream */
+  short tspec_max_frame_size;     /**< Maximum frame size sent by Talker */
+  short tspec_max_interval;       /**< Maximum number of frames sent per class measurement interval */
+  unsigned char tspec;            /**< Data Frame Priority and Rank fields */
+  unsigned accumulated_latency;   /**< Latency at ingress port for Talker registrations, or latency at 
+                                    *  end of egress media for Listener Declarations */
 } avb_srp_info_t;
 
 typedef struct avb_stream_info_t

@@ -26,13 +26,19 @@ unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *u
   unsigned char *values = pkt->data.aem.command.payload + sizeof(avb_1722_1_aem_getset_control_t);
   unsigned short values_length = GET_1722_1_DATALENGTH(&(pkt->header)) - sizeof(avb_1722_1_aem_getset_control_t) - AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
 
+  if (control_type != AEM_CONTROL_TYPE)
+  {
+    status = AECP_AEM_STATUS_BAD_ARGUMENTS;
+    return values_length;
+  }
+
   if (command_type == AECP_AEM_CMD_GET_CONTROL)
   {
-    status = i_1722_1_entity.get_control_value(control_type, control_index, values_length, values);
+    status = i_1722_1_entity.get_control_value(control_index, values_length, values);
   }
   else // AECP_AEM_CMD_SET_CONTROL
   {
-    status = i_1722_1_entity.set_control_value(control_type, control_index, values_length, values);
+    status = i_1722_1_entity.set_control_value(control_index, values_length, values);
   }
   return values_length;
 }

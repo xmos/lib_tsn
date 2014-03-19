@@ -27,6 +27,7 @@
  *  define defaults to 4 and can be changed in ``avb_conf.h``.
  *
  *  \param vlan_id            the id of the vlan to join
+ *  \param port_num           the port to join the vlan
  *  \returns                  non-zero if sucessful, non-zero otherwise.
  *
  **/

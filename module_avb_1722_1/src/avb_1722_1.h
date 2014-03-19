@@ -36,11 +36,24 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned int serial_num);
  *
  *  \param  c_tx        a transmit chanend to the Ethernet server
  *  \param  c_ptp       a chanend to the PTP server
+ *  \param  i_avb       client interface of type avb_interface into avb_manager()
  */
-void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_interface avb);
+void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_interface i_avb);
 
+/** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
+  *
+  *  Can be combined with other combinable tasks.
+  *
+  *  \param  otp_ports    reference to an OTP ports structure of type otp_ports_t
+  *  \param  i_avb   client interface of type avb_interface into avb_manager()
+  *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
+  *  \param  i_spi  client interface of type spi_interface into avb_srp_task()
+  *  \param  c_mac_rx chanend into the Ethernet RX server
+  *  \param  c_mac_tx chanend into the Ethernet TX server
+  *  \param  c_ptp chanend into the PTP server
+  */
 [[combinable]]
-void avb_1722_1_task(otp_ports_t &ports,
+void avb_1722_1_task(otp_ports_t &otp_ports,
                      client interface avb_interface i_avb,
                      client interface avb_1722_1_control_callbacks i_1722_1_entity,
                      client interface spi_interface i_spi,
@@ -51,9 +64,13 @@ void avb_1722_1_task(otp_ports_t &ports,
 /** Process a received 1722.1 packet
  *
  *  \param  buf         an array of received packet data to be processed
+ *  \param  len         number of bytes in buf array
  *  \param  src_addr    an array of size 6 with the source MAC address of the packet
  *  \param  len         the number of bytes in the buf array
-*   \param  c_tx        a transmit chanend to the Ethernet server
+ *  \param  c_tx        a transmit chanend to the Ethernet server
+ *  \param  i_avb_api   client interface of type avb_interface into avb_manager()
+ *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
+ *  \param  i_spi       client interface of type spi_interface into avb_srp_task()
  */
 void avb_1722_1_process_packet(unsigned char buf[len],
                                 unsigned len,

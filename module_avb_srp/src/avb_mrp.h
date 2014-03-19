@@ -100,6 +100,8 @@ void mrp_debug_dump_attrs(void);
 */
 void mrp_init(char macaddr[]);
 
+#ifndef __XC__
+
 /** Function: mrp_attribute_init
 
    This function initializes the state of an MRP attribute.
@@ -113,8 +115,6 @@ void mrp_init(char macaddr[]);
 
    \note: see also mrp_update_state
 */
-
-#ifndef __XC__
 void mrp_attribute_init(mrp_attribute_state *st,
                         mrp_attribute_type t,
                         unsigned int port_num,

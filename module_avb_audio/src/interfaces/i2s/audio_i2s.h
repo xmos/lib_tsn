@@ -390,7 +390,31 @@ inline void i2s_master_upto_4(const clock mclk,
 }
 
 
+/** Input and output audio data using I2S format with the XCore acting
+ as master.
 
+ This function implements a task that can handle several synchronous
+ I2S interfaces. It inputs and outputs 24-bit data packed into 32 bits.
+
+ This function can handle up to 8in and 8out at 48KHz.
+
+  \param ports     a reference to a structure of type ``i2s_ports_t`` containing the I2S port definitions
+  \param p_din     array of ports to input data from
+  \param num_in    number of input ports
+  \param p_dout    array of ports to output data to
+  \param num_out   number of output ports
+  \param master_to_word_clock_ratio  the ratio of the master clock
+                                     to the word clock; must be one
+                                     of 128, 256 or 512
+  \param input_fifos           a map from the inputs to local talker streams.
+                               The channels of the inputs are interleaved,
+                               for example, if you have two input ports, the map
+                               {0,1,0,1} would map to the two stereo local
+                               talker streams 0 and 1.
+  \param output_fifos          a map from the outputs to local Listener streams
+  \param media_ctl             a media clock control chanend connected to an avb_manager() task
+  \param clk_ctl_index         the index of the clock control, default 0
+ */
 #pragma unsafe arrays
 static inline void i2s_master(i2s_ports_t &ports,
                               in buffered port:32 (&?p_din)[],
