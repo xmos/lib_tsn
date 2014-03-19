@@ -1,6 +1,8 @@
 #ifndef SPI_H
 #define SPI_H
 
+#include <xs1.h>
+
 #ifdef __spi_conf_h_exists__
 #include "spi_conf.h"
 #endif
@@ -10,6 +12,16 @@
 #endif
 
 #ifdef __XC__
+
+/** Struct containing ports and clocks used to access a flash device. */
+typedef struct fl_spi_ports {
+    in buffered port:8 spiMISO;  /**< Master input, slave output (MISO) port. */
+    out port spiSS;              /**< Slave select (SS) port. */
+    out port spiCLK;             /**< Serial clock (SCLK) port. */
+    out buffered port:8 spiMOSI; /**< Master output, slave input (MOSI) port. */
+    clock spiClkblk;             /**< Clock block for use with SPI ports. */
+} fl_spi_ports;
+
 interface spi_interface {
     /** This function issues a single command without parameters to the SPI,
      * and reads up to 4 bytes status value from the device.
@@ -48,8 +60,15 @@ interface spi_interface {
     void command_address_status(int cmd, unsigned int address, unsigned char data[], int returnBytes);
 };
 
+/** Task that implements a SPI interface to serial flash, typically the boot flash.
+  *
+  * Can be combined or distributed into other tasks.
+  *
+  * \param i_spi        server interface of type ``spi_interface``
+  * \param spi_ports   reference to a ``fl_spi_ports`` structure containing the SPI flash ports and clockblock
+  */
 [[distributable]]
-void spi_task(server interface spi_interface i_spi);
+void spi_task(server interface spi_interface i_spi, fl_spi_ports &spi_ports);
 #endif
 
 #endif
