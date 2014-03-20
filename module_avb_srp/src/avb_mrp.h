@@ -174,7 +174,6 @@ void mrp_encode_four_packed_event(char *buf,
 
 mrp_attribute_state *mrp_get_attr(void);
 
-void avb_mrp_set_legacy_mode(int mode);
 #endif
 #ifdef __XC__
 extern "C" {
