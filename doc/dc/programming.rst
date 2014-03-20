@@ -5,3 +5,4 @@ Programming Guide
 
    getting_started
    structure
+   efu

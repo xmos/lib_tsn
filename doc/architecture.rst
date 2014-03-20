@@ -14,7 +14,7 @@ An endpoint consists of five main interacting components:
 
 .. only:: html
 
-  .. image:: images/avbsystem.png
+  .. image:: images/avb_architecture.png
      :align: center
 
 .. only:: latex
