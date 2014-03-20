@@ -467,7 +467,7 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
   }
 
 
-  return sizeof(avb_1722_1_aem_acquire_entity_command_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
+  return GET_1722_1_DATALENGTH(&pkt->header);
 }
 
 static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
