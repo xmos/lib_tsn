@@ -15,10 +15,10 @@
 
 /** Struct containing ports and clocks used to access a flash device. */
 typedef struct fl_spi_ports {
-    in buffered port:8 spiMISO;  /**< Master input, slave output (MISO) port. */
+    buffered in port:8 spiMISO;  /**< Master input, slave output (MISO) port. */
     out port spiSS;              /**< Slave select (SS) port. */
-    out port spiCLK;             /**< Serial clock (SCLK) port. */
-    out buffered port:8 spiMOSI; /**< Master output, slave input (MOSI) port. */
+    buffered out port:32 spiCLK; /**< Serial clock (SCLK) port. */
+    buffered out port:8 spiMOSI; /**< Master output, slave input (MOSI) port. */
     clock spiClkblk;             /**< Clock block for use with SPI ports. */
 } fl_spi_ports;
 
