@@ -1,6 +1,13 @@
 sc_avb Change Log
 =================
 
+6.0.4
+-----
+  * Updates design guide documentation to include AVB-DC details
+  * SPI task updated to take a structure with ports
+  * Bug fix on cd length of acquire command response
+  * Added EFU mode and address access flags to ADP capabilities
+
 6.0.3
 -----
   * Firmware upgrade functionality changed to support START_OPERATION commands to erase the flash
