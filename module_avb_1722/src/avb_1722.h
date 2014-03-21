@@ -35,7 +35,7 @@ void avb_1722_talker(chanend c_ptp,
  *
  *  \param c_mac_rx         receive link to the ethernet MAC
  *  \param c_buf_ctl        buffer control link to the media clock server
- *  \param c_ptp_ctl        PTP server link for retreiving PTP time info
+ *  \param c_ptp_ctl        PTP server link for retrieving PTP time info
  *  \param c_listener_ctl   channel to configure the listener (given
  *                          to avb_init())
  *  \param num_streams      the number of streams the unit will handle

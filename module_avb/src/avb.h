@@ -45,7 +45,7 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
  *
  *  \param c_rx     chanend connected to the ethernet component
  *  \param buf      buffer to retrieve the packet into; buffer
- *                  must have length at least ``MAX_AVB_CONTROL_PACKET_SZIE``
+ *                  must have length at least ``MAX_AVB_CONTROL_PACKET_SIZE``
  *                  bytes
  *  \param nbytes   a reference parameter that is filled with the length
  *                  of the received packet

@@ -105,7 +105,7 @@ ptp_port_role_t ptp_get_state(chanend ptp_server);
  **/
 void ptp_get_propagation_delay(chanend ptp_server, unsigned *pdelay);
 
-/** Retrieve port progatation delay from the ptp server
+/** Retrieve port propagation delay from the ptp server
  *
  *
  *  \param ptp_server chanend connected to the ptp_server

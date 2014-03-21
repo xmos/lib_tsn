@@ -19,7 +19,7 @@ interface avb_1722_1_control_callbacks {
   /** This function events on a SET_CONTROL 1722.1 command received from a Controller.
     *
     * The response should always contain the current value (i.e. it contains the new
-    * value if the commands suceeds, or the old value if it fails)
+    * value if the commands succeeds, or the old value if it fails)
     *
     * \param control_index  the index of the CONTROL descriptor
     * \param values_length  the length in bytes of the ``values`` array

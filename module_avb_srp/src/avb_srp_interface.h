@@ -14,7 +14,7 @@ interface srp_interface {
   /** Used by a Talker application entity to issue a request to the MSRP Participant
    *  to initiate the advertisement of an available Stream
    *
-   *  \param stream_info Struct of type avb_srp_info_t containing paramters of the stream to register
+   *  \param stream_info Struct of type avb_srp_info_t containing parameters of the stream to register
    */
   void register_stream_request(avb_srp_info_t stream_info);
 

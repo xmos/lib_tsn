@@ -167,8 +167,8 @@ typedef enum {
     AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR = 2, /**< A descriptor with the descriptor_type and descriptor_index specified does not exist. */
     AECP_AEM_STATUS_ENTITY_LOCKED = 3, /**< The AVDECC Entity has been locked by another AVDECC Controller. */
     AECP_AEM_STATUS_ENTITY_ACQUIRED = 4, /**< The AVDECC Entity has been acquired by another AVDECC Controller. */
-    AECP_AEM_STATUS_NOT_AUTHORIZED = 5, /**< The AVDECC Controller is not authenticated with the AVDECC Entity. */
-    AECP_AEM_STATUS_INSUFFICIENT_PRIVILEDGES = 6, /**< The AVDECC Controller is trying to use an authentication command when authentication isn’t enable on the AVDECC Entity. */
+    AECP_AEM_STATUS_NOT_AUTHENTICATED = 5, /**< The AVDECC Controller is not authenticated with the AVDECC Entity. */
+    AECP_AEM_STATUS_AUTHENTICATION_DISABLED = 6, /**< The AVDECC Controller is trying to use an authentication command when authentication isn’t enable on the AVDECC Entity. */
     AECP_AEM_STATUS_BAD_ARGUMENTS = 7, /**< One or more of the values in the fields of the frame were deemed to be bad by the AVDECC Entity (unsupported, incorrect combination, etc). */
     AECP_AEM_STATUS_NO_RESOURCES = 8, /**< The AVDECC Entity cannot complete the command because it does not have the resources to support it. */
     AECP_AEM_STATUS_IN_PROGRESS = 9, /**< The AVDECC Entity is processing the command and will send a second response at a later time with the result of the command. */
