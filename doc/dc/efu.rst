@@ -102,7 +102,7 @@ Using the avdecc-lib CLI Controller to upgrade firmware
        
        End Station | Name         | Entity ID          | Firmware Version | MAC
        ---------------------------------------------------------------------------------
-       C         0 | AVB 4in/4out | 0x002297fffe005279 |       1.0.3beta0 | 002297005279
+       C         0 | AVB 4in/4out | 0x002297fffe005279 |            1.0.0 | 002297005279
 
 #. Select the end station that you wish to upgrade using the ``select`` command with the integer ID shown in the ``End Station``
    column of the ``list`` output and two additional zeroes indicating the Entity and Configuration indices:
@@ -118,7 +118,9 @@ Using the avdecc-lib CLI Controller to upgrade firmware
 
        $ upgrade /path/to/upgrade_image.bin
        Erasing image...
-       Succesfully erased.
+       Successfully erased.
+       Uploading image...
+       ################################################################################
        Successfully upgraded image.
        Do you want to reboot the device? [y/n]: y
 
