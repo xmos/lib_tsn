@@ -16,7 +16,7 @@
 #ifdef __XC__
 
 /** Core AVB API management task that can be combined with other AVB tasks such as SRP or 1722.1
- 
+
  * \param i_avb[]           array of avb_interface server interfaces connected to clients of avb_manager
  * \param num_avb_clients   number of client interface connections to the server and the number of elements of i_avb[]
  * \param i_srp            client interface of type srp_interface into an srp_task() task

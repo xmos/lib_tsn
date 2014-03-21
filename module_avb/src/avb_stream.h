@@ -13,7 +13,7 @@ typedef struct avb_srp_info_t {
   short tspec_max_frame_size;     /**< Maximum frame size sent by Talker */
   short tspec_max_interval;       /**< Maximum number of frames sent per class measurement interval */
   unsigned char tspec;            /**< Data Frame Priority and Rank fields */
-  unsigned accumulated_latency;   /**< Latency at ingress port for Talker registrations, or latency at 
+  unsigned accumulated_latency;   /**< Latency at ingress port for Talker registrations, or latency at
                                     *  end of egress media for Listener Declarations */
 } avb_srp_info_t;
 

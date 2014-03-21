@@ -19,7 +19,7 @@
   *
   * \param i_avb  client interface of type avb_interface into the avb_manager()
                   for API control of the stack
-    \param i_srp server interface of type srp_interface that offers client tasks 
+    \param i_srp server interface of type srp_interface that offers client tasks
                   access to SRP reservation functionality
     \param c_mac_rx chanend into the Ethernet RX server
     \param c_mac_tx chanend into the Ethernet TX server

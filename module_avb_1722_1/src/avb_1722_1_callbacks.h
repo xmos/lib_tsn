@@ -10,7 +10,7 @@ interface avb_1722_1_control_callbacks {
     * \param values         an array of values to return to the Controller
     *                       The contents of this field are dependent on the Control being fetched.
     *
-    * \returns              an AEM status code of enum ``avb_1722_1_aecp_aem_status_code`` for the GET_CONTROL response 
+    * \returns              an AEM status code of enum ``avb_1722_1_aecp_aem_status_code`` for the GET_CONTROL response
     */
   unsigned char get_control_value(unsigned short control_index,
                                   unsigned short &values_length,
@@ -26,7 +26,7 @@ interface avb_1722_1_control_callbacks {
     * \param values         an array of values to set from the Controller.
     *                       The contents of this field are dependent on the Control being addressed.
     *
-    * \returns              an AEM status code of enum ``avb_1722_1_aecp_aem_status_code`` for the SET_CONTROL response 
+    * \returns              an AEM status code of enum ``avb_1722_1_aecp_aem_status_code`` for the SET_CONTROL response
     */
   unsigned char set_control_value(unsigned short control_index,
                                   unsigned short values_length,
