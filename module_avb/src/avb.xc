@@ -44,30 +44,32 @@ static avb_sink_info_t sinks[AVB_NUM_SINKS];
 static media_info_t inputs[AVB_NUM_MEDIA_INPUTS];
 static media_info_t outputs[AVB_NUM_MEDIA_OUTPUTS];
 
-static unsafe void register_talkers(chanend talker_ctl[], unsigned char mac_addr[6])
+static void register_talkers(chanend (&?c_talker_ctl)[], unsigned char mac_addr[6])
 {
-  for (int i=0;i<AVB_NUM_TALKER_UNITS;i++) {
-    int tile_id, num_streams;
-    talker_ctl[i] :> tile_id;
-    talker_ctl[i] :> num_streams;
-    for (int j=0;j<num_streams;j++) {
-      avb_source_info_t *unsafe source = &sources[max_talker_stream_id];
-      source->stream.state = AVB_SOURCE_STATE_DISABLED;
-      chanend *unsafe p_talker_ctl = &talker_ctl[i];
-      source->talker_ctl = p_talker_ctl;
-      source->stream.tile_id = tile_id;
-      source->stream.local_id = j;
-      source->stream.flags = 0;
-      source->reservation.stream_id[0] = (mac_addr[0] << 24) | (mac_addr[1] << 16) | (mac_addr[2] <<  8) | (mac_addr[3] <<  0);
-      source->reservation.stream_id[1] = (mac_addr[4] << 24) | (mac_addr[5] << 16) | ((source->stream.local_id & 0xffff)<<0);
-      source->presentation = AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
-      source->reservation.vlan_id = AVB_DEFAULT_VLAN;
-      source->reservation.tspec = (AVB_SRP_TSPEC_PRIORITY_DEFAULT << 5 |
-          AVB_SRP_TSPEC_RANK_DEFAULT << 4 |
-          AVB_SRP_TSPEC_RESERVED_VALUE);
-      source->reservation.tspec_max_interval = AVB_SRP_MAX_INTERVAL_FRAMES_DEFAULT;
-      source->reservation.accumulated_latency = AVB_SRP_ACCUMULATED_LATENCY_DEFAULT;
-      max_talker_stream_id++;
+  unsafe {
+    for (int i=0;i<AVB_NUM_TALKER_UNITS;i++) {
+      int tile_id, num_streams;
+      c_talker_ctl[i] :> tile_id;
+      c_talker_ctl[i] :> num_streams;
+      for (int j=0;j<num_streams;j++) {
+        avb_source_info_t *unsafe source = &sources[max_talker_stream_id];
+        source->stream.state = AVB_SOURCE_STATE_DISABLED;
+        chanend *unsafe p_talker_ctl = &c_talker_ctl[i];
+        source->talker_ctl = p_talker_ctl;
+        source->stream.tile_id = tile_id;
+        source->stream.local_id = j;
+        source->stream.flags = 0;
+        source->reservation.stream_id[0] = (mac_addr[0] << 24) | (mac_addr[1] << 16) | (mac_addr[2] <<  8) | (mac_addr[3] <<  0);
+        source->reservation.stream_id[1] = (mac_addr[4] << 24) | (mac_addr[5] << 16) | ((source->stream.local_id & 0xffff)<<0);
+        source->presentation = AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
+        source->reservation.vlan_id = AVB_DEFAULT_VLAN;
+        source->reservation.tspec = (AVB_SRP_TSPEC_PRIORITY_DEFAULT << 5 |
+            AVB_SRP_TSPEC_RANK_DEFAULT << 4 |
+            AVB_SRP_TSPEC_RESERVED_VALUE);
+        source->reservation.tspec_max_interval = AVB_SRP_MAX_INTERVAL_FRAMES_DEFAULT;
+        source->reservation.accumulated_latency = AVB_SRP_ACCUMULATED_LATENCY_DEFAULT;
+        max_talker_stream_id++;
+      }
     }
   }
 }
@@ -76,25 +78,27 @@ static unsafe void register_talkers(chanend talker_ctl[], unsigned char mac_addr
 static int max_link_id = 0;
 
 
-static unsafe void register_listeners(chanend listener_ctl[])
+static void register_listeners(chanend (&?c_listener_ctl)[])
 {
-  for (int i=0;i<AVB_NUM_LISTENER_UNITS;i++) {
-    int tile_id, num_streams;
-    listener_ctl[i] :> tile_id;
-    listener_ctl[i] :> num_streams;
-    for (int j=0;j<num_streams;j++) {
-      avb_sink_info_t *unsafe sink = &sinks[max_listener_stream_id];
-      sink->stream.state = AVB_SINK_STATE_DISABLED;
-      chanend *unsafe p_listener_ctl = &listener_ctl[i];
-      sink->listener_ctl = p_listener_ctl;
-      sink->stream.tile_id = tile_id;
-      sink->stream.local_id = j;
-      sink->stream.flags = 0;
-      sink->reservation.vlan_id = AVB_DEFAULT_VLAN;
-      max_listener_stream_id++;
+  unsafe {
+    for (int i=0;i<AVB_NUM_LISTENER_UNITS;i++) {
+      int tile_id, num_streams;
+      c_listener_ctl[i] :> tile_id;
+      c_listener_ctl[i] :> num_streams;
+      for (int j=0;j<num_streams;j++) {
+        avb_sink_info_t *unsafe sink = &sinks[max_listener_stream_id];
+        sink->stream.state = AVB_SINK_STATE_DISABLED;
+        chanend *unsafe p_listener_ctl = &c_listener_ctl[i];
+        sink->listener_ctl = p_listener_ctl;
+        sink->stream.tile_id = tile_id;
+        sink->stream.local_id = j;
+        sink->stream.flags = 0;
+        sink->reservation.vlan_id = AVB_DEFAULT_VLAN;
+        max_listener_stream_id++;
+      }
+      c_listener_ctl[i] <: max_link_id;
+      max_link_id++;
     }
-    listener_ctl[i] <: max_link_id;
-    max_link_id++;
   }
 }
 
@@ -156,10 +160,8 @@ void avb_init(chanend c_media_ctl[],
 {
   unsigned char mac_addr[6];
   mac_get_macaddr(c_mac_tx, mac_addr);
-  unsafe {
-    register_talkers(c_talker_ctl, mac_addr);
-    register_listeners(c_listener_ctl);
-  }
+  register_talkers(c_talker_ctl, mac_addr);
+  register_listeners(c_listener_ctl);
 }
 
 static void update_sink_state(unsigned sink_num,
@@ -501,13 +503,9 @@ void avb_process_1722_control_packet(unsigned int buf0[],
                                      client interface avb_1722_1_control_callbacks i_1722_1_entity,
                                      client interface spi_interface i_spi) {
   if (nbytes == STATUS_PACKET_LEN) {
-    #if 0
     if (((unsigned char *)buf0)[0]) { // Link up
-      avb_1722_1_adp_init();
-      avb_1722_1_adp_depart_then_announce();
-      avb_1722_1_adp_discover_all();
+      // Do something on link up
     }
-    #endif
   }
   else {
     struct ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *) &buf0[0];
