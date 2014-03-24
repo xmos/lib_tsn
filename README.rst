@@ -11,11 +11,11 @@ Key Features
 
 * 1722 Talker and Listener (simultaneous) support
 * 1722 MAAP support for Talkers
-* 802.1Q MRP, MMRP, MVRP, SRP protocols
+* 802.1Q MRP, MVRP, SRP protocols
 * gPTP server and protocol
 * Audio interface for I2S and TDM
 * Media clock recovery and interface to PLL clock source
-* Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP Draft 21
+* Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
 
 Firmware Overview
 =================
