@@ -498,7 +498,15 @@ void acmp_remove_talker_stream_info(void)
  */
 unsigned acmp_talker_valid_talker_unique(void)
 {
-    return acmp_talker_rcvd_cmd_resp.talker_unique_id < AVB_1722_1_MAX_TALKERS;
+    const int talker_enabled = AVB_NUM_SOURCES;
+    if (talker_enabled)
+    {
+        return acmp_talker_rcvd_cmd_resp.talker_unique_id < AVB_1722_1_MAX_TALKERS;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 static void process_avb_1722_1_acmp_controller_packet(unsigned char message_type, avb_1722_1_acmp_packet_t* pkt)
