@@ -41,6 +41,7 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned serial_num)
     my_guid.c[7] = macaddr[0];
 
     avb_1722_1_adp_init();
+    avb_1722_1_adp_announce();
 #if (AVB_1722_1_AEM_ENABLED)
     avb_1722_1_aecp_aem_init(serial_num);
 #endif
@@ -86,8 +87,8 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
 void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_interface i_avb)
 {
     avb_1722_1_adp_advertising_periodic(c_tx, c_ptp);
-    avb_1722_1_adp_discovery_periodic(c_tx, i_avb);
 #if (AVB_1722_1_CONTROLLER_ENABLED)
+    avb_1722_1_adp_discovery_periodic(c_tx, i_avb);
     avb_1722_1_acmp_controller_periodic(c_tx, i_avb);
 #endif
 #if (AVB_1722_1_TALKER_ENABLED)
