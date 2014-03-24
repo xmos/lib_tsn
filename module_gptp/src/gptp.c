@@ -258,11 +258,6 @@ static void set_new_role(enum ptp_port_role_t new_role,
     sync_count = 0;
     g_ptp_uncertain = 1;
   }
-  }
-  }
-  if (new_role == PTP_MASTER && ptp_port_info[port_num].role_state == PTP_MASTER && ptp_port_info[!port_num].role_state == PTP_MASTER) {
-    g_ptp_uncertain = 0;
-  }
 
   if (new_role == PTP_MASTER) {
 
@@ -276,6 +271,10 @@ static void set_new_role(enum ptp_port_role_t new_role,
       ptp_reference_local_ts;
 
     last_sync_time[port_num] = last_announce_time[port_num] = t;
+
+    if (ptp_port_info[port_num].role_state == PTP_MASTER && ptp_port_info[!port_num].role_state == PTP_MASTER) {
+      g_ptp_uncertain = 0;
+    }
   }
 
 
