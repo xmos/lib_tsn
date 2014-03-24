@@ -192,7 +192,7 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
       {
         maap_addr.state = MAAP_RESERVED;
         maap_addr.immediately = 1;
-        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (maap_addr.base[5]&0x1F);
+        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (random_get_random_number(random_gen) % MAAP_ANNOUNCE_INTERVAL_VARIATION_CS);
       #if AVB_DEBUG_MAAP
         debug_printf("MAAP: Set announce interval %d\n", timeout_val*10);
       #endif
@@ -240,6 +240,7 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
       if (!maap_addr.immediately)
       {
         // reset timeout
+        timeout_val = MAAP_ANNOUNCE_INTERVAL_BASE_CS + (random_get_random_number(random_gen) % MAAP_ANNOUNCE_INTERVAL_VARIATION_CS);
         start_avb_timer(maap_timer, timeout_val);
       }
       else
@@ -251,11 +252,20 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)
   }
 }
 
+static unsigned long long mac_addr_to_num_reverse(unsigned char addr[6])
+{
+  unsigned long long x = 0;
+  for (int i=0;i<6;i++) {
+    x += (((unsigned long long) addr[i]) << (i*8));
+  }
+  return x;
+}
+
 static int maap_compare_mac(unsigned char src_addr[6])
 {
-  for (int i=0; i < 6; i++)
+  if (mac_addr_to_num_reverse(my_mac_addr) < mac_addr_to_num_reverse(src_addr))
   {
-    if (my_mac_addr[5-i] < src_addr[5-i]) return 1;
+    return 1;
   }
   return 0;
 }
@@ -313,6 +323,17 @@ static int maap_conflict(unsigned char remote_addr[6], int remote_count, unsigne
         conflicted_count = remote_count;
       else
         conflicted_count = my_addr_hi - first_conflict_addr;
+    }
+    else
+    {
+      return 1;
+    }
+  }
+  else if ((my_addr_lo == conflict_lo) && (my_addr_hi == conflict_hi))
+  {
+    if (!isnull(conflicted_count))
+    {
+        conflicted_count = remote_count;
     }
     else
     {

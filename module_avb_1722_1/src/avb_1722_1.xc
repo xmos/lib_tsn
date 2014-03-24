@@ -67,17 +67,24 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
 {
     avb_1722_1_packet_header_t *pkt = (avb_1722_1_packet_header_t *) &buf[0];
     unsigned subtype = GET_1722_1_SUBTYPE(pkt);
+    unsigned datalen = GET_1722_1_DATALENGTH(pkt);
 
     switch (subtype)
     {
     case DEFAULT_1722_1_ADP_SUBTYPE:
-        process_avb_1722_1_adp_packet(*(avb_1722_1_adp_packet_t*)pkt, c_tx);
+        if (datalen == AVB_1722_1_ADP_CD_LENGTH)
+        {
+          process_avb_1722_1_adp_packet(*(avb_1722_1_adp_packet_t*)pkt, c_tx);
+        }
         return;
     case DEFAULT_1722_1_AECP_SUBTYPE:
         process_avb_1722_1_aecp_packet(src_addr, (avb_1722_1_aecp_packet_t*)pkt, len, c_tx, i_avb_api, i_1722_1_entity, i_spi);
         return;
     case DEFAULT_1722_1_ACMP_SUBTYPE:
-        process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t*)pkt, c_tx);
+        if (datalen == AVB_1722_1_ACMP_CD_LENGTH)
+        {
+          process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t*)pkt, c_tx);
+        }
         return;
     default:
         return;

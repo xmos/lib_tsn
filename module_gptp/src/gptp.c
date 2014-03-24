@@ -33,6 +33,8 @@ static int g_ptp_adjust_valid = 0;
 signed g_ptp_adjust = 0;
 signed g_inv_ptp_adjust = 0;
 
+unsigned int g_ptp_uncertain = 1;
+
 /* The average path delay (over the last PDELAY_AVG_WINDOW pdelay_reqs)
    between the foreign master port and our slave port in nanoseconds (ptp time)
 */
@@ -46,9 +48,7 @@ static unsigned short steps_removed_from_gm;
 /* These variables make up the state of the local clock/port */
 unsigned ptp_reference_local_ts;
 ptp_timestamp ptp_reference_ptp_ts;
-static long long ptp_gmoffset = 0;
-static int expect_gm_discontinuity = 1;
-static int ptp_candidate_gmoffset_valid = 0;
+
 static n80_t my_port_id;
 static n80_t master_port_id;
 static u8_t ptp_priority1;
@@ -253,11 +253,15 @@ static void set_new_role(enum ptp_port_role_t new_role,
     prev_adjust_valid = 0;
     // Since there has been a role change there may be a gm discontinuity
     // to detect
-    expect_gm_discontinuity = 1;
-    ptp_candidate_gmoffset_valid = 0;
     last_pdelay_req_time = t;
     sync_lock = 0;
     sync_count = 0;
+    g_ptp_uncertain = 1;
+  }
+  }
+  }
+  if (new_role == PTP_MASTER && ptp_port_info[port_num].role_state == PTP_MASTER && ptp_port_info[!port_num].role_state == PTP_MASTER) {
+    g_ptp_uncertain = 0;
   }
 
   if (new_role == PTP_MASTER) {
@@ -271,7 +275,6 @@ static void set_new_role(enum ptp_port_role_t new_role,
     ptp_reference_local_ts =
       ptp_reference_local_ts;
 
-    ptp_gmoffset = 0;
     last_sync_time[port_num] = last_announce_time[port_num] = t;
   }
 
@@ -352,6 +355,7 @@ static int update_adjust(ptp_timestamp *master_ts,
             debug_printf("PTP sync locked\n");
             sync_lock = 1;
             sync_count = 0;
+            g_ptp_uncertain = 0;
           }
         }
         else
@@ -365,6 +369,7 @@ static int update_adjust(ptp_timestamp *master_ts,
             sync_lock = 0;
             sync_count = 0;
             prev_adjust_valid = 0;
+            g_ptp_uncertain = 1;
             return 1;
           }
         }
