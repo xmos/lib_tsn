@@ -7,11 +7,11 @@ that provides time-synchronized, low latency streaming services through IEEE 802
 
 .. only:: latex
 
- .. image:: ../images/avb_xmos_overview.pdf
+ .. image:: ../avb/images/avb_xmos_overview.pdf
 
 .. only:: html
 
- .. image:: ../images/avb_xmos_overview.png
+ .. image:: ../avb/images/avb_xmos_overview.png
 
 XMOS AVB-DC Key Features
 ------------------------
