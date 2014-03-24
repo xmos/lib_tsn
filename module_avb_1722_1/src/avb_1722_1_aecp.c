@@ -156,15 +156,10 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
         desc_size_bytes = sizeof(aem_desc_audio_cluster_t);
       }
       break;
+#if (AVB_NUM_SOURCES > 0)
     case AEM_STREAM_INPUT_TYPE:
       if (read_id < AVB_NUM_SINKS) {
         descriptor = &desc_stream_input_0[0];
-        desc_size_bytes = sizeof(aem_desc_stream_input_output_t);
-      }
-      break;
-    case AEM_STREAM_OUTPUT_TYPE:
-      if (read_id < AVB_NUM_SOURCES) {
-        descriptor = &desc_stream_output_0[0];
         desc_size_bytes = sizeof(aem_desc_stream_input_output_t);
       }
       break;
@@ -174,12 +169,21 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
         desc_size_bytes = sizeof(aem_desc_stream_port_input_output_t);
       }
       break;
+#endif
+#if (AVB_NUM_SOURCES > 0)
+    case AEM_STREAM_OUTPUT_TYPE:
+      if (read_id < AVB_NUM_SOURCES) {
+        descriptor = &desc_stream_output_0[0];
+        desc_size_bytes = sizeof(aem_desc_stream_input_output_t);
+      }
+      break;
     case AEM_STREAM_PORT_OUTPUT_TYPE:
       if (read_id < AVB_NUM_SOURCES) {
         descriptor = &desc_stream_port_output_0[0];
         desc_size_bytes = sizeof(aem_desc_stream_port_input_output_t);
       }
       break;
+#endif
   }
 
   if (descriptor != NULL)
@@ -224,7 +228,13 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
   {
     if (read_id < (AVB_NUM_SINKS+AVB_NUM_SOURCES))
     {
+#if (AVB_NUM_SINKS > 0 && AVB_NUM_SOURCES > 0)
       const int num_mappings = (read_id < AVB_NUM_SINKS) ? AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS : AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
+#elif (AVB_NUM_SOURCES > 0)
+      const int num_mappings = (read_id < AVB_NUM_SOURCES) ? AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES : 0;
+#else
+      const int num_mappings = (read_id < AVB_NUM_SINKS) ? AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS : 0;
+#endif
 
       /* Since the map descriptors aren't constant size, unlike the clusters, and
        * dependent on the number of channels, we don't use a template */
