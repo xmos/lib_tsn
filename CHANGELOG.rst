@@ -1,6 +1,11 @@
 sc_avb Change Log
 =================
 
+6.0.5
+-----
+  * Bug fix to prevent compile error when Talker is disabled
+  * Update to 1722 MAAP to fix non-compliance issue on conflict check
+
 6.0.4
 -----
   * Updates design guide documentation to include AVB-DC details
