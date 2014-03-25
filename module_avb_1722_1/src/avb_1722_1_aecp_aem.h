@@ -90,6 +90,8 @@ typedef struct {
     unsigned char msrp_failure_bridge_id[8];
 } avb_1722_1_aem_getset_stream_info_t;
 
+#define AEM_MAX_CONTROL_VALUES_LENGTH_BYTES 508
+
 /* 7.4.25.1 SET_CONTROL */
 typedef struct {
     unsigned char descriptor_type[2];

@@ -1,6 +1,8 @@
 #ifndef _avb_1722_1_callbacks_h_
 #define _avb_1722_1_callbacks_h_
 
+#include "avb_1722_1_aecp_aem.h"
+
 #ifdef __XC__
 interface avb_1722_1_control_callbacks {
   /** This function events on a GET_CONTROL 1722.1 command received from a Controller.
@@ -14,7 +16,7 @@ interface avb_1722_1_control_callbacks {
     */
   unsigned char get_control_value(unsigned short control_index,
                                   unsigned short &values_length,
-                                  unsigned char values[508]);
+                                  unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]);
 
   /** This function events on a SET_CONTROL 1722.1 command received from a Controller.
     *
@@ -30,7 +32,7 @@ interface avb_1722_1_control_callbacks {
     */
   unsigned char set_control_value(unsigned short control_index,
                                   unsigned short values_length,
-                                  unsigned char values[508]);
+                                  unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]);
 
 };
 #endif

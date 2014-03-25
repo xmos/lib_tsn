@@ -17,8 +17,6 @@
 #define ADDRESS_MSG_GET_LENGTH(aa)     ((((aa)->mode_length[0] & 0xf) << 8)| \
                                         ((aa)->mode_length[1]))
 
-#define AVB_1722_1_AECP_CD_LENGTH   40
-
 /**
  * 1722.1 AECP AEM command format
  */
