@@ -71,7 +71,7 @@
         <version>2.3.0beta1</version>
     </dependency>
     <description>AVB software stack</description>
-    <docdir>doc</docdir>
+    <exclude_dir>doc</exclude_dir>
     <exclude_dir>tests</exclude_dir>
     <location>https://github.com/xcore/sc_avb.git</location>
     <name>sc_avb</name>
