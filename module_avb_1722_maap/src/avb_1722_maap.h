@@ -73,6 +73,14 @@ void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface i_avb);
  */
 void avb_talker_on_source_address_reserved(client interface avb_interface i_avb, int source_num, unsigned char mac_addr[6]);
 
+/** Default implementation of avb_talker_on_source_address_reserved()
+ *
+ * \param i_avb   client interface of type avb_interface into avb_manager()
+ * \param source_num    The local source ID of the Talker
+ * \param mac_addr      The destination MAC address reserved for this Talker
+ */
+void avb_talker_on_source_address_reserved_default(client interface avb_interface i_avb, int source_num, unsigned char mac_addr[6]);
+
 #endif
 
 #endif

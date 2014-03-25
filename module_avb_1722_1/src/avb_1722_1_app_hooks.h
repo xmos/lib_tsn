@@ -18,6 +18,8 @@
  **/
 void avb_entity_on_new_entity_available(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, chanend c_tx);
 
+void avb_entity_on_new_entity_available_default(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, chanend c_tx);
+
 /** A Controller has indicated that a Listener is connecting to this Talker stream source
  *
  * \param i_avb             client interface of type ``avb_interface`` into avb_manager()
@@ -25,6 +27,8 @@ void avb_entity_on_new_entity_available(client interface avb_interface i_avb, co
  * \param listener_guid     The GUID of the Listener entity that is connecting
  **/
 void avb_talker_on_listener_connect(client interface avb_interface i_avb, int source_num, const_guid_ref_t listener_guid);
+
+void avb_talker_on_listener_connect_default(client interface avb_interface i_avb, int source_num, const_guid_ref_t listener_guid);
 
 /** A Controller has indicated that a Listener is disconnecting from this Talker stream source
  *
@@ -38,6 +42,8 @@ void avb_talker_on_listener_connect(client interface avb_interface i_avb, int so
  **/
 void avb_talker_on_listener_disconnect(client interface avb_interface i_avb, int source_num, const_guid_ref_t listener_guid, int connection_count);
 
+void avb_talker_on_listener_disconnect_default(client interface avb_interface i_avb, int source_num, const_guid_ref_t listener_guid, int connection_count);
+
 /** A Controller has indicated that a Listener has returned an error code for a connection attempt.
  *
  * \param i_avb             client interface of type ``avb_interface`` into avb_manager()
@@ -50,6 +56,9 @@ void avb_talker_on_listener_disconnect(client interface avb_interface i_avb, int
 void avb_talker_on_listener_connect_failed(client interface avb_interface i_avb, const_guid_ref_t my_guid, int source_num,
         const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, chanend c_tx);
 
+void avb_talker_on_listener_connect_failed_default(client interface avb_interface i_avb, const_guid_ref_t my_guid, int source_num,
+        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, chanend c_tx);
+
 /** A Controller has indicated to connect this Listener sink to a Talker stream
  *
  * \param i_avb             client interface of type ``avb_interface`` into avb_manager()
@@ -59,7 +68,17 @@ void avb_talker_on_listener_connect_failed(client interface avb_interface i_avb,
  * \param stream_id         The 64 bit Stream ID of the Talker stream
  * \param my_guid           The GUID of this entity
  **/
-avb_1722_1_acmp_status_t avb_listener_on_talker_connect(client interface avb_interface i_avb, int sink_num, const_guid_ref_t talker_guid, unsigned char dest_addr[6], unsigned int stream_id[2], const_guid_ref_t my_guid);
+avb_1722_1_acmp_status_t avb_listener_on_talker_connect(client interface avb_interface i_avb,
+                                                        int sink_num, const_guid_ref_t talker_guid,
+                                                        unsigned char dest_addr[6],
+                                                        unsigned int stream_id[2],
+                                                        const_guid_ref_t my_guid);
+
+avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface avb_interface i_avb,
+                                                                int sink_num, const_guid_ref_t talker_guid,
+                                                                unsigned char dest_addr[6],
+                                                                unsigned int stream_id[2],
+                                                                const_guid_ref_t my_guid);
 
 /** A Controller has indicated to disconnect this Listener sink from a Talker stream
  *
@@ -70,7 +89,18 @@ avb_1722_1_acmp_status_t avb_listener_on_talker_connect(client interface avb_int
  * \param stream_id         The 64 bit Stream ID of the Talker stream
  * \param my_guid           The GUID of this entity
  **/
-void avb_listener_on_talker_disconnect(client interface avb_interface i_avb, int sink_num, const_guid_ref_t talker_guid, unsigned char dest_addr[6], unsigned int stream_id[2], const_guid_ref_t my_guid);
+void avb_listener_on_talker_disconnect(client interface avb_interface i_avb,
+                                       int sink_num, const_guid_ref_t talker_guid,
+                                       unsigned char dest_addr[6],
+                                       unsigned int stream_id[2],
+                                       const_guid_ref_t my_guid);
+
+void avb_listener_on_talker_disconnect_default(client interface avb_interface i_avb,
+                                               int sink_num, const_guid_ref_t talker_guid,
+                                               unsigned char dest_addr[6],
+                                               unsigned int stream_id[2],
+                                               const_guid_ref_t my_guid);
+
 
 #endif
 
