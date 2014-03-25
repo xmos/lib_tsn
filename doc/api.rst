@@ -1,13 +1,13 @@
 API Reference
-+++++++++++++
+=============
 
 .. _sec_defines_api:
 
 Configuration Defines
-=====================
+---------------------
 
 Demo and hardware specific
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Demo parameters and hardware port definitions are set in a header configuration file named ``app_config.h`` within the ``src/`` directory
 of the application.
@@ -17,7 +17,7 @@ of the application.
 .. doxygendefine:: AVB_DEMO_NUM_CHANNELS
 
 Core AVB parameters
--------------------
+~~~~~~~~~~~~~~~~~~~
   
 Each application using the AVB modules must include a header configuration file named
 ``avb_conf.h`` within the ``src/`` directory of the application and this file must set the following values with #defines.
@@ -29,11 +29,11 @@ See the demo application for a realistic example.
   Defaults for these #defines are assigned in their absence, but may cause compilation failure or unpredictable/erroneous behaviour.
 
 Ethernet
---------
+~~~~~~~~
 See the Ethernet documentation for detailed information on its parameters.
 
 Audio subsystem
----------------
+~~~~~~~~~~~~~~~
 
 .. doxygendefine:: AVB_MAX_AUDIO_SAMPLE_RATE
 
@@ -51,7 +51,7 @@ Audio subsystem
 .. doxygendefine:: AVB_NUM_MEDIA_CLOCKS
 
 1722.1
-------
+~~~~~~
 
 .. doxygendefine:: AVB_ENABLE_1722_1
 .. doxygendefine:: AVB_1722_1_TALKER_ENABLED
@@ -83,7 +83,7 @@ in the build stage to expand strings to 64 octet padded with zeros.
 .. _sec_component_api:
 
 Component tasks and functions
-=============================
+-----------------------------
 
 The following functions provide components that can be combined in the
 top-level main. For details on the Ethernet component, see
@@ -150,10 +150,10 @@ The following functions implement AVB audio components:
 .. _sec_avb_api:
 
 AVB API
-=======
+-------
    
 General Control Functions
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: avb_get_control_packet
 
@@ -163,7 +163,7 @@ General Control Functions
 
 
 Multicast Address Allocation Commands
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: avb_1722_maap_request_addresses
 
@@ -172,12 +172,12 @@ Multicast Address Allocation Commands
 .. doxygenfunction:: avb_1722_maap_relinquish_addresses
 
 MAAP Application Hooks
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: avb_talker_on_source_address_reserved
 
 AVB Control API
----------------
+~~~~~~~~~~~~~~~
 
 .. doxygenenum:: device_media_clock_type_t
 .. doxygenenum:: device_media_clock_state_t
@@ -185,7 +185,7 @@ AVB Control API
 .. doxygeninterface:: avb_interface
 
 1722.1 Controller Commands
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: avb_1722_1_controller_connect
 .. doxygenfunction:: avb_1722_1_controller_disconnect
@@ -193,7 +193,7 @@ AVB Control API
 .. doxygenfunction:: avb_1722_1_controller_disconnect_talker
 
 1722.1 Discovery Commands
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: avb_1722_1_adp_announce
 .. doxygenfunction:: avb_1722_1_adp_depart
@@ -202,7 +202,7 @@ AVB Control API
 .. doxygenfunction:: avb_1722_1_entity_database_flush
 
 1722.1 Application Hooks
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 These hooks are called on events that can be acted upon by the application. They can be overridden by
 user defined hooks of the same name to perform custom functionality not present in the core stack.
@@ -219,7 +219,7 @@ user defined hooks of the same name to perform custom functionality not present 
 .. _sec_1722_1_aem:
 
 1722.1 Descriptors
-==================
+------------------
 
 The XMOS AVB reference design provides an AVDECC Entity Model (AEM) consisting of descriptors to describe the internal components 
 of the Entity. For a complete overview of AEM, see section 7 of the 1722.1 specification.
@@ -232,7 +232,7 @@ AEM defines a number of descriptors for specific parts of the Entity model. The 
 reference design are listed in the table below. 
 
 Editing descriptors
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 The descriptors are declared in the a header configuration file named
 ``aem_descriptors.h.in`` within the ``src/`` directory of the application.
@@ -304,7 +304,7 @@ This file is post-processed by a script in the build stage to expand strings to 
 
 
 Adding and removing descriptors
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Descriptors are indexed by a descriptor list named ``aem_descriptor_list`` in the ``aem_descriptors.h.in`` file. 
 
@@ -333,7 +333,7 @@ For example:
 .. _sec_ptp_api:
 
 PTP Client API
-==============
+--------------
 
 The PTP client API can be used if you want extra information about the PTP
 time domain. An application does not need to directly use this to
