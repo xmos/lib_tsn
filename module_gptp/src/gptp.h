@@ -41,7 +41,6 @@ typedef struct ptp_time_info ptp_time_info;
  *  nanoseconds.
  */
 struct ptp_time_info_mod64 {
-  unsigned int uncertain_flag;
   unsigned int local_ts;
   unsigned int ptp_ts_hi;
   unsigned int ptp_ts_lo;
@@ -81,7 +80,7 @@ typedef struct ptp_port_info_t {
 
     \param mac_rx       chanend connected to the ethernet server (receive)
     \param mac_tx       chanend connected to the ethernet server (transmit)
-    \param ptp_clients  an array of chanends to connect to clients
+    \param client       an array of chanends to connect to clients
                         of the ptp server
     \param num_clients  The number of clients attached
     \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
@@ -98,15 +97,18 @@ void ptp_server(chanend mac_rx, chanend mac_tx,
 ptp_port_role_t ptp_get_state(chanend ptp_server);
 
 
-/** Retrieve propagation delay of link
+/** Retrieve time information from the ptp server
+ *
+ *  This function gets an up-to-date structure of type `ptp_time_info` to use
+ *  to convert local time to PTP time.
  *
  *  \param ptp_server chanend connected to the ptp_server
- *  \param pdelay     a pointer to an unsigned that will be filled with the pdelay
+ *  \param info       structure to be filled with time information
  *
  **/
 void ptp_get_propagation_delay(chanend ptp_server, unsigned *pdelay);
 
-/** Retrieve port propagation delay from the ptp server
+/** Retrieve port progatation delay from the ptp server
  *
  *
  *  \param ptp_server chanend connected to the ptp_server
@@ -263,7 +265,6 @@ void ptp_get_current_grandmaster(chanend ptp_server, unsigned char grandmaster[8
  *
  *  \param mac_rx       chanend connected to the ethernet server (receive)
  *  \param mac_tx       chanend connected to the ethernet server (transmit)
- *  \param ptp_timer    a timer resource for PTP to use
  *  \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
  *                     or ``PTP_SLAVE_ONLY``)
  *

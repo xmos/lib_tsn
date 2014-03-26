@@ -19,7 +19,6 @@ void AVB1722_CIP_HeaderGen(unsigned char Buf[], int dbc)
 void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
 		int valid_ts,
 		unsigned avbtp_ts,
-		unsigned ts_uncertain,
 		int pkt_data_length,
 		int sequence_number,
 		const unsigned stream_id0)
@@ -28,7 +27,6 @@ void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
 
 	SET_AVBTP_PACKET_DATA_LENGTH(pAVBHdr, pkt_data_length);
 
-	SET_AVBTP_TU(pAVBHdr, ts_uncertain);
 	// only stamp the AVBTP timestamp when required.
 	if (valid_ts) {
 		SET_AVBTP_TV(pAVBHdr, 1); // AVB timestamp valid.

@@ -108,18 +108,16 @@ void AVB1722_CIP_HeaderGen(unsigned char Buf[], int dbc);
  *  \param Buf the buffer containing the packet
  *  \param valid_ts the timestamp is valid flag
  *  \param avbtp_ts the 32 bit PTP timestamp
- *  \param ts_uncertain PTP timestamp uncertain flag
  *  \param pkt_data_length the number of samples in the PDU
  *  \param sequence_number the 1722 sequence number
  *  \param stream_id0 the bottom 32 bits of the stream id
  */
 void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
-    int valid_ts,
-    unsigned avbtp_ts,
-    unsigned ts_uncertain,
-    int pkt_data_length,
-    int sequence_number,
-    const unsigned stream_id0);
+		int valid_ts,
+		unsigned avbtp_ts,
+		int pkt_data_length,
+		int sequence_number,
+		const unsigned stream_id0);
 
 // Max. packet size for AVB 1722 talker
 #ifdef AVB_1722_FORMAT_SAF

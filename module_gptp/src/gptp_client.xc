@@ -64,7 +64,6 @@ void ptp_get_requested_time_info_mod64_use_timer(chanend c,
     c <: 0;
     tmr :> thiscore_now;
     c :> othercore_now;
-    c :> info.uncertain_flag;
     c :> info.local_ts;
     c :> info.ptp_ts_hi;
     c :> info.ptp_ts_lo;
