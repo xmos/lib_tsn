@@ -2,8 +2,8 @@
 <xpd>
     <components>
         <component description = "AVB stack control API" type = "demoCode" scope = "Example" path = "module_avb" local = "false" id = "module_avb" name = "module_avb">
-            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.0">module_ethernet_smi</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_util" version = "1.0.4">module_locks</componentDependency>
+            <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.0">module_ethernet_smi</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.0">module_ethernet</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_otp" version = "1.0.0">module_otp_board_info</componentDependency>
             <keyword>avb</keyword>
@@ -110,7 +110,8 @@
     <release parenthash = "a4d9f06dfa609b1019c21a9a72a88c47ac51d9e1" version = "6.0.5beta0" githash = "d3b34a2f2e47ae0da01f5074da77cacceacc86f5"></release>
     <release parenthash = "49ca5680bd8a568578e107b892cc2cf689bdb4fb" version = "6.0.5beta1" githash = "0072fe4ad32c19c83251c6ae30cf8c1f2b7f6688"></release>
     <release parenthash = "815e7c825a520b07a5030d8fc72413bfcdcd7f2b" version = "6.0.5beta2" githash = "346c8d71daccda299da963169e97990786746898"></release>
-    <release parenthash = "28f8dce299a14d643d9bde6f0a1238f0448e2558" version = "6.0.5rc0"></release>
+    <release parenthash = "28f8dce299a14d643d9bde6f0a1238f0448e2558" version = "6.0.5rc0" githash = "420392857e5332928803389296b12ce355177c37"></release>
+    <release parenthash = "0b8d51e5cc6047dc9d097b1d38ef6e55c4e02045" version = "6.0.6rc0"></release>
     <subpartnumber>XM-004459-SM</subpartnumber>
     <vendor>XMOS</vendor>
     <version_defines></version_defines>

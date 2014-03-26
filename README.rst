@@ -1,7 +1,7 @@
 AVB Software Stack
 ..................
 
-:Latest release: 6.0.5rc0
+:Latest release: 6.0.6rc0
 :Maintainer: XMOS
 :Description: AVB software stack
 
