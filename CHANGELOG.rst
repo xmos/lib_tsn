@@ -1,6 +1,10 @@
 sc_avb Change Log
 =================
 
+6.0.6
+-----
+  * Reverted change to 1722 introduced in 6.0.3 that caused media clock to unlock
+
 6.0.5
 -----
   * Bug fix to prevent compile error when Talker is disabled
