@@ -1,6 +1,9 @@
 sc_avb Change Log
 =================
 
+6.0.7
+-----
+
 6.0.6
 -----
   * Reverted change to 1722 introduced in 6.0.3 that caused media clock to unlock
