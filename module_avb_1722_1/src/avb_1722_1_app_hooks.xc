@@ -54,7 +54,6 @@ void avb_talker_on_listener_connect_failed_default(client interface avb_interfac
 }
 
 /* The controller has indicated to connect this listener sink to a talker stream */
-/* The controller has indicated to connect this listener sink to a talker stream */
 avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface avb_interface avb,
                                                                 int sink_num,
                                                                 const_guid_ref_t talker_guid,
