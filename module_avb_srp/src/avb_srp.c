@@ -17,22 +17,17 @@
 
 /* This needs to be greater than the actual max number of handled streams, because SRP
    cannot remove the attributes as quickly as a connection can be torn down and setup
-   again on the Mac. The Mac uses a new set of stream IDs, presumably because the old
-   attributes are still hanging around in their implementation also.
+   again on the Mac.
    Hence there will be a period where the number of active stream entries is greater
    than the max capable number until they are cleaned up.
 */
 #ifndef AVB_STREAM_TABLE_ENTRIES
-#define AVB_STREAM_TABLE_ENTRIES (8+4)
+#if MRP_NUM_PORTS == 1
+   #define AVB_STREAM_TABLE_ENTRIES (AVB_NUM_SOURCES+AVB_NUM_SINKS+4)
+#else
+  #define AVB_STREAM_TABLE_ENTRIES (8+4)
 #endif
-
-typedef struct avb_stream_entry
-{
-  avb_srp_info_t reservation;
-  int listener_present;
-  int talker_present;
-  int bw_reserved[MRP_NUM_PORTS]; // While the bw_reserved flag is set/not set we do not add/subtract Qav credit
-} avb_stream_entry;
+#endif
 
 static avb_stream_entry stream_table[AVB_STREAM_TABLE_ENTRIES];
 static unsigned int port_bandwidth[MRP_NUM_PORTS];
@@ -176,13 +171,19 @@ void srp_remove_reservation_entry(avb_srp_info_t *reservation) {
   }
 }
 
-void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
+int srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
   if (event == MRP_EVENT_DUMMY) {
     st->applicant_state = MRP_UNUSED;
   }
+#if (MRP_NUM_PORTS == 2)
   if (st->attribute_type == MSRP_LISTENER || !st->here) {
     st->applicant_state = MRP_UNUSED;
   }
+#else
+  if (st->attribute_type == MSRP_LISTENER && !st->here) {
+    st->applicant_state = MRP_UNUSED;
+  }
+#endif
 
   if (st->attribute_type == MSRP_TALKER_ADVERTISE ||
       st->attribute_type == MSRP_TALKER_FAILED ||
@@ -204,6 +205,8 @@ void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
 
     mrp_debug_dump_attrs();
   }
+
+  return (st->applicant_state == MRP_UNUSED);
 }
 
 static void create_propagated_attribute_and_join(mrp_attribute_state *attr, int new) {
@@ -414,6 +417,7 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
   if (MRP_NUM_PORTS == 2) {
     avb_srp_map_join(attr, new, 1);
   }
+  mrp_debug_dump_attrs();
 
   if (stream != -1u) {
 
@@ -502,10 +506,15 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
   for (int i=0; i < MRP_NUM_PORTS; i++) {
     mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
     if (!matched_talker_advertise) {
-      mrp_attribute_state *attr = mrp_get_attr();
-      mrp_attribute_init(attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
-      mrp_mad_begin(attr);
-      mrp_mad_join(attr, 1);
+      mrp_attribute_state *talker_attr = mrp_get_attr();
+#if MRP_NUM_PORTS == 1
+      mrp_attribute_state *listener_attr = mrp_get_attr();
+      mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
+      mrp_mad_begin(listener_attr);
+#endif
+      mrp_attribute_init(talker_attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
+      mrp_mad_begin(talker_attr);
+      mrp_mad_join(talker_attr, 1);
     }
     else {
       mrp_mad_join(matched_talker_advertise, 1);
@@ -516,6 +525,7 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
 
 
 void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
+#if (MRP_NUM_PORTS == 2)
   // LL1: Find Talker advertise attribute that has not been propagated
   mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
 
@@ -540,6 +550,14 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
       }
     }
   }
+#else
+  mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, 0);
+
+  if (matched_listener) {
+    matched_listener->here = 0;
+    mrp_mad_leave(matched_listener);
+  }
+#endif
 }
 
 /* LJN: Listener Join
@@ -582,11 +600,15 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
                            i,
                            1,
                            stream_ptr);
+#if MRP_NUM_PORTS == 1
+        mrp_mad_begin(listener_attr);
+        mrp_mad_join(listener_attr, 1);
+#endif
       }
     }
   }
 
-  // mrp_debug_dump_attrs();
+  mrp_debug_dump_attrs();
 }
 
 

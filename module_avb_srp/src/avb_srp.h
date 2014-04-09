@@ -14,6 +14,14 @@
 
 #define AVB_SRP_MACADDR { 0x01, 0x80, 0xc2, 0x00, 0x00, 0xe }
 
+typedef struct avb_stream_entry
+{
+  avb_srp_info_t reservation;
+  int listener_present;
+  int talker_present;
+  int bw_reserved[MRP_NUM_PORTS]; // While the bw_reserved flag is set/not set we do not add/subtract Qav credit
+} avb_stream_entry;
+
 #ifdef __XC__
 /** SRP task that implements MSRP and MVRP protocols. Can be combined with other combinable tasks.
   *
@@ -34,6 +42,7 @@ void avb_srp_task(client interface avb_interface i_avb,
 
 void avb_match_and_join_leave(mrp_attribute_state *unsafe attr, int join);
 
+avb_stream_entry *unsafe srp_add_reservation_entry_stream_id_only(unsigned int stream_id[2]);
 
 int avb_srp_match_stream_id(unsigned streamId[2], avb_srp_info_t **stream);
 
@@ -62,7 +71,7 @@ void avb_srp_leave_talker_attrs(unsigned int stream_id[2]);
 void avb_srp_leave_listener_attrs(unsigned int stream_id[2]);
 void avb_srp_join_listener_attrs(unsigned int stream_id[2]);
 
-void srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st);
+int srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st);
 
 /* The following functions are called from avb_mrp.c */
 mrp_attribute_state *unsafe avb_srp_process_new_attribute_from_packet(int attribute_type,
