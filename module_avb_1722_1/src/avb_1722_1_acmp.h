@@ -144,8 +144,6 @@ void acmp_progress_inflight_timer(int entity_type);
 
 int acmp_check_inflight_command_timeouts(int entity_type);
 
-void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *response, int status, chanend c_tx);
-
 void acmp_set_talker_response(void);
 
 unsigned acmp_listener_valid_listener_unique(void);
@@ -166,6 +164,7 @@ unsigned acmp_talker_valid_talker_unique(void);
 
 #ifdef __XC__
 void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp *alias command, int retry, int inflight_idx, chanend c_tx);
+void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, chanend c_tx);
 #endif
 
 #ifdef __XC__

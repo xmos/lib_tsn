@@ -78,7 +78,7 @@ void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_re
     }
 }
 
-void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *response, int status, chanend c_tx)
+void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, chanend c_tx)
 {
     avb_1722_1_create_acmp_packet(response, message_type, status);
     mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ACMP_PACKET_SIZE, -1);
