@@ -5,6 +5,7 @@
    state machines into one. */
 #include <string.h>
 #include <limits.h>
+#include <xclib.h>
 #ifdef __avb_conf_h_exists__
 #include "avb_conf.h"
 #endif
@@ -90,14 +91,14 @@ ptp_port_role_t ptp_current_state()
 }
 
 unsigned local_timestamp_to_ptp_mod32(unsigned local_ts,
-                                      ptp_time_info_mod64 *info)
+                                      ptp_time_info_mod64 &info)
 {
-  long long local_diff = (signed) local_ts - (signed) info->local_ts;
+  long long local_diff = (signed) local_ts - (signed) info.local_ts;
 
   local_diff *= 10;
-  local_diff = local_diff + ((local_diff * info->ptp_adjust) >> PTP_ADJUST_PREC);
+  local_diff = local_diff + ((local_diff * info.ptp_adjust) >> PTP_ADJUST_PREC);
 
-  return (info->ptp_ts_lo + (int) local_diff);
+  return (info.ptp_ts_lo + (int) local_diff);
 }
 
 void local_timestamp_to_ptp_mod64(unsigned local_ts,
@@ -119,14 +120,14 @@ void local_timestamp_to_ptp_mod64(unsigned local_ts,
 
 
 
-void ptp_get_reference_ptp_ts_mod_64(unsigned *hi, unsigned *lo)
+void ptp_get_reference_ptp_ts_mod_64(unsigned &hi, unsigned &lo)
 {
   unsigned long long t;
   t = ptp_reference_ptp_ts.seconds[0] +  ((unsigned long long) ptp_reference_ptp_ts.seconds[1] << 32);
   t = t * NANOSECONDS_PER_SECOND;
   t += ptp_reference_ptp_ts.nanoseconds;
-  *hi = (unsigned) (t >> 32);
-  *lo = (unsigned) t;
+  hi = (unsigned) (t >> 32);
+  lo = (unsigned) t;
 }
 
 static long long local_time_to_ptp_time(unsigned t, int l_ptp_adjust)
@@ -140,14 +141,14 @@ static long long local_time_to_ptp_time(unsigned t, int l_ptp_adjust)
 }
 
 
-static void ptp_timestamp_offset64(ptp_timestamp *dst,
-                                   ptp_timestamp *ts,
+static void ptp_timestamp_offset64(ptp_timestamp &alias dst,
+                                   ptp_timestamp &alias ts,
                                    long long offset)
 {
-  unsigned long long sec = ts->seconds[0] |
-                           ((unsigned long long) ts->seconds[1] << 32);
+  unsigned long long sec = ts.seconds[0] |
+                           ((unsigned long long) ts.seconds[1] << 32);
 
-  unsigned long long nanosec = ts->nanoseconds;
+  unsigned long long nanosec = ts.nanoseconds;
 
   nanosec = nanosec + offset;
 
@@ -155,28 +156,28 @@ static void ptp_timestamp_offset64(ptp_timestamp *dst,
 
   nanosec = nanosec % NANOSECONDS_PER_SECOND;
 
-  dst->seconds[1] = (unsigned) (sec >> 32);
+  dst.seconds[1] = (unsigned) (sec >> 32);
 
-  dst->seconds[0] = (unsigned) sec;
+  dst.seconds[0] = (unsigned) sec;
 
-  dst->nanoseconds = nanosec;
+  dst.nanoseconds = nanosec;
 }
 
 
-void ptp_timestamp_offset(ptp_timestamp *ts, int offset)
+void ptp_timestamp_offset(ptp_timestamp &ts, int offset)
 {
   ptp_timestamp_offset64(ts, ts, offset);
 }
 
-static long long ptp_timestamp_diff(ptp_timestamp *a,
-                                    ptp_timestamp *b)
+static long long ptp_timestamp_diff(ptp_timestamp &a,
+                                    ptp_timestamp &b)
 {
-  unsigned long long sec_a = a->seconds[0] |
-                           ((unsigned long long) a->seconds[1] << 32);
-  unsigned long long sec_b = b->seconds[0] |
-                           ((unsigned long long) b->seconds[1] << 32);
-  unsigned long long nanosec_a = a->nanoseconds;
-  unsigned long long nanosec_b = b->nanoseconds;
+  unsigned long long sec_a = a.seconds[0] |
+                           ((unsigned long long) a.seconds[1] << 32);
+  unsigned long long sec_b = b.seconds[0] |
+                           ((unsigned long long) b.seconds[1] << 32);
+  unsigned long long nanosec_a = a.nanoseconds;
+  unsigned long long nanosec_b = b.nanoseconds;
 
   long long sec_diff = sec_a - sec_b;
   long long nanosec_diff = nanosec_a - nanosec_b;
@@ -186,33 +187,33 @@ static long long ptp_timestamp_diff(ptp_timestamp *a,
   return nanosec_diff;
 }
 
-unsigned ptp_timestamp_to_local(ptp_timestamp *ts,
-                                ptp_time_info *info)
+unsigned ptp_timestamp_to_local(ptp_timestamp &ts,
+                                ptp_time_info &info)
 {
     long long ptp_diff;
     long long local_diff;
-    ptp_diff = ptp_timestamp_diff(ts, &info->ptp_ts);
+    ptp_diff = ptp_timestamp_diff(ts, info.ptp_ts);
 
-    local_diff = ptp_diff + ((ptp_diff * info->inv_ptp_adjust) >> PTP_ADJUST_PREC);
+    local_diff = ptp_diff + ((ptp_diff * info.inv_ptp_adjust) >> PTP_ADJUST_PREC);
     local_diff = local_diff / 10;
-    return (info->local_ts + local_diff);
+    return (info.local_ts + local_diff);
 }
 
-unsigned ptp_mod32_timestamp_to_local(unsigned ts, ptp_time_info_mod64* info)
+unsigned ptp_mod32_timestamp_to_local(unsigned ts, ptp_time_info_mod64& info)
 {
     long long ptp_diff;
     long long local_diff;
-    ptp_diff = (signed) ts - (signed)info->ptp_ts_lo;
+    ptp_diff = (signed) ts - (signed)info.ptp_ts_lo;
 
-    local_diff = ptp_diff + ((ptp_diff * info->inv_ptp_adjust) >> PTP_ADJUST_PREC);
+    local_diff = ptp_diff + ((ptp_diff * info.inv_ptp_adjust) >> PTP_ADJUST_PREC);
     local_diff = local_diff / 10;
-    return (info->local_ts + local_diff);
+    return (info.local_ts + local_diff);
 }
 
-static void _local_timestamp_to_ptp(ptp_timestamp *ptp_ts,
+static void _local_timestamp_to_ptp(ptp_timestamp &ptp_ts,
                                     unsigned local_ts,
                                     unsigned reference_local_ts,
-                                    ptp_timestamp *reference_ptp_ts,
+                                    ptp_timestamp &reference_ptp_ts,
                                     unsigned ptp_adjust)
 {
   unsigned local_diff = (signed) local_ts - (signed) reference_local_ts;
@@ -222,18 +223,18 @@ static void _local_timestamp_to_ptp(ptp_timestamp *ptp_ts,
   ptp_timestamp_offset64(ptp_ts, reference_ptp_ts, diff);
 }
 
-void local_timestamp_to_ptp(ptp_timestamp *ptp_ts,
+void local_timestamp_to_ptp(ptp_timestamp &ptp_ts,
                             unsigned local_ts,
-                            ptp_time_info *info)
+                            ptp_time_info &info)
 {
   _local_timestamp_to_ptp(ptp_ts,
                           local_ts,
-                          info->local_ts,
-                          &info->ptp_ts,
-                          info->ptp_adjust);
+                          info.local_ts,
+                          info.ptp_ts,
+                          info.ptp_adjust);
 }
 
-#define local_to_ptp_ts(ptp_ts, local_ts) _local_timestamp_to_ptp(ptp_ts, local_ts, ptp_reference_local_ts, &ptp_reference_ptp_ts, g_ptp_adjust)
+#define local_to_ptp_ts(ptp_ts, local_ts) _local_timestamp_to_ptp(ptp_ts, local_ts, ptp_reference_local_ts, ptp_reference_ptp_ts, g_ptp_adjust)
 
 static void create_my_announce_msg(AnnounceMessage *pAnnounceMesg);
 
@@ -278,8 +279,13 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   ptp_port_info[port_num].role_state = new_role;
 
-  if ((new_role == PTP_MASTER || new_role == PTP_UNCERTAIN) && (ptp_port_info[!port_num].role_state == PTP_MASTER))
+  if ((new_role == PTP_MASTER || new_role == PTP_UNCERTAIN)
+#if (PTP_NUM_PORTS == 2)
+    && (ptp_port_info[!port_num].role_state == PTP_MASTER)
+#endif
+    ) {
     create_my_announce_msg(&best_announce_msg);
+  }
 }
 
 
@@ -291,7 +297,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
 #define DEBUG_ADJUST
 
-static int update_adjust(ptp_timestamp *master_ts,
+static int update_adjust(ptp_timestamp &master_ts,
                           unsigned local_ts)
 {
 
@@ -301,7 +307,7 @@ static int update_adjust(ptp_timestamp *master_ts,
 
     /* Calculated the difference between two sync message on
        the master port and the local port */
-    master_diff = ptp_timestamp_diff(master_ts, &prev_adjust_master_ts);
+    master_diff = ptp_timestamp_diff(master_ts, prev_adjust_master_ts);
     local_diff = (signed) local_ts - (signed) prev_adjust_local_ts;
 
     /* The local timestamps are based on 100Mhz. So
@@ -388,18 +394,18 @@ static int update_adjust(ptp_timestamp *master_ts,
   }
 
   prev_adjust_local_ts = local_ts;
-  prev_adjust_master_ts = *master_ts;
+  prev_adjust_master_ts = master_ts;
   prev_adjust_valid = 1;
 
   return 0;
 }
 
-static void update_reference_timestamps(ptp_timestamp *master_egress_ts,
+static void update_reference_timestamps(ptp_timestamp &master_egress_ts,
                                         unsigned local_ingress_ts)
 {
   ptp_timestamp master_ingress_ts;
 
-  ptp_timestamp_offset64(&master_ingress_ts, master_egress_ts, ptp_path_delay);
+  ptp_timestamp_offset64(master_ingress_ts, master_egress_ts, ptp_path_delay);
 
   /* Update the reference timestamps */
   ptp_reference_local_ts = local_ingress_ts;
@@ -419,15 +425,15 @@ static void periodic_update_reference_timestamps(unsigned int local_ts)
     long long ptp_diff = local_time_to_ptp_time(local_diff, g_ptp_adjust);
 
     ptp_reference_local_ts = local_ts;
-    ptp_timestamp_offset64(&ptp_reference_ptp_ts,
-                           &ptp_reference_ptp_ts,
+    ptp_timestamp_offset64(ptp_reference_ptp_ts,
+                           ptp_reference_ptp_ts,
                            ptp_diff);
   }
 }
 
 
-static void update_path_delay(ptp_timestamp *master_ingress_ts,
-                              ptp_timestamp *master_egress_ts,
+static void update_path_delay(ptp_timestamp &master_ingress_ts,
+                              ptp_timestamp &master_egress_ts,
                               unsigned local_egress_ts,
                               unsigned local_ingress_ts)
 {
@@ -586,42 +592,47 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
 }
 
 
-static void timestamp_to_network(n80_t *msg,
-                                 ptp_timestamp *ts)
+static void timestamp_to_network(n80_t &msg,
+                                 ptp_timestamp &ts)
 {
-  char *sec0_p = (char *) &ts->seconds[0];
-  char *sec1_p = (char *) &ts->seconds[1];
-  char *nsec_p = (char *) &ts->nanoseconds;
+  char *sec0_p = (char *) &ts.seconds[0];
+  char *sec1_p = (char *) &ts.seconds[1];
+  char *nsec_p = (char *) &ts.nanoseconds;
 
   // Convert seconds to big-endian
-  msg->data[0] = sec1_p[3];
-  msg->data[1] = sec1_p[2];
+  msg.data[0] = sec1_p[3];
+  msg.data[1] = sec1_p[2];
 
   for (int i=2; i < 6; i++)
-    msg->data[i] = sec0_p[5-i];
+    msg.data[i] = sec0_p[5-i];
 
   // Now convert nanoseconds
   for (int i=6; i < 10; i++)
-    msg->data[i] = nsec_p[9-i];
+    msg.data[i] = nsec_p[9-i];
 }
 
-static void network_to_ptp_timestamp(ptp_timestamp *ts,
-                                     n80_t *msg)
-{
-  char *sec0_p = (char *) &ts->seconds[0];
-  char *sec1_p = (char *) &ts->seconds[1];
-  char *nsec_p = (char *) &ts->nanoseconds;
+/*
+extern void timestamp_to_network(n80_t &msg,
+                                 ptp_timestamp &ts);
+*/
 
-  sec1_p[3] = msg->data[0];
-  sec1_p[2] = msg->data[1];
+static void network_to_ptp_timestamp(ptp_timestamp &ts,
+                                     n80_t &msg)
+{
+  char *sec0_p = (char *) &ts.seconds[0];
+  char *sec1_p = (char *) &ts.seconds[1];
+  char *nsec_p = (char *) &ts.nanoseconds;
+
+  sec1_p[3] = msg.data[0];
+  sec1_p[2] = msg.data[1];
   sec1_p[1] = 0;
   sec1_p[0] = 0;
 
   for (int i=2; i < 6; i++)
-    sec0_p[5-i] = msg->data[i];
+    sec0_p[5-i] = msg.data[i];
 
   for (int i=6; i < 10; i++)
-    nsec_p[9-i] = msg->data[i];
+    nsec_p[9-i] = msg.data[i];
 }
 
 static int port_id_equal(n80_t *a, n80_t *b)
@@ -652,14 +663,14 @@ static void ptp_tx(chanend c_tx,
 }
 
 static void ptp_tx_timed(chanend c_tx,
-                         unsigned int *buf,
+                         unsigned int buf[],
                          int len,
-                         unsigned *ts,
+                         unsigned &ts,
                          int port_num)
 {
   len = len < 64 ? 64 : len;
   mac_tx_timed(c_tx, buf, len, ts, port_num);
-  *ts = *ts - tile_timer_offset;
+  ts = ts - tile_timer_offset;
 }
 
 static unsigned char src_mac_addr[6];
@@ -778,11 +789,12 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
 
   steps_removed_from_gm = ntoh16(best_announce_msg.stepsRemoved);
 
-  if ((PTP_NUM_PORTS == 2) &&
-      ((ptp_port_info[0].role_state == PTP_MASTER) ^ (ptp_port_info[1].role_state == PTP_MASTER))) {
+#if (PTP_NUM_PORTS == 2)
+  if ((ptp_port_info[0].role_state == PTP_MASTER) ^ (ptp_port_info[1].role_state == PTP_MASTER)) {
     // Only increment steps removed if we are not the grandmaster
     steps_removed_from_gm++;
   }
+#endif
 
   pAnnounceMesg->stepsRemoved = hton16(steps_removed_from_gm);
 
@@ -801,9 +813,9 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
   // time stamp originTS
   cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
 
-  local_to_ptp_ts(&cur_time_ptp, cur_local_time);
+  local_to_ptp_ts(cur_time_ptp, cur_local_time);
 
-  timestamp_to_network(&pAnnounceMesg->originTimestamp, &cur_time_ptp);
+  timestamp_to_network(pAnnounceMesg->originTimestamp, cur_time_ptp);
 
   // send the message.
   ptp_tx(c_tx, buf0, ANNOUNCE_PACKET_SIZE-(PTP_MAXIMUM_PATH_TRACE_TLV-(steps_removed_from_gm+1))*8, port_num);
@@ -867,14 +879,14 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   // extract the current time.
   cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
 
-  local_to_ptp_ts(&cur_time_ptp, cur_local_time);
+  local_to_ptp_ts(cur_time_ptp, cur_local_time);
 
-  timestamp_to_network(&pSyncMesg->originTimestamp, &cur_time_ptp);
+  timestamp_to_network(pSyncMesg->originTimestamp, cur_time_ptp);
 
   // transmit the packet and record the egress time.
   ptp_tx_timed(c_tx, buf0,
                SYNC_PACKET_SIZE,
-               &local_egress_ts,
+               local_egress_ts,
                port_num);
 
 #if DEBUG_PRINT
@@ -892,9 +904,9 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
                                       sizeof(FollowUpMessage));
 
   // populate the time in packet
-  local_to_ptp_ts(&ptp_egress_ts, local_egress_ts);
+  local_to_ptp_ts(ptp_egress_ts, local_egress_ts);
 
-  timestamp_to_network(&pFollowUpMesg->preciseOriginTimestamp, &ptp_egress_ts);
+  timestamp_to_network(pFollowUpMesg->preciseOriginTimestamp, ptp_egress_ts);
 
   for(int i=0;i<8;i++) pComMesgHdr->correctionField.data[i] = 0;
 
@@ -961,15 +973,15 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
   // populate the orginTimestamp.
   cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
 
-  local_to_ptp_ts(&cur_time_ptp, cur_local_time);
+  local_to_ptp_ts(cur_time_ptp, cur_local_time);
 
-  timestamp_to_network(&pTxReqHdr->originTimestamp, &cur_time_ptp);
+  timestamp_to_network(pTxReqHdr->originTimestamp, cur_time_ptp);
 
   // sent out the data and record the time.
 
   ptp_tx_timed(c_tx, buf0,
                PDELAY_REQ_PACKET_SIZE,
-               &pdelay_request_sent_ts,
+               pdelay_request_sent_ts,
                port_num);
 
   pdelay_request_sent = 1;
@@ -1061,10 +1073,10 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
 
   local_to_epoch_ts(req_ingress_ts, &epoch_req_ingress_ts);
 
-  timestamp_to_network(&pTxRespHdr->requestReceiptTimestamp,
-                       &epoch_req_ingress_ts);
+  timestamp_to_network(pTxRespHdr->requestReceiptTimestamp,
+                       epoch_req_ingress_ts);
 
-  ptp_tx_timed(c_tx,  buf0, PDELAY_RESP_PACKET_SIZE, &local_resp_ts, port_num);
+  ptp_tx_timed(c_tx,  buf0, PDELAY_RESP_PACKET_SIZE, local_resp_ts, port_num);
 #if DEBUG_PRINT
   debug_printf("TX Pdelay resp, Port %d\n", port_num);
 #endif
@@ -1076,8 +1088,8 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
   pTxMesgHdr->transportSpecific_messageType =
     PTP_TRANSPORT_SPECIFIC_HDR | PTP_PDELAY_RESP_FOLLOW_UP_MESG;
 
-  timestamp_to_network(&pTxFollowUpHdr->responseOriginTimestamp,
-                       &epoch_resp_ts);
+  timestamp_to_network(pTxFollowUpHdr->responseOriginTimestamp,
+                       epoch_resp_ts);
 
   ptp_tx(c_tx, buf0, PDELAY_RESP_PACKET_SIZE, port_num);
 #if DEBUG_PRINT
@@ -1095,7 +1107,7 @@ static ptp_timestamp pdelay_request_receipt_ts;
 
 
 void ptp_recv(chanend c_tx,
-              char *buf,
+              unsigned char buf[],
               unsigned local_ingress_ts,
               unsigned src_port,
               unsigned len)
@@ -1152,14 +1164,14 @@ void ptp_recv(chanend c_tx,
 
         correction = ntoh64(msg->correctionField);
 
-        network_to_ptp_timestamp(&master_egress_ts,
-                                 &follow_up_msg->preciseOriginTimestamp);
+        network_to_ptp_timestamp(master_egress_ts,
+                                 follow_up_msg->preciseOriginTimestamp);
 
-        ptp_timestamp_offset64(&master_egress_ts, &master_egress_ts,
+        ptp_timestamp_offset64(master_egress_ts, master_egress_ts,
                                correction>>16);
 
-        if (update_adjust(&master_egress_ts,received_sync_ts) == 0) {
-          update_reference_timestamps(&master_egress_ts, received_sync_ts);
+        if (update_adjust(master_egress_ts,received_sync_ts) == 0) {
+          update_reference_timestamps(master_egress_ts, received_sync_ts);
         }
 #if DEBUG_PRINT
         debug_printf("RX Follow Up, Port %d\n", src_port);
@@ -1186,8 +1198,8 @@ void ptp_recv(chanend c_tx,
           received_pdelay = 1;
           received_pdelay_id = ntoh16(msg->sequenceId);
           pdelay_resp_ingress_ts = local_ingress_ts;
-          network_to_ptp_timestamp(&pdelay_request_receipt_ts,
-                                   &resp_msg->requestReceiptTimestamp);
+          network_to_ptp_timestamp(pdelay_request_receipt_ts,
+                                   resp_msg->requestReceiptTimestamp);
 #if DEBUG_PRINT
           debug_printf("RX Pdelay resp, Port %d\n", src_port);
 #endif
@@ -1202,11 +1214,11 @@ void ptp_recv(chanend c_tx,
           PdelayRespFollowUpMessage *follow_up_msg =
             (PdelayRespFollowUpMessage *) (msg + 1);
 
-          network_to_ptp_timestamp(&pdelay_resp_egress_ts,
-                                   &follow_up_msg->responseOriginTimestamp);
+          network_to_ptp_timestamp(pdelay_resp_egress_ts,
+                                   follow_up_msg->responseOriginTimestamp);
 
-          update_path_delay(&pdelay_request_receipt_ts,
-                            &pdelay_resp_egress_ts,
+          update_path_delay(pdelay_request_receipt_ts,
+                            pdelay_resp_egress_ts,
                             pdelay_request_sent_ts,
                             pdelay_resp_ingress_ts);
 #if DEBUG_PRINT
@@ -1227,7 +1239,7 @@ static unsigned last_debug_time;
 void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
 {
   unsigned t;
-  mac_get_tile_timer_offset(c_rx, &tile_timer_offset);
+  mac_get_tile_timer_offset(c_rx, tile_timer_offset);
   t = get_local_time();
 
 
