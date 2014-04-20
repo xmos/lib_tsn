@@ -25,7 +25,7 @@
 #if MRP_NUM_PORTS == 1
    #define AVB_STREAM_TABLE_ENTRIES (AVB_NUM_SOURCES+AVB_NUM_SINKS+4)
 #else
-  #define AVB_STREAM_TABLE_ENTRIES (8+4)
+  #define AVB_STREAM_TABLE_ENTRIES (8+AVB_NUM_SOURCES+AVB_NUM_SINKS+4)
 #endif
 #endif
 
@@ -129,7 +129,6 @@ avb_stream_entry *srp_add_reservation_entry_stream_id_only(unsigned int stream_i
     debug_printf("Added stream:\n ID: %x%x\n", stream_id[0], stream_id[1]);
   } else {
     debug_printf("Assert: Out of stream entries\n");
-    __builtin_trap();
     return NULL;
   }
 
@@ -152,7 +151,6 @@ avb_stream_entry *srp_add_reservation_entry(avb_srp_info_t *reservation) {
     stream_table[entry].talker_present = 1;
   } else {
     debug_printf("Assert: Out of stream entries\n");
-    // __builtin_trap();
     return NULL;
   }
 
@@ -503,21 +501,23 @@ void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
 void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation) {
   avb_stream_entry *stream_ptr = srp_add_reservation_entry(reservation);
 
-  for (int i=0; i < MRP_NUM_PORTS; i++) {
-    mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
-    if (!matched_talker_advertise) {
-      mrp_attribute_state *talker_attr = mrp_get_attr();
+  if (stream_ptr) {
+    for (int i=0; i < MRP_NUM_PORTS; i++) {
+      mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
+      if (!matched_talker_advertise) {
+        mrp_attribute_state *talker_attr = mrp_get_attr();
 #if MRP_NUM_PORTS == 1
-      mrp_attribute_state *listener_attr = mrp_get_attr();
-      mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
-      mrp_mad_begin(listener_attr);
+        mrp_attribute_state *listener_attr = mrp_get_attr();
+        mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
+        mrp_mad_begin(listener_attr);
 #endif
-      mrp_attribute_init(talker_attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
-      mrp_mad_begin(talker_attr);
-      mrp_mad_join(talker_attr, 1);
-    }
-    else {
-      mrp_mad_join(matched_talker_advertise, 1);
+        mrp_attribute_init(talker_attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
+        mrp_mad_begin(talker_attr);
+        mrp_mad_join(talker_attr, 1);
+      }
+      else {
+        mrp_mad_join(matched_talker_advertise, 1);
+      }
     }
   }
   mrp_debug_dump_attrs();
@@ -591,19 +591,21 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
   else { // LJ4: If the Talker advertise hasn't matched, then it probably hasn't arrived yet
     // LJ5: Create Listener attrs on both ports but leave them disabled
     avb_stream_entry *stream_ptr = srp_add_reservation_entry_stream_id_only(stream_id);
-    for (int i=0; i < MRP_NUM_PORTS; i++) {
-      mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, i);
-      if (!matched_listener) {
-        mrp_attribute_state *listener_attr = mrp_get_attr();
-        mrp_attribute_init(listener_attr,
-                           MSRP_LISTENER,
-                           i,
-                           1,
-                           stream_ptr);
-#if MRP_NUM_PORTS == 1
-        mrp_mad_begin(listener_attr);
-        mrp_mad_join(listener_attr, 1);
-#endif
+    if (stream_ptr) {
+      for (int i=0; i < MRP_NUM_PORTS; i++) {
+        mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, i);
+        if (!matched_listener) {
+          mrp_attribute_state *listener_attr = mrp_get_attr();
+          mrp_attribute_init(listener_attr,
+                             MSRP_LISTENER,
+                             i,
+                             1,
+                             stream_ptr);
+  #if MRP_NUM_PORTS == 1
+          mrp_mad_begin(listener_attr);
+          mrp_mad_join(listener_attr, 1);
+  #endif
+        }
       }
     }
   }
@@ -665,7 +667,6 @@ mrp_attribute_state* avb_srp_process_new_attribute_from_packet(int mrp_attribute
       break;
     }
     default:
-      __builtin_trap();
       break;
   }
 
