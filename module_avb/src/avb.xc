@@ -534,6 +534,10 @@ void avb_process_1722_control_packet(unsigned int buf0[],
   }
 }
 
+// avb_mrp.c:
+extern unsigned char srp_dest_mac[6];
+extern unsigned char mvrp_dest_mac[6];
+
 void avb_process_srp_control_packet(client interface avb_interface avb, unsigned int buf0[], unsigned nbytes, chanend c_tx, unsigned int port_num)
 {
   if (nbytes == STATUS_PACKET_LEN) {
@@ -559,13 +563,27 @@ void avb_process_srp_control_packet(client interface avb_interface avb, unsigned
 
     unsigned char *buf = (unsigned char *) buf0;
 
-    switch (etype) {
-      /* fallthrough intended */
-      case AVB_SRP_ETHERTYPE:
-      case AVB_MVRP_ETHERTYPE:
-        avb_mrp_process_packet(&buf[eth_hdr_size], etype, len, port_num);
-        break;
+    if (etype != AVB_SRP_ETHERTYPE && etype != AVB_MVRP_ETHERTYPE) {
+      return;
     }
+
+    if (etype == AVB_SRP_ETHERTYPE) {
+      for (int i=0; i < 6; i++) {
+        if (ethernet_hdr->dest_addr[i] != srp_dest_mac[i]) {
+          return;
+        }
+      }
+    }
+
+    if (etype == AVB_MVRP_ETHERTYPE) {
+      for (int i=0; i < 6; i++) {
+        if (ethernet_hdr->dest_addr[i] != mvrp_dest_mac[i]) {
+          return;
+        }
+      }
+    }
+
+    avb_mrp_process_packet(&buf[eth_hdr_size], etype, len, port_num);
   }
 
 }
