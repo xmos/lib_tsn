@@ -69,6 +69,13 @@ avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface
                                                                                               dest_addr[0], dest_addr[1], dest_addr[2],
                                                                                               dest_addr[3], dest_addr[4], dest_addr[5]);
 
+  unsigned current_stream_id[2];
+  avb.get_sink_id(sink_num, current_stream_id);
+
+  if ((current_stream_id[0] != stream_id[0]) || (current_stream_id[1] != stream_id[1])) {
+    avb.set_sink_state(sink_num, AVB_SINK_STATE_DISABLED);
+  }
+
   avb.set_sink_sync(sink_num, 0);
   avb.set_sink_channels(sink_num, channels_per_stream);
   avb.set_sink_map(sink_num, map, channels_per_stream);
