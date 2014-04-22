@@ -29,8 +29,8 @@ static int first_value_lengths[MRP_NUM_ATTRIBUTE_TYPES] = FIRST_VALUE_LENGTHS;
 
 //!@{
 //! \name MAC addresses for the various protocols
-static unsigned char mvrp_dest_mac[6] = AVB_MVRP_MACADDR;
-static unsigned char srp_dest_mac[6] = AVB_SRP_MACADDR;
+unsigned char mvrp_dest_mac[6] = AVB_MVRP_MACADDR;
+unsigned char srp_dest_mac[6] = AVB_SRP_MACADDR;
 //!@}
 
 //! Buffer for constructing MRPDUs.  Note: It doesn't necessarily have to be this big,
@@ -1292,7 +1292,8 @@ static int match_attribute_of_same_type(mrp_attribute_type attr_type,
               int i,
               int three_packed_event,
               int four_packed_event,
-              unsigned int port_num)
+              unsigned int port_num,
+              int leave_all)
 {
   if (attr->applicant_state == MRP_UNUSED ||
       attr->applicant_state == MRP_DISABLED)
@@ -1306,9 +1307,9 @@ static int match_attribute_of_same_type(mrp_attribute_type attr_type,
 
   switch (attr_type) {
   case MSRP_TALKER_ADVERTISE:
-    return avb_srp_match_talker_advertise(attr, msg, i);
+    return avb_srp_match_talker_advertise(attr, msg, i, leave_all);
   case MSRP_TALKER_FAILED:
-    return avb_srp_match_talker_failed(attr, msg, i);
+    return avb_srp_match_talker_failed(attr, msg, i, leave_all);
   case MSRP_LISTENER:
     return avb_srp_match_listener(attr, msg, i, four_packed_event);
   case MSRP_DOMAIN_VECTOR:
@@ -1399,7 +1400,7 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
         for (int j=0;j<MRP_MAX_ATTRS;j++)
         {
           // Attempt to match to this endpoint's attributes
-          if (match_attribute_of_same_type(attr_type, &attrs[j], first_value, i, three_packed_event, four_packed_event, port_num))
+          if (match_attribute_of_same_type(attr_type, &attrs[j], first_value, i, three_packed_event, four_packed_event, port_num, leave_all))
           {
             matched_attribute = 1;
             mrp_in(three_packed_event, four_packed_event, &attrs[j], port_num);

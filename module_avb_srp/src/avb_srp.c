@@ -344,14 +344,16 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
 
 int avb_srp_match_talker_failed(mrp_attribute_state *attr,
                                 char *msg,
-                                int i)
+                                int i,
+                                int leave_all)
 {
-  return avb_srp_match_talker_advertise(attr, msg, i);
+  return avb_srp_match_talker_advertise(attr, msg, i, leave_all);
 }
 
 int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
                                    char *fv,
-                                   int i)
+                                   int i,
+                                   int leave_all)
 {
   avb_source_info_t *source_info = (avb_source_info_t *) attr->attribute_info;
   unsigned long long stream_id=0, my_stream_id=0;
@@ -368,6 +370,32 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
 
   stream_id += i;
 
+#if MRP_NUM_PORTS == 1
+  if (!leave_all && (my_stream_id == stream_id)) {
+
+    avb_srp_info_t *reservation = &source_info->reservation;
+
+    unsigned long long x;
+    reservation->vlan_id = ntoh_16(first_value->VlanID);
+
+    for(int i=0;i<6;i++)
+      x = (x<<8) + first_value->DestMacAddr[i];
+
+    x += i;
+
+    int tmp = byterev(x);
+    memcpy(&reservation->dest_mac_addr[2], &tmp, 4);
+    tmp = byterev(x>>32)>>16;
+    memcpy(&reservation->dest_mac_addr, &tmp, 2);
+
+    reservation->tspec_max_frame_size = ntoh_16(first_value->TSpecMaxFrameSize);
+    reservation->tspec_max_interval = ntoh_16(first_value->TSpecMaxIntervalFrames);
+    reservation->tspec = first_value->TSpec;
+    reservation->accumulated_latency = ntoh_32(first_value->AccumulatedLatency);
+    srp_add_reservation_entry(reservation);
+  }
+
+#endif
 
   return (my_stream_id == stream_id);
 }
@@ -552,10 +580,14 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
   }
 #else
   mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, 0);
+  mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, 0);
 
   if (matched_listener) {
     matched_listener->here = 0;
     mrp_mad_leave(matched_listener);
+  }
+  if (matched_talker) {
+    matched_talker->applicant_state = MRP_UNUSED;
   }
 #endif
 }
@@ -604,6 +636,14 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
   #if MRP_NUM_PORTS == 1
           mrp_mad_begin(listener_attr);
           mrp_mad_join(listener_attr, 1);
+
+          mrp_attribute_state *talker_attr = mrp_get_attr();
+          mrp_attribute_init(talker_attr,
+                             MSRP_TALKER_ADVERTISE,
+                             i,
+                             0,
+                             stream_ptr);
+          mrp_mad_begin(talker_attr);
   #endif
         }
       }
@@ -793,7 +833,13 @@ static int encode_listener_message(char *buf,
     }
 
     mrp_encode_three_packed_event(buf, vector, st->attribute_type);
-    mrp_encode_four_packed_event(buf, AVB_SRP_FOUR_PACKED_EVENT_READY, st->attribute_type);
+    avb_stream_entry *stream_info = st->attribute_info;
+    if (stream_info->talker_present) {
+      mrp_encode_four_packed_event(buf, AVB_SRP_FOUR_PACKED_EVENT_READY, st->attribute_type);
+    }
+    else {
+      mrp_encode_four_packed_event(buf, AVB_SRP_FOUR_PACKED_EVENT_ASKING_FAILED, st->attribute_type);
+    }
 
     hdr->NumberOfValuesLow = num_values+1;
 
