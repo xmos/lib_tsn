@@ -373,26 +373,29 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
 #if MRP_NUM_PORTS == 1
   if (!leave_all && (my_stream_id == stream_id)) {
 
-    avb_srp_info_t *reservation = &source_info->reservation;
+    avb_stream_entry *stream_info = attr->attribute_info;
+    if (!stream_info->talker_present) {
+      avb_srp_info_t *reservation = &source_info->reservation;
 
-    unsigned long long x;
-    reservation->vlan_id = ntoh_16(first_value->VlanID);
+      unsigned long long x;
+      reservation->vlan_id = ntoh_16(first_value->VlanID);
 
-    for(int i=0;i<6;i++)
-      x = (x<<8) + first_value->DestMacAddr[i];
+      for(int i=0;i<6;i++)
+        x = (x<<8) + first_value->DestMacAddr[i];
 
-    x += i;
+      x += i;
 
-    int tmp = byterev(x);
-    memcpy(&reservation->dest_mac_addr[2], &tmp, 4);
-    tmp = byterev(x>>32)>>16;
-    memcpy(&reservation->dest_mac_addr, &tmp, 2);
+      int tmp = byterev(x);
+      memcpy(&reservation->dest_mac_addr[2], &tmp, 4);
+      tmp = byterev(x>>32)>>16;
+      memcpy(&reservation->dest_mac_addr, &tmp, 2);
 
-    reservation->tspec_max_frame_size = ntoh_16(first_value->TSpecMaxFrameSize);
-    reservation->tspec_max_interval = ntoh_16(first_value->TSpecMaxIntervalFrames);
-    reservation->tspec = first_value->TSpec;
-    reservation->accumulated_latency = ntoh_32(first_value->AccumulatedLatency);
-    srp_add_reservation_entry(reservation);
+      reservation->tspec_max_frame_size = ntoh_16(first_value->TSpecMaxFrameSize);
+      reservation->tspec_max_interval = ntoh_16(first_value->TSpecMaxIntervalFrames);
+      reservation->tspec = first_value->TSpec;
+      reservation->accumulated_latency = ntoh_32(first_value->AccumulatedLatency);
+      srp_add_reservation_entry(reservation);
+    }
   }
 
 #endif
