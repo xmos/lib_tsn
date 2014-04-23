@@ -1352,6 +1352,10 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
       return;
     }
 
+    if (first_value_lengths[attr_type] != first_value_len) {
+      return;
+    }
+
     msg = msg + sizeof(mrp_msg_header);
 
     // non-SRP headers don't contain the AttributeListLength
