@@ -317,8 +317,12 @@ static void update_source_state(unsigned source_num,
             *c <: AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
         }
 
-        for (int i=0; i < MRP_NUM_PORTS; i++) {
-          if (source->reservation.vlan_id) {
+        if (source->reservation.vlan_id) {
+          master {
+            *c <: AVB1722_SET_VLAN;
+            *c <: (int)source->reservation.vlan_id;
+          }
+          for (int i=0; i < MRP_NUM_PORTS; i++) {
             avb_join_vlan(source->reservation.vlan_id, i);
           }
         }
@@ -359,6 +363,12 @@ static void update_source_state(unsigned source_num,
       // start transmitting
 
       debug_printf("%s #%d on\n", stream_string, source_num);
+
+      master {
+        *c <: AVB1722_SET_VLAN;
+        *c <: (int)source->reservation.vlan_id;
+      }
+
       master {
         *c <: AVB1722_TALKER_GO;
         *c <: (int)source->stream.local_id;
