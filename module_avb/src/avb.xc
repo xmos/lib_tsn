@@ -409,6 +409,14 @@ int avb_set_source_state(client interface avb_interface avb, unsigned source_num
   return avb.set_source_state(source_num, state);
 }
 
+int avb_get_source_vlan(client interface avb_interface avb, unsigned source_num, int &vlan) {
+  return avb.get_source_vlan(source_num, vlan);
+}
+
+int avb_set_source_vlan(client interface avb_interface avb, unsigned source_num, int vlan) {
+  return avb.set_source_vlan(source_num, vlan);
+}
+
 // Set the period inbetween periodic processing to 50us based
 // on the Xcore 100Mhz timer.
 #define PERIODIC_POLL_TIME 5000

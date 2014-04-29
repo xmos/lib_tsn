@@ -861,5 +861,7 @@ extends client interface avb_interface : {
 
 int avb_get_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, REFERENCE_PARAM(enum avb_source_state_t, state));
 int avb_set_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, enum avb_source_state_t state);
+int avb_get_source_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, REFERENCE_PARAM(int, vlan));
+int avb_set_source_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, int vlan);
 
 #endif // _api_h_
