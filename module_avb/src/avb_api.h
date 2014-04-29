@@ -194,7 +194,7 @@ extends client interface avb_interface : {
 
   /** Get the destination vlan of an AVB source.
    *  \param source_num the local source number
-   *  \param vlan       the destination vlan id, The media clock number
+   *  \param vlan       the destination vlan id
    */
   static inline int get_source_vlan(client interface avb_interface i, unsigned source_num,
                       int &vlan)
@@ -216,7 +216,7 @@ extends client interface avb_interface : {
    *  state moves from disabled to potential.
    *
    *  \param source_num the local source number
-   *  \param vlan       the destination vlan id, The media clock number
+   *  \param vlan       the destination vlan id
    */
   static inline int set_source_vlan(client interface avb_interface i, unsigned source_num,
                       int vlan)
@@ -225,8 +225,6 @@ extends client interface avb_interface : {
       return 0;
     avb_source_info_t source;
     source = i._get_source_info(source_num);
-    if (source.stream.state != AVB_SOURCE_STATE_DISABLED)
-      return 0;
     source.reservation.vlan_id = vlan;
     i._set_source_info(source_num, source);
     return 1;
