@@ -15,6 +15,8 @@ typedef struct avb_srp_info_t {
   unsigned char tspec;            /**< Data Frame Priority and Rank fields */
   unsigned accumulated_latency;   /**< Latency at ingress port for Talker registrations, or latency at
                                     *  end of egress media for Listener Declarations */
+  unsigned char failure_bridge_id[8];
+  unsigned char failure_code;
 } avb_srp_info_t;
 
 typedef struct avb_stream_info_t
