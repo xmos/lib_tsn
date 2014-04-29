@@ -378,6 +378,12 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
 
   stream_id += i;
 
+  unsigned char sr_class_priority = (first_value->TSpec >> 5) & 7;
+
+  if (sr_class_priority != AVB_SRP_TSPEC_PRIORITY_DEFAULT) { // Class A
+    return 0;
+  }
+
 #if MRP_NUM_PORTS == 1
   if (!leave_all && (my_stream_id == stream_id)) {
 
