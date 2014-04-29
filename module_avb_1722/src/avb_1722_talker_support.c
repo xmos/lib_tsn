@@ -46,8 +46,9 @@ void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
 
 
 void avb1722_set_buffer_vlan(int vlan,
-		unsigned char Buf[])
+		unsigned char Buf0[])
 {
+	unsigned char *Buf = &Buf0[2];
 	AVB_Frame_t *pEtherHdr = (AVB_Frame_t *) &(Buf[0]);
 
 	SET_AVBTP_VID(pEtherHdr, vlan);
