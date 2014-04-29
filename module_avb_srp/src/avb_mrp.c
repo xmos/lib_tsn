@@ -1021,7 +1021,7 @@ static void send_join_indication(CLIENT_INTERFACE(avb_interface, avb), mrp_attri
     avb_srp_listener_join_ind(avb, st, new, four_packed_event);
     break;
   case MSRP_DOMAIN_VECTOR:
-    avb_srp_domain_join_ind(st, new);
+    avb_srp_domain_join_ind(avb, st, new);
     break;
   case MVRP_VID_VECTOR:
     avb_mvrp_vid_vector_join_ind(st, new);
@@ -1042,13 +1042,15 @@ static void send_leave_indication(CLIENT_INTERFACE(avb_interface, avb), mrp_attr
     avb_srp_listener_leave_ind(avb, st, four_packed_event);
     break;
   case MSRP_DOMAIN_VECTOR:
-    avb_srp_domain_leave_ind(st);
+    avb_srp_domain_leave_ind(avb, st);
     break;
   case MVRP_VID_VECTOR:
     avb_mvrp_vid_vector_leave_ind(st);
     break;
   }
 }
+
+extern unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
 
 void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 {
@@ -1086,6 +1088,7 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         create_empty_msg(MSRP_DOMAIN_VECTOR, 1);  send(c_mac_tx, i);
       }
       attribute_type_event(MSRP_TALKER_ADVERTISE, tx_event, i);
+      attribute_type_event(MSRP_TALKER_FAILED, tx_event, i);
       attribute_type_event(MSRP_LISTENER, tx_event, i);
       attribute_type_event(MSRP_DOMAIN_VECTOR, tx_event, i);
       force_send(c_mac_tx, i);
@@ -1122,6 +1125,27 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         attrs[j].pending_indications = 0;
         attrs[j].four_vector_parameter = 0;
       }
+
+      if (!leaveall_active[i]) {
+        avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
+        if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[attrs[j].port_num]) {
+          attrs[j].attribute_type = MSRP_TALKER_FAILED;
+          if (reservation) {
+            reservation->failure_code = 8;
+            for (int i=0; i < 8; i++) {
+              // TODO: 2 zeros + My mac address
+              reservation->failure_bridge_id[i] = i;
+            }
+          }
+        }
+        else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
+                  !srp_domain_boundary_port[attrs[j].port_num] &&
+                  reservation && reservation->failure_code == 8
+                ) {
+          attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
+        }
+      }
+
   #ifdef MRP_FULL_PARTICIPANT
       if (avb_timer_expired(&attrs[j].leaveTimer))
       {

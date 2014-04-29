@@ -116,8 +116,8 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
 void avb_srp_talker_join_ind(mrp_attribute_state *attr, int new);
 void avb_srp_talker_leave_ind(mrp_attribute_state *attr);
 
-void avb_srp_domain_join_ind(mrp_attribute_state *attr, int new);
-void avb_srp_domain_leave_ind(mrp_attribute_state *attr);
+void avb_srp_domain_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr, int new);
+void avb_srp_domain_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr);
 //!@}
 
 void srp_domain_init(void);

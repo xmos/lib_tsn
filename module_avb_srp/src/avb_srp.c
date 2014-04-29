@@ -32,7 +32,10 @@
 static avb_stream_entry stream_table[AVB_STREAM_TABLE_ENTRIES];
 static unsigned int port_bandwidth[MRP_NUM_PORTS];
 
-static mrp_attribute_state *domain_attr[MRP_NUM_PORTS];
+static mrp_attribute_state *local_domain_attr[MRP_NUM_PORTS];
+static mrp_attribute_state *foreign_domain_attr[MRP_NUM_PORTS];
+unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
+unsigned int current_vlan_id_from_domain;
 
 static chanend c_mac_tx;
 
@@ -43,17 +46,22 @@ void srp_store_mac_tx_chanend(chanend c_mac_tx0) {
 void srp_domain_init(void) {
   for(int i=0; i < MRP_NUM_PORTS; i++)
   {
-    domain_attr[i] = mrp_get_attr();
-    mrp_attribute_init(domain_attr[i], MSRP_DOMAIN_VECTOR, i, 1, NULL);
+    local_domain_attr[i] = mrp_get_attr();
+    mrp_attribute_init(local_domain_attr[i], MSRP_DOMAIN_VECTOR, i, 1, NULL);
+    foreign_domain_attr[i] = mrp_get_attr();
+    mrp_attribute_init(foreign_domain_attr[i], MSRP_DOMAIN_VECTOR, i, 0, NULL);
+    srp_domain_boundary_port[i] = 1;
   }
+  current_vlan_id_from_domain = AVB_DEFAULT_VLAN;
 }
 
 void srp_domain_join(void)
 {
   for (int i=0; i < MRP_NUM_PORTS; i++)
   {
-      mrp_mad_begin(domain_attr[i]);
-      mrp_mad_join(domain_attr[i], 1);
+      mrp_mad_begin(local_domain_attr[i]);
+      mrp_mad_begin(foreign_domain_attr[i]);
+      mrp_mad_join(local_domain_attr[i], 1);
   }
 }
 
@@ -433,7 +441,22 @@ int avb_srp_match_listener(mrp_attribute_state *attr,
 
 int avb_srp_match_domain(mrp_attribute_state *attr,char *fv,int i)
 {
-  // This returns zero becauase we don't expect to have to merge/aggragate domain messages
+    srp_domain_first_value *first_value = (srp_domain_first_value *) fv;
+
+    if (!attr->here) {
+
+      unsigned char sr_class_id = first_value->SRclassID+i;
+      unsigned char sr_class_priority = first_value->SRclassPriority+i;
+      unsigned short sr_class_vid = ntoh_16(first_value->SRclassVID);
+
+      if ((sr_class_id == AVB_SRP_SRCLASS_DEFAULT) && (sr_class_priority == AVB_SRP_TSPEC_PRIORITY_DEFAULT)) {
+        if (current_vlan_id_from_domain != sr_class_vid) {
+          current_vlan_id_from_domain = sr_class_vid;
+        }
+        return 1;
+      }
+    }
+
   return 0;
 }
 
@@ -856,14 +879,24 @@ static int encode_listener_message(char *buf,
   return merge;
 }
 
-void avb_srp_domain_join_ind(mrp_attribute_state *attr, int new)
+void avb_srp_domain_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr, int new)
 {
-  //printstr("SRP Domain join ind\n");
+  srp_domain_boundary_port[attr->port_num] = 0;
+
+  for (int i=0; i < AVB_NUM_SOURCES; i++)
+  {
+    int current_set_vlan;
+    avb_get_source_vlan(avb, i, &current_set_vlan);
+
+    if (current_set_vlan != current_vlan_id_from_domain) {
+      avb_set_source_vlan(avb, i, current_vlan_id_from_domain);
+    }
+  }
 }
 
-void avb_srp_domain_leave_ind(mrp_attribute_state *attr)
+void avb_srp_domain_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr)
 {
-  //printstr("SRP domain leave ind\n");
+  srp_domain_boundary_port[attr->port_num] = 1;
 }
 
 static int check_domain_firstvalue_merge(char *buf) {
@@ -899,8 +932,8 @@ static int encode_domain_message(char *buf,
 
     first_value->SRclassID = AVB_SRP_SRCLASS_DEFAULT;
     first_value->SRclassPriority = AVB_SRP_TSPEC_PRIORITY_DEFAULT;
-    first_value->SRclassVID[0] = (AVB_DEFAULT_VLAN>>8)&0xff;
-    first_value->SRclassVID[1] = (AVB_DEFAULT_VLAN&0xff);
+    first_value->SRclassVID[0] = (current_vlan_id_from_domain>>8)&0xff;
+    first_value->SRclassVID[1] = (current_vlan_id_from_domain&0xff);
 
     mrp_encode_three_packed_event(buf, vector, st->attribute_type);
 
@@ -978,8 +1011,13 @@ static int encode_talker_message(char *buf,
   avb_srp_info_t *attribute_info;
   int num_values;
 
-  if (mrp_hdr->AttributeType != AVB_SRP_ATTRIBUTE_TYPE_TALKER_ADVERTISE)
+  if ((st->attribute_type == MSRP_TALKER_ADVERTISE) && (mrp_hdr->AttributeType != AVB_SRP_ATTRIBUTE_TYPE_TALKER_ADVERTISE)) {
     return 0;
+  }
+
+  if ((st->attribute_type == MSRP_TALKER_FAILED) && (mrp_hdr->AttributeType != AVB_SRP_ATTRIBUTE_TYPE_TALKER_FAILED)) {
+    return 0;
+  }
 
   if (st->here)
     attribute_info = &source_info->reservation;
@@ -1018,7 +1056,12 @@ static int encode_talker_message(char *buf,
         debug_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", port_to_transmit, attribute_info->stream_id[0], attribute_info->stream_id[1]);
       }
 
-      hton_16(first_value->VlanID, attribute_info->vlan_id);
+      if (attribute_info->vlan_id) {
+        hton_16(first_value->VlanID, attribute_info->vlan_id);
+      }
+      else {
+        hton_16(first_value->VlanID, current_vlan_id_from_domain);
+      }
       first_value->TSpec = attribute_info->tspec;
       hton_16(first_value->TSpecMaxFrameSize, attribute_info->tspec_max_frame_size);
       hton_16(first_value->TSpecMaxIntervalFrames,
@@ -1026,6 +1069,16 @@ static int encode_talker_message(char *buf,
       hton_32(first_value->AccumulatedLatency,
                  attribute_info->accumulated_latency);
 
+      if (st->attribute_type == MSRP_TALKER_FAILED) {
+        srp_talker_failed_first_value *first_value =
+          (srp_talker_failed_first_value *) (buf + sizeof(mrp_msg_header) + sizeof(mrp_vector_header));
+
+        first_value->FailureCode = attribute_info->failure_code;
+        for (int i=0; i < 8; i++) {
+          first_value->FailureBridgeId[i] = attribute_info->failure_bridge_id[i];
+        }
+
+      }
 
     }
 
@@ -1050,6 +1103,7 @@ int avb_srp_encode_message(char *buf,
 {
   switch (st->attribute_type) {
   case MSRP_TALKER_ADVERTISE:
+  case MSRP_TALKER_FAILED:
     return encode_talker_message(buf, st, vector);
     break;
   case MSRP_LISTENER:
