@@ -76,9 +76,10 @@ avb_1722_1_acmp_status_t avb_listener_on_talker_connect(client interface avb_int
                                                         const_guid_ref_t talker_guid,
                                                         unsigned char dest_addr[6],
                                                         unsigned int stream_id[2],
+                                                        unsigned short vlan_id,
                                                         const_guid_ref_t my_guid)
 {
-  return avb_listener_on_talker_connect_default(avb, sink_num, talker_guid, dest_addr, stream_id, my_guid);
+  return avb_listener_on_talker_connect_default(avb, sink_num, talker_guid, dest_addr, stream_id, vlan_id, my_guid);
 }
 
 /* The controller has indicated to disconnect this listener sink from a talker stream */
