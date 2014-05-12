@@ -121,6 +121,7 @@ void avb_1722_1_create_acmp_packet(avb_1722_1_acmp_cmd_resp *cr, int message_typ
     hton_16(pkt->connection_count, cr->connection_count);
     hton_16(pkt->sequence_id, cr->sequence_id);
     hton_16(pkt->flags, cr->flags);
+    hton_16(pkt->vlan_id, cr->vlan_id);
     memcpy(pkt->dest_mac, cr->stream_dest_mac, 6);
 }
 
@@ -343,6 +344,7 @@ static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp
     store->connection_count = ntoh_16(pkt->connection_count);
     store->sequence_id = ntoh_16(pkt->sequence_id);
     store->flags = ntoh_16(pkt->flags);
+    store->vlan_id = ntoh_16(pkt->vlan_id);
     memcpy(store->stream_dest_mac, pkt->dest_mac, 6);
     store->message_type = GET_1722_1_MSG_TYPE(&(pkt->header));
     store->status = GET_1722_1_VALID_TIME(&(pkt->header));

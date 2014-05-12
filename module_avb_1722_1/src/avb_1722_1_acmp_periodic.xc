@@ -411,6 +411,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                                                     acmp_listener_rcvd_cmd_resp.talker_guid,
                                                     acmp_listener_rcvd_cmd_resp.stream_dest_mac,
                                                     stream_id,
+                                                    acmp_listener_rcvd_cmd_resp.vlan_id,
                                                     my_guid);
 
                         acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, c_tx);

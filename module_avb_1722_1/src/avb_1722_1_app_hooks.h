@@ -66,18 +66,21 @@ void avb_talker_on_listener_connect_failed_default(client interface avb_interfac
  * \param talker_guid       The GUID of the Talker entity that is connecting
  * \param dest_addr         The destination MAC address of the Talker stream
  * \param stream_id         The 64 bit Stream ID of the Talker stream
+ * \param vlan_id           The VLAN ID of the Talker stream
  * \param my_guid           The GUID of this entity
  **/
 avb_1722_1_acmp_status_t avb_listener_on_talker_connect(client interface avb_interface i_avb,
                                                         int sink_num, const_guid_ref_t talker_guid,
                                                         unsigned char dest_addr[6],
                                                         unsigned int stream_id[2],
+                                                        unsigned short vlan_id,
                                                         const_guid_ref_t my_guid);
 
 avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface avb_interface i_avb,
                                                                 int sink_num, const_guid_ref_t talker_guid,
                                                                 unsigned char dest_addr[6],
                                                                 unsigned int stream_id[2],
+                                                                unsigned short vlan_id,
                                                                 const_guid_ref_t my_guid);
 
 /** A Controller has indicated to disconnect this Listener sink from a Talker stream
