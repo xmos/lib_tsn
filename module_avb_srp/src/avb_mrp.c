@@ -1393,6 +1393,7 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
         ((vector_hdr->LeaveAllEventNumberOfValuesHigh & 0x1f)<<8) +
         (vector_hdr->NumberOfValuesLow);
       int leave_all = (vector_hdr->LeaveAllEventNumberOfValuesHigh & 0xe0)>>5;
+      leave_all = (leave_all == 1);
       int threepacked_len = (numvalues+2)/3;
       int fourpacked_len = has_fourpacked_events(attr_type)?(numvalues+3)/4:0;
       int len = sizeof(mrp_vector_header) + first_value_len + threepacked_len + fourpacked_len;
