@@ -324,7 +324,7 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
       }
     }
   }
-  else if (attr->attribute_type == MSRP_TALKER_ADVERTISE)
+  else if (attr->attribute_type == MSRP_TALKER_ADVERTISE || attr->attribute_type == MSRP_TALKER_FAILED)
   {
     avb_srp_info_t *attribute_info = attr->attribute_info;
     int entry = srp_match_reservation_entry_by_id(attribute_info->stream_id);
@@ -551,10 +551,11 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
 
 void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
   for (int i=0; i < MRP_NUM_PORTS; i++) {
-    mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, i);
+    mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, i);
+    if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, stream_id, i);
 
-    if (matched_talker_advertise) {
-      mrp_mad_leave(matched_talker_advertise);
+    if (matched_talker) {
+      mrp_mad_leave(matched_talker);
     }
   }
 
@@ -565,20 +566,24 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
 
   if (stream_ptr) {
     for (int i=0; i < MRP_NUM_PORTS; i++) {
-      mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
-      if (!matched_talker_advertise) {
+      mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
+      if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, reservation->stream_id, i);
+      if (!matched_talker) {
         mrp_attribute_state *talker_attr = mrp_get_attr();
 #if MRP_NUM_PORTS == 1
-        mrp_attribute_state *listener_attr = mrp_get_attr();
-        mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
-        mrp_mad_begin(listener_attr);
+        mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, reservation->stream_id, i);
+        if (!matched_listener) {
+          mrp_attribute_state *listener_attr = mrp_get_attr();
+          mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
+          mrp_mad_begin(listener_attr);
+        }
 #endif
         mrp_attribute_init(talker_attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
         mrp_mad_begin(talker_attr);
         mrp_mad_join(talker_attr, 1);
       }
       else {
-        mrp_mad_join(matched_talker_advertise, 1);
+        mrp_mad_join(matched_talker, 1);
       }
     }
   }
@@ -589,11 +594,12 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
 void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
 #if (MRP_NUM_PORTS == 2)
   // LL1: Find Talker advertise attribute that has not been propagated
-  mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
+  mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
+  if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, stream_id, -1);
 
-  if (matched_talker_advertise) {
-    mrp_attribute_state *matched_listener_opposite_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 1, 0);
-    mrp_attribute_state *matched_listener_this_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 0, 0);
+  if (matched_talker) {
+    mrp_attribute_state *matched_listener_opposite_port = mrp_match_attribute_pair_by_stream_id(matched_talker, 1, 0);
+    mrp_attribute_state *matched_listener_this_port = mrp_match_attribute_pair_by_stream_id(matched_talker, 0, 0);
 
     // LL2: If there is a non-propagated Listener attr on the opposite port, then there is another Listener
     // Do not leave
@@ -615,6 +621,7 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
 #else
   mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, 0);
   mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, 0);
+  if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, stream_id, 0);
 
   if (matched_listener) {
     matched_listener->here = 0;
@@ -667,9 +674,16 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
                              i,
                              1,
                              stream_ptr);
-  #if MRP_NUM_PORTS == 1
+#if MRP_NUM_PORTS == 1
           mrp_mad_begin(listener_attr);
           mrp_mad_join(listener_attr, 1);
+#endif
+        }
+#if MRP_NUM_PORTS == 1
+        else {
+          mrp_mad_join(matched_listener, 1);
+        }
+        if (!matched_talker_advertise) {
 
           mrp_attribute_state *talker_attr = mrp_get_attr();
           mrp_attribute_init(talker_attr,
@@ -678,8 +692,8 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
                              0,
                              stream_ptr);
           mrp_mad_begin(talker_attr);
-  #endif
         }
+#endif
       }
     }
   }
