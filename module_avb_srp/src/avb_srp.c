@@ -1,5 +1,6 @@
 #include <xclib.h>
 #include <string.h>
+#include <stddef.h>
 #include "avb.h"
 #include "avb_conf.h"
 #include "avb_srp.h"
@@ -147,7 +148,8 @@ avb_stream_entry *srp_add_reservation_entry(avb_srp_info_t *reservation) {
   int entry = srp_match_reservation_entry_by_id(reservation->stream_id);
 
   if (entry >= 0) {
-    memcpy(&stream_table[entry].reservation, reservation, sizeof(avb_srp_info_t));
+    const int reservation_size_minus_failure_info = sizeof(avb_srp_info_t)-(sizeof(avb_srp_info_t)-offsetof(avb_srp_info_t, failure_bridge_id));
+    memcpy(&stream_table[entry].reservation, reservation, reservation_size_minus_failure_info);
     debug_printf("Added stream:\n ID: %x%x\n DA:", reservation->stream_id[0], reservation->stream_id[1]);
     for (int i=0; i < 6; i++) {
       printhex(stream_table[entry].reservation.dest_mac_addr[i]); printchar(':');
