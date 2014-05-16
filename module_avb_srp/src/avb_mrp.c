@@ -1127,24 +1127,29 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         attrs[j].four_vector_parameter = 0;
       }
 
-      if (!leaveall_active[i]) {
-        avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
-        if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[attrs[j].port_num]) {
-          attrs[j].attribute_type = MSRP_TALKER_FAILED;
-          if (reservation) {
-            reservation->failure_code = 8;
-            for (int i=0; i < 8; i++) {
-              // TODO: 2 zeros + My mac address
-              reservation->failure_bridge_id[i] = i;
-            }
+      avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
+
+      if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[i]) {
+        debug_printf("MSRP_TALKER_ADVERTISE -> MSRP_TALKER_FAILED\n");
+        attrs[j].attribute_type = MSRP_TALKER_FAILED;
+        if (reservation) {
+          avb_stream_entry *stream_info = attrs[j].attribute_info;
+          stream_info->talker_present = 0;
+          reservation->failure_code = 8;
+          for (int i=0; i < 8; i++) {
+            // TODO: 2 zeros + My mac address
+            reservation->failure_bridge_id[i] = i;
           }
         }
-        else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
-                  !srp_domain_boundary_port[attrs[j].port_num] &&
-                  reservation && reservation->failure_code == 8
-                ) {
-          attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
-        }
+      }
+      else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
+                !srp_domain_boundary_port[i] &&
+                reservation && reservation->failure_code == 8
+              ) {
+        attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
+        avb_stream_entry *stream_info = attrs[j].attribute_info;
+        stream_info->talker_present = 1;
+        debug_printf("MSRP_TALKER_FAILED -> MSRP_TALKER_ADVERTISE\n");
       }
 
   #ifdef MRP_FULL_PARTICIPANT
