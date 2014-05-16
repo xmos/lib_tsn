@@ -399,23 +399,27 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                                 debug_acmp_status_s[inflight->command.status],
                                 inflight->command.sequence_id);
     #endif
+                        if (acmp_listener_rcvd_cmd_resp.flags & AVB_1722_1_ACMP_FLAGS_CLASS_B)
+                        {
+                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_INCOMPATIBLE_REQUEST, c_tx);
+                        }
+                        else
+                        {
+                            stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
+                            stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
 
-                        /* FIXME: Make stream ID representation consistent: we have long long, 2 ints and 6 chars */
+                            acmp_listener_rcvd_cmd_resp.status =
+                                avb_listener_on_talker_connect(avb,
+                                                        acmp_listener_rcvd_cmd_resp.listener_unique_id,
+                                                        acmp_listener_rcvd_cmd_resp.talker_guid,
+                                                        acmp_listener_rcvd_cmd_resp.stream_dest_mac,
+                                                        stream_id,
+                                                        acmp_listener_rcvd_cmd_resp.vlan_id,
+                                                        my_guid);
 
-                        stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
-                        stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
-
-                        acmp_listener_rcvd_cmd_resp.status =
-                            avb_listener_on_talker_connect(avb,
-                                                    acmp_listener_rcvd_cmd_resp.listener_unique_id,
-                                                    acmp_listener_rcvd_cmd_resp.talker_guid,
-                                                    acmp_listener_rcvd_cmd_resp.stream_dest_mac,
-                                                    stream_id,
-                                                    acmp_listener_rcvd_cmd_resp.vlan_id,
-                                                    my_guid);
-
-                        acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, c_tx);
-                        acmp_add_listener_stream_info();
+                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, c_tx);
+                            acmp_add_listener_stream_info();
+                        }
                     }
 
                     acmp_listener_state = ACMP_LISTENER_WAITING;
