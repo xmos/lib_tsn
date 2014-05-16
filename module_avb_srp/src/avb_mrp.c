@@ -1106,10 +1106,11 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 
     for (int j=0;j<MRP_MAX_ATTRS;j++)
     {
+      if (attrs[j].applicant_state == MRP_UNUSED) continue;
+      if (attrs[j].port_num != i) continue;
+
       if (attrs[j].pending_indications != 0)
       {
-        /* 5.2 TODO: Used to fire AVB_SRP_INDICATION here */
-
         if ((attrs[j].pending_indications & PENDING_JOIN_NEW) != 0)
         {
           send_join_indication(avb, &attrs[j], 1, attrs[j].four_vector_parameter);
