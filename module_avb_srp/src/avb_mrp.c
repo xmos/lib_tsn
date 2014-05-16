@@ -1054,7 +1054,6 @@ extern unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
 
 void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 {
-
   for (int i=0; i < MRP_NUM_PORTS; i++)
   {
     if (avb_timer_expired(&periodic_timer[i]))
@@ -1454,7 +1453,6 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
           if (!matched_attribute && !leave_all)
           {
               if (attr_type == MSRP_TALKER_ADVERTISE ||
-                  attr_type == MSRP_TALKER_FAILED ||
                   attr_type == MSRP_LISTENER)
               {
                 if (three_packed_event != MRP_ATTRIBUTE_EVENT_MT)
