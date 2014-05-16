@@ -1235,7 +1235,9 @@ mrp_attribute_state *mrp_match_attr_by_stream_and_type(mrp_attribute_state *attr
     if ((opposite_port && (attr->port_num != attrs[j].port_num)) ||
         (!opposite_port && (attr->port_num == attrs[j].port_num)))
     {
-      if ((attr->attribute_type == attrs[j].attribute_type))
+      if ((attr->attribute_type == attrs[j].attribute_type) ||
+          ((attr->attribute_type == MSRP_TALKER_ADVERTISE) && (attrs[j].attribute_type == MSRP_TALKER_FAILED)) ||
+          ((attr->attribute_type == MSRP_TALKER_FAILED) && (attrs[j].attribute_type == MSRP_TALKER_ADVERTISE)))
       {
         avb_sink_info_t *sink_info = (avb_sink_info_t *) attr->attribute_info;
         avb_source_info_t *source_info = (avb_source_info_t *) attrs[j].attribute_info;
@@ -1296,8 +1298,10 @@ mrp_attribute_state *mrp_match_attribute_pair_by_stream_id(mrp_attribute_state *
     if ((opposite_port && (attr->port_num != attrs[j].port_num)) ||
         (!opposite_port && (attr->port_num == attrs[j].port_num)))
     {
-      if ((attr->attribute_type == MSRP_TALKER_ADVERTISE && attrs[j].attribute_type == MSRP_LISTENER) ||
-          (attr->attribute_type == MSRP_LISTENER && attrs[j].attribute_type == MSRP_TALKER_ADVERTISE))
+      if (((attr->attribute_type == MSRP_TALKER_ADVERTISE || attr->attribute_type == MSRP_TALKER_FAILED) &&
+            attrs[j].attribute_type == MSRP_LISTENER) ||
+          (attr->attribute_type == MSRP_LISTENER &&
+          (attrs[j].attribute_type == MSRP_TALKER_ADVERTISE || attrs[j].attribute_type == MSRP_TALKER_FAILED)))
       {
         avb_sink_info_t *sink_info = (avb_sink_info_t *) attr->attribute_info;
         avb_source_info_t *source_info = (avb_source_info_t *) attrs[j].attribute_info;
