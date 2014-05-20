@@ -783,6 +783,7 @@ void mrp_attribute_init(mrp_attribute_state *st,
                         unsigned int here,
                         void *info)
 {
+  memset(st, sizeof(mrp_attribute_state), 0);
   st->attribute_type = t;
   st->attribute_info = info;
   st->port_num = port_num;
