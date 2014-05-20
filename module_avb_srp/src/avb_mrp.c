@@ -590,12 +590,6 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
     case MRP_EVENT_RECEIVE_JOININ:
       switch (st->applicant_state)
         {
-        case MRP_VO:
-          mrp_change_applicant_state(st, e, MRP_AO);
-          break;
-        case MRP_VP:
-          mrp_change_applicant_state(st, e, MRP_AP);
-          break;
         case MRP_AA:
           mrp_change_applicant_state(st, e, MRP_QA);
           break;
