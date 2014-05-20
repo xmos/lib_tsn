@@ -33,8 +33,7 @@
 static avb_stream_entry stream_table[AVB_STREAM_TABLE_ENTRIES];
 static unsigned int port_bandwidth[MRP_NUM_PORTS];
 
-static mrp_attribute_state *local_domain_attr[MRP_NUM_PORTS];
-static mrp_attribute_state *foreign_domain_attr[MRP_NUM_PORTS];
+static mrp_attribute_state *domain_attr[MRP_NUM_PORTS];
 unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
 unsigned int current_vlan_id_from_domain;
 
@@ -47,10 +46,8 @@ void srp_store_mac_tx_chanend(chanend c_mac_tx0) {
 void srp_domain_init(void) {
   for(int i=0; i < MRP_NUM_PORTS; i++)
   {
-    local_domain_attr[i] = mrp_get_attr();
-    mrp_attribute_init(local_domain_attr[i], MSRP_DOMAIN_VECTOR, i, 1, NULL);
-    foreign_domain_attr[i] = mrp_get_attr();
-    mrp_attribute_init(foreign_domain_attr[i], MSRP_DOMAIN_VECTOR, i, 0, NULL);
+    domain_attr[i] = mrp_get_attr();
+    mrp_attribute_init(domain_attr[i], MSRP_DOMAIN_VECTOR, i, 1, NULL);
     srp_domain_boundary_port[i] = 1;
   }
   current_vlan_id_from_domain = AVB_DEFAULT_VLAN;
@@ -60,9 +57,8 @@ void srp_domain_join(void)
 {
   for (int i=0; i < MRP_NUM_PORTS; i++)
   {
-      mrp_mad_begin(local_domain_attr[i]);
-      mrp_mad_begin(foreign_domain_attr[i]);
-      mrp_mad_join(local_domain_attr[i], 1);
+      mrp_mad_begin(domain_attr[i]);
+      mrp_mad_join(domain_attr[i], 1);
   }
 }
 
