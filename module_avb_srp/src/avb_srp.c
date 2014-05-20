@@ -804,8 +804,7 @@ void avb_srp_talker_leave_ind(mrp_attribute_state *attr)
   }
   else {
     avb_stream_entry *stream_info = attr->attribute_info;
-    stream_info->talker_present = 0;
-    attr->applicant_state = MRP_UNUSED;
+    stream_info->talker_present = 0; // MRP.End.c.10.1.02b
   }
 }
 
