@@ -1444,7 +1444,9 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
       {
         int matched_attribute = 0;
         // Get the three packed data out of the vector
-        int three_packed_event = decode_threepacked(*(first_value + first_value_len + i/3), i%3);
+        int vector = *(first_value + first_value_len + i/3);
+        if (vector > 0xD7) break; // Unused range of the threepacked vector should be rejected before decoding
+        int three_packed_event = decode_threepacked(vector, i%3);
 
         // Get the four packed data out of the vector
         int four_packed_event = has_fourpacked_events(attr_type) ?
