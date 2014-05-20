@@ -881,7 +881,7 @@ static int encode_listener_message(char *buf,
 
     mrp_encode_three_packed_event(buf, vector, st->attribute_type);
     avb_stream_entry *stream_info = st->attribute_info;
-    if (stream_info->talker_present && !srp_domain_boundary_port[st->port_num]) {
+    if (stream_info->talker_present && !srp_domain_boundary_port[st->port_num] && !stream_info->reservation_failed) {
       mrp_encode_four_packed_event(buf, AVB_SRP_FOUR_PACKED_EVENT_READY, st->attribute_type);
     }
     else {
