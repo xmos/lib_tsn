@@ -352,18 +352,11 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
   }
 }
 
-int avb_srp_match_talker_failed(mrp_attribute_state *attr,
-                                char *msg,
-                                int i,
-                                int leave_all)
-{
-  return avb_srp_match_talker_advertise(attr, msg, i, leave_all);
-}
-
 int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
                                    char *fv,
                                    int i,
-                                   int leave_all)
+                                   int leave_all,
+                                   int failed)
 {
   avb_source_info_t *source_info = (avb_source_info_t *) attr->attribute_info;
   unsigned long long stream_id=0, my_stream_id=0;

@@ -1349,14 +1349,19 @@ static int match_attribute_of_same_type(mrp_attribute_type attr_type,
   if (attr->port_num != port_num)
     return 0;
 
-  if (attr->attribute_type != attr_type)
+
+  if ((attr->attribute_type <= MSRP_TALKER_FAILED) && (attr_type <= MSRP_TALKER_FAILED)) {
+    // Continue, match Talker Advertise and Failed as the same attribute type
+  }
+  else if (attr->attribute_type != attr_type) {
     return 0;
+  }
 
   switch (attr_type) {
   case MSRP_TALKER_ADVERTISE:
-    return avb_srp_match_talker_advertise(attr, msg, i, leave_all);
+    return avb_srp_match_talker_advertise(attr, msg, i, leave_all, 0);
   case MSRP_TALKER_FAILED:
-    return avb_srp_match_talker_failed(attr, msg, i, leave_all);
+    return avb_srp_match_talker_advertise(attr, msg, i, leave_all, 1);
   case MSRP_LISTENER:
     return avb_srp_match_listener(attr, msg, i, four_packed_event);
   case MSRP_DOMAIN_VECTOR:
@@ -1432,7 +1437,6 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
 
       if (leave_all)
       {
-        leaveall_active[port_num] = 0;
         attribute_type_event(attr_type, MRP_EVENT_RECEIVE_LEAVE_ALL, port_num);
       }
 
