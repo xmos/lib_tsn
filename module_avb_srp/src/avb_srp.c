@@ -449,19 +449,15 @@ int avb_srp_match_listener(mrp_attribute_state *attr,
 int avb_srp_match_domain(mrp_attribute_state *attr,char *fv,int i)
 {
     srp_domain_first_value *first_value = (srp_domain_first_value *) fv;
+    unsigned char sr_class_id = first_value->SRclassID+i;
+    unsigned char sr_class_priority = first_value->SRclassPriority+i;
+    unsigned short sr_class_vid = ntoh_16(first_value->SRclassVID);
 
-    if (!attr->here) {
-
-      unsigned char sr_class_id = first_value->SRclassID+i;
-      unsigned char sr_class_priority = first_value->SRclassPriority+i;
-      unsigned short sr_class_vid = ntoh_16(first_value->SRclassVID);
-
-      if ((sr_class_id == AVB_SRP_SRCLASS_DEFAULT) && (sr_class_priority == AVB_SRP_TSPEC_PRIORITY_DEFAULT)) {
-        if (current_vlan_id_from_domain != sr_class_vid) {
-          current_vlan_id_from_domain = sr_class_vid;
-        }
-        return 1;
+    if ((sr_class_id == AVB_SRP_SRCLASS_DEFAULT) && (sr_class_priority == AVB_SRP_TSPEC_PRIORITY_DEFAULT)) {
+      if (current_vlan_id_from_domain != sr_class_vid) {
+        current_vlan_id_from_domain = sr_class_vid;
       }
+      return 1;
     }
 
   return 0;
