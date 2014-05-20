@@ -897,6 +897,7 @@ static int encode_listener_message(char *buf,
 
 void avb_srp_domain_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr, int new)
 {
+  debug_printf("Joined SRP domain (VID %x, port %d)\n", current_vlan_id_from_domain, attr->port_num);
   srp_domain_boundary_port[attr->port_num] = 0;
 
   for (int i=0; i < AVB_NUM_SOURCES; i++)
@@ -912,6 +913,7 @@ void avb_srp_domain_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute
 
 void avb_srp_domain_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute_state *attr)
 {
+  debug_printf("Left SRP domain (port %d)\n", attr->port_num);
   srp_domain_boundary_port[attr->port_num] = 1;
 }
 
