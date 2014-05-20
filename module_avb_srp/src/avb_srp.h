@@ -92,11 +92,9 @@ int avb_srp_encode_message(char *buf,
 int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
                                    char *msg,
                                    int i,
-                                   int leave_all);
-int avb_srp_match_talker_failed(mrp_attribute_state *attr,
-                                char *msg,
-                                int i,
-                                int leave_all);
+                                   int leave_all,
+                                   int failed);
+
 int avb_srp_match_listener(mrp_attribute_state *attr,
                            char *msg,
                            int i,
