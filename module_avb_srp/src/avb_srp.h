@@ -17,9 +17,10 @@
 typedef struct avb_stream_entry
 {
   avb_srp_info_t reservation;
-  int listener_present;
-  int talker_present;
-  int bw_reserved[MRP_NUM_PORTS]; // While the bw_reserved flag is set/not set we do not add/subtract Qav credit
+  char listener_present;
+  char talker_present;
+  char bw_reserved[MRP_NUM_PORTS]; // While the bw_reserved flag is set/not set we do not add/subtract Qav credit
+  char reservation_failed;
 } avb_stream_entry;
 
 #ifdef __XC__
