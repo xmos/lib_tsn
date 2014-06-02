@@ -120,7 +120,7 @@ static void configure_send_buffer(unsigned char* addr, short etype) {
 }
 
 
-unsigned attribute_length_length(mrp_msg_header* hdr)
+unsigned attribute_list_length(mrp_msg_header* hdr)
 {
     return (hdr->AttributeListLength[0]<<8) + hdr->AttributeListLength[1];
 }
@@ -136,7 +136,7 @@ static void strip_attribute_list_length_fields()
     char *end = send_ptr;
     while (msg < end && (msg[0]!=0 || msg[1]!=0)) {
       mrp_msg_header* hdr = (mrp_msg_header*)msg;
-      char* next = (char*)(hdr+1) + attribute_length_length(hdr);
+      char* next = (char*)(hdr+1) + attribute_list_length(hdr);
 
       for (char* c=(char*)hdr->AttributeListLength; c<end-2; ++c) *c = *(c+2);
 
@@ -329,7 +329,7 @@ void mrp_encode_three_packed_event(char *buf,
   int first_value_length =  first_value_lengths[attr];
   char *vector = buf + sizeof(mrp_msg_header) + sizeof(mrp_vector_header) + first_value_length + num_values/3;
   int shift_required = (num_values % 3 == 0);
-  unsigned attr_list_length = attribute_length_length(hdr);
+  unsigned attr_list_length = attribute_list_length(hdr);
 
 
   if (shift_required) {
@@ -368,7 +368,7 @@ void mrp_encode_four_packed_event(char *buf,
   int first_value_length =  first_value_lengths[attr];
   char *vector = buf + sizeof(mrp_msg_header) + sizeof(mrp_vector_header) + first_value_length + (num_values+3)/3 + num_values/4 ;
   int shift_required = (num_values % 4 == 0);
-  unsigned attr_list_length = attribute_length_length(hdr);
+  unsigned attr_list_length = attribute_list_length(hdr);
 
 
 
@@ -449,7 +449,7 @@ static void doTx(mrp_attribute_state *st,
 
     merged = encode_msg(msg, st, vector, port_num);
 
-    msg = msg + sizeof(mrp_msg_header) + attribute_length_length(hdr);
+    msg = msg + sizeof(mrp_msg_header) + attribute_list_length(hdr);
   }
 
   int port_to_transmit = st->port_num;
