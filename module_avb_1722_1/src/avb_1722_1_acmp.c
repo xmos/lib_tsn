@@ -428,7 +428,11 @@ avb_1722_1_acmp_status_t acmp_talker_get_connection(void)
     unsigned short connection = acmp_talker_rcvd_cmd_resp.connection_count;
 
     // Check if connection exists
-    if (connection >= AVB_1722_1_MAX_LISTENERS_PER_TALKER || acmp_talker_streams[unique_id].connected_listeners[connection].guid.l == 0)
+    if (connection >= AVB_1722_1_MAX_LISTENERS_PER_TALKER)
+    {
+        return ACMP_STATUS_STATE_UNAVAILABLE;
+    }
+    else if (acmp_talker_streams[unique_id].connected_listeners[connection].guid.l == 0)
     {
         return ACMP_STATUS_NO_SUCH_CONNECTION;
     }
