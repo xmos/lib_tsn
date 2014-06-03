@@ -114,7 +114,7 @@ void avb_1722_talker_init(chanend c_talker_ctl,
                           avb_1722_talker_state_t &st,
                           int num_streams)
  {
-  st.vlan = 2;
+  st.vlan = 0;
   st.cur_avb_stream = 0;
   st.max_active_avb_stream = 0;
 

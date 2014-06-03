@@ -225,7 +225,9 @@ extends client interface avb_interface : {
       return 0;
     avb_source_info_t source;
     source = i._get_source_info(source_num);
-    source.reservation.vlan_id = vlan;
+    if (vlan) {
+      source.reservation.vlan_id = vlan;
+    }
     i._set_source_info(source_num, source);
     return 1;
   }
@@ -568,7 +570,9 @@ extends client interface avb_interface : {
     sink = i._get_sink_info(sink_num);
     if (sink.stream.state != AVB_SINK_STATE_DISABLED)
       return 0;
-    sink.reservation.vlan_id = vlan;
+    if (vlan) {
+      sink.reservation.vlan_id = vlan;
+    }
     i._set_sink_info(sink_num, sink);
     return 1;
   }
@@ -863,5 +867,7 @@ int avb_get_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_n
 int avb_set_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, enum avb_source_state_t state);
 int avb_get_source_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, REFERENCE_PARAM(int, vlan));
 int avb_set_source_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, int vlan);
+int avb_get_sink_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned sink_num, REFERENCE_PARAM(int, vlan));
+int avb_set_sink_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned sink_num, int vlan);
 
 #endif // _api_h_

@@ -62,7 +62,7 @@ static void register_talkers(chanend (&?c_talker_ctl)[], unsigned char mac_addr[
         source->reservation.stream_id[0] = (mac_addr[0] << 24) | (mac_addr[1] << 16) | (mac_addr[2] <<  8) | (mac_addr[3] <<  0);
         source->reservation.stream_id[1] = (mac_addr[4] << 24) | (mac_addr[5] << 16) | ((source->stream.local_id & 0xffff)<<0);
         source->presentation = AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
-        source->reservation.vlan_id = AVB_DEFAULT_VLAN;
+        source->reservation.vlan_id = 0;
         source->reservation.tspec = (AVB_SRP_TSPEC_PRIORITY_DEFAULT << 5 |
             AVB_SRP_TSPEC_RANK_DEFAULT << 4 |
             AVB_SRP_TSPEC_RESERVED_VALUE);
@@ -93,7 +93,7 @@ static void register_listeners(chanend (&?c_listener_ctl)[])
         sink->stream.tile_id = tile_id;
         sink->stream.local_id = j;
         sink->stream.flags = 0;
-        sink->reservation.vlan_id = AVB_DEFAULT_VLAN;
+        sink->reservation.vlan_id = 0;
         max_listener_stream_id++;
       }
       c_listener_ctl[i] <: max_link_id;
@@ -162,6 +162,26 @@ void avb_init(chanend c_media_ctl[],
   mac_get_macaddr(c_mac_tx, mac_addr);
   register_talkers(c_talker_ctl, mac_addr);
   register_listeners(c_listener_ctl);
+}
+
+static int valid_to_leave_vlan(int vlan)
+{
+  int all_streams_disabled = 1;
+  for (int i=0; i < AVB_NUM_SINKS; i++) {
+    if (sinks[i].stream.state != AVB_SINK_STATE_DISABLED) {
+      all_streams_disabled = 0;
+      break;
+    }
+  }
+
+  for (int i=0; i < AVB_NUM_SOURCES; i++) {
+    if (sources[i].stream.state != AVB_SINK_STATE_DISABLED) {
+      all_streams_disabled = 0;
+      break;
+    }
+  }
+
+  return all_streams_disabled;
 }
 
 static void update_sink_state(unsigned sink_num,
@@ -234,11 +254,12 @@ static void update_sink_state(unsigned sink_num,
 
       avb_1722_remove_stream_mapping(c_mac_tx, sink->reservation.stream_id);
 
-  #if NUM_MRP_PORTS == 1
-      if (sink->reservation.vlan_id) {
-        avb_leave_vlan(sink->reservation.vlan_id);
+#if MRP_NUM_PORTS == 1
+      int vid = sink->reservation.vlan_id;
+      if (vid && valid_to_leave_vlan(vid)) {
+        avb_leave_vlan(vid);
       }
-  #endif
+#endif
     }
   }
 }
@@ -271,6 +292,10 @@ static void update_source_state(unsigned source_num,
       unsigned clk_ctl = inputs[source->map[0]].clk_ctl;
 
       if (source->stream.num_channels <= 0) {
+        valid = 0;
+      }
+
+      if (source->reservation.vlan_id <= 0) {
         valid = 0;
       }
 
@@ -317,14 +342,12 @@ static void update_source_state(unsigned source_num,
             *c <: AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
         }
 
-        if (source->reservation.vlan_id) {
-          master {
-            *c <: AVB1722_SET_VLAN;
-            *c <: (int)source->reservation.vlan_id;
-          }
-          for (int i=0; i < MRP_NUM_PORTS; i++) {
-            avb_join_vlan(source->reservation.vlan_id, i);
-          }
+        master {
+          *c <: AVB1722_SET_VLAN;
+          *c <: (int)source->reservation.vlan_id;
+        }
+        for (int i=0; i < MRP_NUM_PORTS; i++) {
+          avb_join_vlan(source->reservation.vlan_id, i);
         }
 
         source->reservation.tspec_max_frame_size = avb_srp_calculate_max_framesize(source);
@@ -388,11 +411,12 @@ static void update_source_state(unsigned source_num,
 
         debug_printf("%s #%d off\n", stream_string, source_num);
 
-    #if MRP_NUM_PORTS == 1
-      if (source->reservation.vlan_id) {
-        avb_leave_vlan(source->reservation.vlan_id);
+#if MRP_NUM_PORTS == 1
+      int vid = source->reservation.vlan_id;
+      if (vid && valid_to_leave_vlan(vid)) {
+        avb_leave_vlan(vid);
       }
-    #endif
+#endif
 
       i_srp.deregister_stream_request(source->reservation.stream_id);
 
@@ -415,6 +439,14 @@ int avb_get_source_vlan(client interface avb_interface avb, unsigned source_num,
 
 int avb_set_source_vlan(client interface avb_interface avb, unsigned source_num, int vlan) {
   return avb.set_source_vlan(source_num, vlan);
+}
+
+int avb_get_sink_vlan(client interface avb_interface avb, unsigned sink_num, int &vlan) {
+  return avb.get_sink_vlan(sink_num, vlan);
+}
+
+int avb_set_sink_vlan(client interface avb_interface avb, unsigned sink_num, int vlan) {
+  return avb.set_sink_vlan(sink_num, vlan);
 }
 
 // Set the period inbetween periodic processing to 50us based

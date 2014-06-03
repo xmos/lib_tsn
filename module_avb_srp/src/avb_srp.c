@@ -906,8 +906,18 @@ void avb_srp_domain_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribute
     int current_set_vlan;
     avb_get_source_vlan(avb, i, &current_set_vlan);
 
-    if (current_set_vlan != current_vlan_id_from_domain) {
+    if (current_set_vlan == 0) {
       avb_set_source_vlan(avb, i, current_vlan_id_from_domain);
+    }
+  }
+
+  for (int i=0; i < AVB_NUM_SINKS; i++)
+  {
+    int current_set_vlan;
+    avb_get_sink_vlan(avb, i, &current_set_vlan);
+
+    if (current_set_vlan == 0) {
+      avb_set_sink_vlan(avb, i, current_vlan_id_from_domain);
     }
   }
 }
