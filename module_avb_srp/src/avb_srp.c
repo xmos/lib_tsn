@@ -386,6 +386,7 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
       stream_info->reservation_failed = 1;
     }
     else {
+      attr->attribute_type = MSRP_TALKER_ADVERTISE;
       stream_info->reservation_failed = 0;
     }
 
