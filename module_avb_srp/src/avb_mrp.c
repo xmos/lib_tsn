@@ -476,6 +476,11 @@ static void doTx(mrp_attribute_state *st,
     }
   }
   send(c_mac_tx, port_to_transmit);
+
+  if (st->remove_after_next_tx) {
+    mrp_change_applicant_state(st, MRP_EVENT_DUMMY, MRP_UNUSED);
+    st->remove_after_next_tx = 0;
+  }
 }
 
 static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_packed_event, unsigned int port_num)
@@ -616,7 +621,7 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
           break;
         case MRP_QO:
           mrp_change_applicant_state(st, e, MRP_AO);
-          if (!st->here) mrp_change_applicant_state(st, e, MRP_UNUSED);
+          if (!st->here) st->remove_after_next_tx = 1;
           break;
         case MRP_QP:
           mrp_change_applicant_state(st, e, MRP_AP);
@@ -638,7 +643,7 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
         case MRP_QO:
 #ifdef MRP_FULL_PARTICIPANT
           mrp_change_applicant_state(st, e, MRP_LO);
-          if (st->registrar_state == MRP_MT) mrp_change_applicant_state(st, e, MRP_UNUSED);
+          if (st->registrar_state == MRP_MT) st->remove_after_next_tx = 1;
 #else
           mrp_change_applicant_state(st, e, MRP_VO);
 #endif
@@ -728,7 +733,7 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
         case MRP_AO:
         case MRP_QO:
           mrp_change_applicant_state(st, e, MRP_LO);
-          if (st->applicant_state != MRP_LA && !st->here) mrp_change_applicant_state(st, e, MRP_UNUSED);
+          if (st->applicant_state != MRP_LA && !st->here) st->remove_after_next_tx = 1;
           break;
         case MRP_VN:
           mrp_change_applicant_state(st, e, MRP_AN);
@@ -818,6 +823,8 @@ void mrp_mad_join(mrp_attribute_state *st, int new)
     debug_printf(" %x:%x, Port:%d, Here:%d, propagated:%d\n", stream_id[0], stream_id[1], st->port_num, st->here, st->propagated);
   }
 #endif
+
+  st->remove_after_next_tx = 0;
 
   if (new) {
     mrp_update_state(MRP_EVENT_NEW, st, 0, st->port_num);

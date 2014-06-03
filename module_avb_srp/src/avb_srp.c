@@ -176,15 +176,12 @@ void srp_remove_reservation_entry(avb_srp_info_t *reservation) {
 }
 
 int srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
-  if (event == MRP_EVENT_DUMMY) {
-    st->applicant_state = MRP_UNUSED;
-  }
 #if (MRP_NUM_PORTS == 2)
   if (st->attribute_type == MSRP_LISTENER || !st->here) {
     st->applicant_state = MRP_UNUSED;
   }
 #else
-  if (st->attribute_type == MSRP_LISTENER && !st->here) {
+  if (!st->here && st->attribute_type != MSRP_DOMAIN_VECTOR) {
     st->applicant_state = MRP_UNUSED;
   }
 #endif
@@ -481,6 +478,7 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
 
     int entry = srp_match_reservation_entry_by_id(sink_info->reservation.stream_id);
 
+#if (MRP_NUM_PORTS == 2)
     if (mrp_match_attr_by_stream_and_type(attr, 1, 0)) { // Listener ready on the other port also, therefore send on both ports
       if (stream_table[entry].bw_reserved[!attr->port_num] == 1 &&
           stream_table[entry].bw_reserved[attr->port_num] != 1) {
@@ -489,13 +487,19 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
         stream_table[entry].bw_reserved[attr->port_num] = 1;
       }
     }
-    else { // Just this port
+    else
+#endif
+    { // Just this port
       if (stream_table[entry].bw_reserved[attr->port_num] != 1) {
         srp_increase_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
         set_avb_source_port(stream, attr->port_num);
         stream_table[entry].bw_reserved[attr->port_num] = 1;
       }
+      else {
+        set_avb_source_port(stream, attr->port_num);
+      }
     }
+
 
     if (state == AVB_SOURCE_STATE_POTENTIAL) {
       if (four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY ||
@@ -566,14 +570,6 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
       if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, reservation->stream_id, i);
       if (!matched_talker) {
         mrp_attribute_state *talker_attr = mrp_get_attr();
-#if MRP_NUM_PORTS == 1
-        mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, reservation->stream_id, i);
-        if (!matched_listener) {
-          mrp_attribute_state *listener_attr = mrp_get_attr();
-          mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
-          mrp_mad_begin(listener_attr);
-        }
-#endif
         mrp_attribute_init(talker_attr, MSRP_TALKER_ADVERTISE, i, 1, stream_ptr);
         mrp_mad_begin(talker_attr);
         mrp_mad_join(talker_attr, 1);
@@ -581,6 +577,14 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
       else {
         mrp_mad_join(matched_talker, 1);
       }
+#if MRP_NUM_PORTS == 1
+      mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, reservation->stream_id, i);
+      if (!matched_listener) {
+        mrp_attribute_state *listener_attr = mrp_get_attr();
+        mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
+        mrp_mad_begin(listener_attr);
+      }
+#endif
     }
   }
   mrp_debug_dump_attrs();
@@ -624,7 +628,8 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
     mrp_mad_leave(matched_listener);
   }
   if (matched_talker) {
-    matched_talker->applicant_state = MRP_UNUSED;
+    matched_talker->here = 0;
+    matched_talker->remove_after_next_tx = 1;
   }
 #endif
 }
@@ -685,7 +690,7 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
           mrp_attribute_init(talker_attr,
                              MSRP_TALKER_ADVERTISE,
                              i,
-                             0,
+                             1,
                              stream_ptr);
           mrp_mad_begin(talker_attr);
         }

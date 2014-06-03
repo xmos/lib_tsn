@@ -82,7 +82,7 @@ typedef struct mrp_attribute_state {
   unsigned int port_num;
   unsigned char attribute_type;
   unsigned char applicant_state;
-
+  unsigned char remove_after_next_tx;
 #ifdef MRP_FULL_PARTICIPANT
   unsigned char registrar_state;
   avb_timer leaveTimer;
