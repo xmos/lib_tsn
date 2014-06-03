@@ -43,6 +43,119 @@ unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *u
   return values_length;
 }
 
+static int sampling_rate_from_sfc(int sfc)
+{
+  switch (sfc)
+  {
+    case 0: return 32000;
+    case 1: return 44100;
+    case 2: return 48000;
+    case 3: return 88200;
+    case 4: return 96000;
+    case 5: return 176400;
+    case 6: return 192000;
+    default: return 0;
+  }
+}
+
+static int sfc_from_sampling_rate(int rate)
+{
+  switch (rate)
+  {
+    case 32000: return 0;
+    case 44100: return 1;
+    case 48000: return 2;
+    case 88200: return 3;
+    case 96000: return 4;
+    case 176400: return 5;
+    case 192000: return 6;
+    default: return 0;
+  }
+}
+
+unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                          REFERENCE_PARAM(unsigned char, status),
+                                          unsigned short command_type,
+                                          CLIENT_INTERFACE(avb_interface, i_avb))
+{
+  avb_1722_1_aem_getset_stream_info_t *cmd = (avb_1722_1_aem_getset_stream_info_t *)(pkt->data.aem.command.payload);
+  unsigned short stream_index = ntoh_16(cmd->descriptor_id);
+  unsigned short desc_type = ntoh_16(cmd->descriptor_type);
+
+  avb_srp_info_t *unsafe reservation;
+  avb_stream_info_t *unsafe stream;
+  avb_sink_info_t sink;
+  avb_source_info_t source;
+
+  if ((desc_type == AEM_STREAM_INPUT_TYPE) && (stream_index < AVB_NUM_SINKS))
+  {
+    sink = i_avb._get_sink_info(stream_index);
+    reservation = &sink.reservation;
+    stream = &sink.stream;
+  }
+  else if ((desc_type == AEM_STREAM_OUTPUT_TYPE) && (stream_index < AVB_NUM_SOURCES))
+  {
+    source = i_avb._get_source_info(stream_index);
+    reservation = &source.reservation;
+    stream = &source.stream;
+  }
+  else
+  {
+    status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+    return;
+  }
+
+  if (command_type == AECP_AEM_CMD_GET_STREAM_INFO)
+  {
+
+    cmd->stream_format[0] = 0x00;
+    cmd->stream_format[1] = 0xa0;
+    cmd->stream_format[2] = sfc_from_sampling_rate(stream->rate); // 10.3.2 in 61883-6
+    cmd->stream_format[3] = stream->num_channels; // dbs
+    cmd->stream_format[4] = 0x40; // b[0], nb[1], reserved[2:]
+    cmd->stream_format[5] = 0; // label_iec_60958_cnt
+    cmd->stream_format[6] = stream->num_channels; // label_mbla_cnt
+    cmd->stream_format[7] = 0; // label_midi_cnt[0:3], label_smptecnt[4:]
+
+    hton_32(&cmd->stream_id[0], reservation->stream_id[0]);
+    hton_32(&cmd->stream_id[4], reservation->stream_id[1]);
+    // TODO: Accumulated latency
+    memcpy(cmd->stream_dest_mac, reservation->dest_mac_addr, 6);
+    hton_16(cmd->stream_vlan_id, reservation->vlan_id);
+
+    hton_32(cmd->flags, AECP_STREAM_INFO_FLAGS_STREAM_VLAN_ID_VALID |
+                        AECP_STREAM_INFO_FLAGS_STREAM_DESC_MAC_VALID |
+                        AECP_STREAM_INFO_FLAGS_STREAM_ID_VALID |
+                        AECP_STREAM_INFO_FLAGS_STREAM_FORMAT_VALID);
+
+  }
+  else
+  {
+    if (stream->state != AVB_SOURCE_STATE_DISABLED)
+    {
+      status = AECP_AEM_STATUS_STREAM_IS_RUNNING;
+      return;
+    }
+
+    int flags = ntoh_32(cmd->flags);
+
+    if (flags & AECP_STREAM_INFO_FLAGS_STREAM_VLAN_ID_VALID)
+    {
+      reservation->vlan_id = ntoh_16(cmd->stream_vlan_id);
+    }
+
+    if (desc_type == AEM_STREAM_INPUT_TYPE)
+    {
+      i_avb._set_sink_info(stream_index, sink);
+    }
+    else
+    {
+      i_avb._set_source_info(stream_index, source);
+    }
+
+  }
+}
+
 unsafe void process_aem_cmd_getset_sampling_rate(avb_1722_1_aecp_packet_t *unsafe pkt,
                                           unsigned char &status,
                                           unsigned short command_type,

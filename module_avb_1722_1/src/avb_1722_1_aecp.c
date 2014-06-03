@@ -628,14 +628,14 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         }
         break;
       }
-      case AECP_AEM_CMD_GET_STREAM_FORMAT:
-      case AECP_AEM_CMD_SET_STREAM_FORMAT: // Fallthrough intentional
+      #endif
+      case AECP_AEM_CMD_GET_STREAM_INFO:
+      case AECP_AEM_CMD_SET_STREAM_INFO: // Fallthrough intentional
       {
-        process_aem_cmd_getset_stream_format(pkt, &status, command_type);
-        cd_len = sizeof(avb_1722_1_aem_getset_stream_format_t);
+        process_aem_cmd_getset_stream_info(pkt, &status, command_type, i_avb_api);
+        cd_len = sizeof(avb_1722_1_aem_getset_stream_info_t);
         break;
       }
-      #endif
       case AECP_AEM_CMD_GET_SAMPLING_RATE:
       case AECP_AEM_CMD_SET_SAMPLING_RATE:
       {
@@ -719,7 +719,10 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
 
   if (cd_len > 0)
   {
-    int num_tx_bytes = cd_len;
+    int num_tx_bytes = cd_len +
+                            2 + // U Flag + command type
+                            AVB_1722_1_AECP_PAYLOAD_OFFSET +
+                            sizeof(ethernet_hdr_t);
 
     if (num_tx_bytes < 64) num_tx_bytes = 64;
 

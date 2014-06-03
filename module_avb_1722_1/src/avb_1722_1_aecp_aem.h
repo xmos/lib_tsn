@@ -76,6 +76,14 @@ typedef struct {
     unsigned char reserved[2];
 } avb_1722_1_aem_getset_clock_source_t;
 
+#define AECP_STREAM_INFO_FLAGS_STREAM_VLAN_ID_VALID     (0x02000000)
+#define AECP_STREAM_INFO_FLAGS_CONNECTED                (0x04000000)
+#define AECP_STREAM_INFO_FLAGS_MSRP_FAILURE_VALID       (0x08000000)
+#define AECP_STREAM_INFO_FLAGS_STREAM_DESC_MAC_VALID    (0x10000000)
+#define AECP_STREAM_INFO_FLAGS_MSRP_ACC_LAT_VALID       (0x20000000)
+#define AECP_STREAM_INFO_FLAGS_STREAM_ID_VALID          (0x40000000)
+#define AECP_STREAM_INFO_FLAGS_STREAM_FORMAT_VALID      (0x80000000)
+
 /* 7.4.15.1. SET_STREAM_INFO Command/Response */
 typedef struct {
     unsigned char descriptor_type[2];
@@ -85,9 +93,11 @@ typedef struct {
     unsigned char stream_id[8];
     unsigned char msrp_accumulated_latency[4];
     unsigned char stream_dest_mac[6];
-    unsigned char msrp_failure_code[1];
-    unsigned char reserved[1];
+    unsigned char msrp_failure_code;
+    unsigned char reserved1;
     unsigned char msrp_failure_bridge_id[8];
+    unsigned char stream_vlan_id[2];
+    unsigned char reserved2[2];
 } avb_1722_1_aem_getset_stream_info_t;
 
 #define AEM_MAX_CONTROL_VALUES_LENGTH_BYTES 508
