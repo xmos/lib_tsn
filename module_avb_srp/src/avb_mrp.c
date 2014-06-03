@@ -1426,7 +1426,7 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
       int fourpacked_len = has_fourpacked_events(attr_type)?(numvalues+3)/4:0;
       int len = sizeof(mrp_vector_header) + first_value_len + threepacked_len + fourpacked_len;
 
-      if ((etype == AVB_SRP_ETHERTYPE) && (len+sizeof(mrp_msg_footer) != attribute_length_length(hdr))) {
+      if ((etype == AVB_SRP_ETHERTYPE) && (len+sizeof(mrp_msg_footer) > attribute_list_length(hdr))) {
         return;
       }
 
