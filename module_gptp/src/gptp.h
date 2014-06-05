@@ -2,6 +2,7 @@
 #define __gptp_h__
 
 #include <xccompat.h>
+#include "nettypes.h"
 
 #define PTP_ADJUST_PREC 30
 
@@ -71,8 +72,16 @@ typedef enum ptp_port_role_t {
   PTP_DISABLED
 } ptp_port_role_t;
 
+typedef struct ptp_path_delay_t {
+  int valid;
+  unsigned pdelay;
+  n80_t rcvd_source_identity;
+} ptp_path_delay_t;
+
 typedef struct ptp_port_info_t {
+  int asCapable;
   ptp_port_role_t role_state;
+  ptp_path_delay_t delay_info;
 } ptp_port_info_t;
 
 /** This function runs the PTP server. It takes one thread and runs

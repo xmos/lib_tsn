@@ -96,14 +96,16 @@ typedef struct
 typedef struct
 {
   n80_t requestReceiptTimestamp;
-  n80_t requestingPortIdentity;
+  n64_t requestingPortIdentity;
+  n16_t requestingPortId;
 } PdelayRespMessage;
 
 // PTP Peer delay response follow up message
 typedef struct
 {
   n80_t responseOriginTimestamp;
-  n80_t requestingPortIdentity;
+  n64_t requestingPortIdentity;
+  n16_t requestingPortId;
 } PdelayRespFollowUpMessage;
 
 // Macro to evaluate flagField(s) in PTP message

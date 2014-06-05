@@ -38,8 +38,6 @@ signed g_inv_ptp_adjust = 0;
    between the foreign master port and our slave port in nanoseconds (ptp time)
 */
 #define PTP_PATH_DELAY_WEIGHT 32
-static int ptp_path_delay_valid = 0;
-unsigned ptp_path_delay = 0;
 
 ptp_port_info_t ptp_port_info[PTP_NUM_PORTS];
 static unsigned short steps_removed_from_gm;
@@ -50,7 +48,7 @@ ptp_timestamp ptp_reference_ptp_ts;
 static long long ptp_gmoffset = 0;
 static int expect_gm_discontinuity = 1;
 static int ptp_candidate_gmoffset_valid = 0;
-static n80_t my_port_id;
+static n64_t my_port_id;
 static n80_t master_port_id;
 static u8_t ptp_priority1;
 static u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
@@ -248,7 +246,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
     debug_printf("PTP Port %d Role: Slave\n", port_num);
 
     // Reset synotization variables
-    ptp_path_delay_valid = 0;
+    ptp_port_info[port_num].delay_info.valid = 0;
     g_ptp_adjust = 0;
     g_inv_ptp_adjust = 0;
     prev_adjust_valid = 0;
@@ -401,11 +399,12 @@ static int update_adjust(ptp_timestamp &master_ts,
 }
 
 static void update_reference_timestamps(ptp_timestamp &master_egress_ts,
-                                        unsigned local_ingress_ts)
+                                        unsigned local_ingress_ts,
+                                        ptp_port_info_t &port_info)
 {
   ptp_timestamp master_ingress_ts;
 
-  ptp_timestamp_offset64(master_ingress_ts, master_egress_ts, ptp_path_delay);
+  ptp_timestamp_offset64(master_ingress_ts, master_egress_ts, port_info.delay_info.pdelay);
 
   /* Update the reference timestamps */
   ptp_reference_local_ts = local_ingress_ts;
@@ -435,7 +434,8 @@ static void periodic_update_reference_timestamps(unsigned int local_ts)
 static void update_path_delay(ptp_timestamp &master_ingress_ts,
                               ptp_timestamp &master_egress_ts,
                               unsigned local_egress_ts,
-                              unsigned local_ingress_ts)
+                              unsigned local_ingress_ts,
+                              ptp_port_info_t &port_info)
 {
   long long master_diff;
   long long local_diff;
@@ -470,18 +470,15 @@ static void update_path_delay(ptp_timestamp &master_ingress_ts,
   if (delay < 0)
     delay = 0;
 
-  if (ptp_path_delay_valid) {
-
-    // TODO - Sanity check
+  if (port_info.delay_info.valid) {
 
     /* Re-average the adjust with a given weighting.
        This method loses a few bits of precision */
-    ptp_path_delay = ((ptp_path_delay * (PTP_PATH_DELAY_WEIGHT - 1)) + (int) delay) / PTP_PATH_DELAY_WEIGHT;
-    //ptp_path_delay = delay;
+    port_info.delay_info.pdelay = ((port_info.delay_info.pdelay * (PTP_PATH_DELAY_WEIGHT - 1)) + (int) delay) / PTP_PATH_DELAY_WEIGHT;
     }
   else {
-    ptp_path_delay = delay;
-    ptp_path_delay_valid = 1;
+    port_info.delay_info.pdelay = delay;
+    port_info.delay_info.valid = 1;
   }
 }
 
@@ -635,10 +632,18 @@ static void network_to_ptp_timestamp(ptp_timestamp &ts,
     nsec_p[9-i] = msg.data[i];
 }
 
-static int port_id_equal(n80_t *a, n80_t *b)
+static int port_identity_equal(n64_t &a, n64_t &b)
+{
+  for (int i=0;i<8;i++)
+    if (a.data[i] != b.data[i])
+      return 0;
+  return 1;
+}
+
+static int source_port_identity_equal(n80_t &a, n80_t &b)
 {
   for (int i=0;i<10;i++)
-    if (a->data[i] != b->data[i])
+    if (a.data[i] != b.data[i])
       return 0;
   return 1;
 }
@@ -758,7 +763,9 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
   pComMesgHdr->flagField[0]                 = 0x2;   // set two steps flag
 
   // portId assignment
-  pComMesgHdr->sourcePortIdentity = my_port_id;
+  for (int i=0; i < 8; i++) {
+    pComMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
+  }
   pComMesgHdr->sourcePortIdentity.data[9] = port_num + 1;
 
   // sequence id.
@@ -864,8 +871,9 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
 
   for(int i=0;i<8;i++) pComMesgHdr->correctionField.data[i] = 0;
 
-  // TODO: mem optimise me
-  pComMesgHdr->sourcePortIdentity = my_port_id;
+  for (int i=0; i < 8; i++) {
+    pComMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
+  }
   pComMesgHdr->sourcePortIdentity.data[9] = port_num + 1;
 
   sync_seq_id += 1;
@@ -938,15 +946,11 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
   unsigned int buf0[(PDELAY_REQ_PACKET_SIZE+3)/4];
   unsigned char *buf = (unsigned char *) &buf0[0];
   ComMessageHdr *pComMesgHdr = (ComMessageHdr *) &buf[sizeof(ethernet_hdr_t)];
-  PdelayReqMessage *pTxReqHdr = (PdelayReqMessage *) &buf[sizeof(ethernet_hdr_t) + sizeof(pComMesgHdr)];
-
-  unsigned cur_local_time;
-  ptp_timestamp cur_time_ptp;
 
   set_ptp_ethernet_hdr(buf);
 
   // clear the send data first.
-  memset(pComMesgHdr, 0, sizeof(ComMessageHdr) + sizeof(PdelayReqMessage));
+  memset(pComMesgHdr, 0, sizeof(ComMessageHdr));
 
   // build up the packet as required.
   pComMesgHdr->transportSpecific_messageType =
@@ -954,12 +958,16 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
 
   pComMesgHdr->versionPTP = PTP_VERSION_NUMBER;
 
-  pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
-                                      sizeof(PdelayReqMessage));
+  pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr));
 
 
   // correction field, & flagField are zero.
   for(int i=0;i<8;i++) pComMesgHdr->correctionField.data[i] = 0;
+
+  for (int i=0; i < 8; i++) {
+    pComMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
+  }
+  pComMesgHdr->sourcePortIdentity.data[9] = port_num + 1;
 
   // increment the sequence id.
   pdelay_req_seq_id += 1;
@@ -968,14 +976,6 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
   // control field for backward compatiability
   pComMesgHdr->controlField = PTP_CTL_FIELD_OTHERS;
   pComMesgHdr->logMessageInterval = 0x7F;
-
-
-  // populate the orginTimestamp.
-  cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
-
-  local_to_ptp_ts(cur_time_ptp, cur_local_time);
-
-  timestamp_to_network(pTxReqHdr->originTimestamp, cur_time_ptp);
 
   // sent out the data and record the time.
 
@@ -1052,7 +1052,9 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
   pTxMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
                                      sizeof(PdelayRespMessage));
 
-  pTxMesgHdr->sourcePortIdentity = my_port_id;
+  for (int i=0; i < 8; i++) {
+    pTxMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
+  }
   pTxMesgHdr->sourcePortIdentity.data[9] = port_num + 1;
 
   pTxMesgHdr->controlField = PTP_CTL_FIELD_OTHERS;
@@ -1060,7 +1062,9 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
 
   pTxMesgHdr->sequenceId = pRxMesgHdr->sequenceId;
 
-  pTxRespHdr->requestingPortIdentity = pRxMesgHdr->sourcePortIdentity;
+  memcpy(&pTxRespHdr->requestingPortIdentity, &pRxMesgHdr->sourcePortIdentity, sizeof(pTxRespHdr->requestingPortIdentity));
+  pTxRespHdr->requestingPortId.data[0] = pRxMesgHdr->sourcePortIdentity.data[8];
+  pTxRespHdr->requestingPortId.data[1] = pRxMesgHdr->sourcePortIdentity.data[9];
 
   pTxMesgHdr->domainNumber = pRxMesgHdr->domainNumber;
 
@@ -1121,31 +1125,33 @@ void ptp_recv(chanend c_tx,
 
   local_ingress_ts = local_ingress_ts - tile_timer_offset;
 
-  // TODO: Check if port state is disabled
+  int asCapable = ptp_port_info[src_port].asCapable;
 
   switch ((msg->transportSpecific_messageType & 0xf))
     {
-    case PTP_ANNOUNCE_MESG: {
+    case PTP_ANNOUNCE_MESG:
+      if (asCapable) {
         AnnounceMessage *announce_msg = (AnnounceMessage *) (msg + 1);
 
 #if DEBUG_PRINT_ANNOUNCE
       debug_printf("RX Announce, Port %d\n", src_port);
 #endif
+        bmca_update_roles((char *) msg, local_ingress_ts, src_port);
 
-      bmca_update_roles((char *) msg, local_ingress_ts, src_port);
-
-      if (ptp_port_info[src_port].role_state == PTP_SLAVE &&
-          port_id_equal(&master_port_id, &msg->sourcePortIdentity) &&
-          clock_id_equal(&best_announce_msg.grandmasterIdentity,
-                         &announce_msg->grandmasterIdentity)) {
-        last_received_announce_time_valid[src_port] = 1;
-        last_received_announce_time[src_port] = local_ingress_ts;
-      }
+        if (ptp_port_info[src_port].role_state == PTP_SLAVE &&
+            source_port_identity_equal(msg->sourcePortIdentity, master_port_id) &&
+            clock_id_equal(&best_announce_msg.grandmasterIdentity,
+                           &announce_msg->grandmasterIdentity)) {
+          last_received_announce_time_valid[src_port] = 1;
+          last_received_announce_time[src_port] = local_ingress_ts;
+        }
       }
       break;
     case PTP_SYNC_MESG:
 
-      if (port_id_equal(&master_port_id, &msg->sourcePortIdentity)) {
+      if (asCapable && 
+          ptp_port_info[src_port].role_state == PTP_SLAVE &&
+          source_port_identity_equal(msg->sourcePortIdentity, master_port_id)) {
         received_sync = 1;
         received_sync_id = ntoh16(msg->sequenceId);
         received_sync_ts = local_ingress_ts;
@@ -1157,7 +1163,7 @@ void ptp_recv(chanend c_tx,
     case PTP_FOLLOW_UP_MESG:
       if ((received_sync == 1) &&
           received_sync_id == ntoh16(msg->sequenceId) &&
-          port_id_equal(&master_port_id, &msg->sourcePortIdentity)) {
+          source_port_identity_equal(msg->sourcePortIdentity, master_port_id)) {
         FollowUpMessage *follow_up_msg = (FollowUpMessage *) (msg + 1);
         ptp_timestamp master_egress_ts;
         long long correction;
@@ -1171,7 +1177,7 @@ void ptp_recv(chanend c_tx,
                                correction>>16);
 
         if (update_adjust(master_egress_ts,received_sync_ts) == 0) {
-          update_reference_timestamps(master_egress_ts, received_sync_ts);
+          update_reference_timestamps(master_egress_ts, received_sync_ts, ptp_port_info[src_port]);
         }
 #if DEBUG_PRINT
         debug_printf("RX Follow Up, Port %d\n", src_port);
@@ -1190,11 +1196,12 @@ void ptp_recv(chanend c_tx,
       send_ptp_pdelay_resp_msg(c_tx, (char *) msg, local_ingress_ts, src_port);
       break;
     case PTP_PDELAY_RESP_MESG:
-
-      if (port_id_equal(&master_port_id, &msg->sourcePortIdentity)) {
-        if (pdelay_request_sent &&
-            pdelay_req_seq_id == ntoh16(msg->sequenceId)) {
-          PdelayRespMessage *resp_msg = (PdelayRespMessage *) (msg + 1);
+      PdelayRespMessage *resp_msg = (PdelayRespMessage *) (msg + 1);
+      if (pdelay_request_sent &&
+          pdelay_req_seq_id == ntoh16(msg->sequenceId) &&
+          port_identity_equal(resp_msg->requestingPortIdentity, my_port_id) &&
+          src_port+1 == ntoh16(resp_msg->requestingPortId)
+          ) {
           received_pdelay = 1;
           received_pdelay_id = ntoh16(msg->sequenceId);
           pdelay_resp_ingress_ts = local_ingress_ts;
@@ -1203,13 +1210,18 @@ void ptp_recv(chanend c_tx,
 #if DEBUG_PRINT
           debug_printf("RX Pdelay resp, Port %d\n", src_port);
 #endif
+          ptp_port_info[src_port].delay_info.rcvd_source_identity = msg->sourcePortIdentity;
+        }
+        else {
+          // LostResponses += 1
         }
         pdelay_request_sent = 0;
-      }
+
       break;
     case PTP_PDELAY_RESP_FOLLOW_UP_MESG:
-      if (port_id_equal(&master_port_id, &msg->sourcePortIdentity)) {
-        if (received_pdelay && received_pdelay_id == ntoh16(msg->sequenceId)) {
+      if (received_pdelay &&
+          received_pdelay_id == ntoh16(msg->sequenceId) &&
+          source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity)) {
           ptp_timestamp pdelay_resp_egress_ts;
           PdelayRespFollowUpMessage *follow_up_msg =
             (PdelayRespFollowUpMessage *) (msg + 1);
@@ -1220,33 +1232,29 @@ void ptp_recv(chanend c_tx,
           update_path_delay(pdelay_request_receipt_ts,
                             pdelay_resp_egress_ts,
                             pdelay_request_sent_ts,
-                            pdelay_resp_ingress_ts);
+                            pdelay_resp_ingress_ts,
+                            ptp_port_info[src_port]);
+
+          ptp_port_info[src_port].asCapable = 1;
+
 #if DEBUG_PRINT
           debug_printf("RX Pdelay resp follow up, Port %d\n", src_port);
 #endif
 
         }
+        else {
+          // LostResponses += 1
+        }
         received_pdelay = 0;
-      }
       break;
     }
 }
-
-#ifdef GPTP_DEBUG
-static unsigned last_debug_time;
-#endif
 
 void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
 {
   unsigned t;
   mac_get_tile_timer_offset(c_rx, tile_timer_offset);
   t = get_local_time();
-
-
-#ifdef GPTP_DEBUG
-  last_debug_time = t;
-#endif
-
 
   if (stype == PTP_GRANDMASTER_CAPABLE) {
     ptp_priority1 = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
@@ -1264,8 +1272,6 @@ void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
   my_port_id.data[4] = 0xfe;
   for (int i=5; i < 8; i ++)
     my_port_id.data[i] = src_mac_addr[i-2];
-  my_port_id.data[8] = 0;
-  my_port_id.data[9] = 1;
 
   for (int i=0; i < PTP_NUM_PORTS; i++)
   {
@@ -1282,6 +1288,7 @@ void ptp_periodic(chanend c_tx, unsigned t)
   for (int i=0; i < PTP_NUM_PORTS; i++)
   {
     int role = ptp_port_info[i].role_state;
+    int asCapable = ptp_port_info[i].asCapable;
 
     if (last_received_announce_time_valid[i] &&
         timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) {
@@ -1300,20 +1307,19 @@ void ptp_periodic(chanend c_tx, unsigned t)
         }
     }
 
-    if ((role == PTP_MASTER || role == PTP_UNCERTAIN) &&
+    if (asCapable && (role == PTP_MASTER || role == PTP_UNCERTAIN) &&
         timeafter(t, last_announce_time[i] + ANNOUNCE_PERIOD)) {
       send_ptp_announce_msg(c_tx, i);
       last_announce_time[i] = t;
     }
 
-    if (role == PTP_MASTER &&
+    if (asCapable && role == PTP_MASTER &&
         timeafter(t, last_sync_time[i] + SYNC_PERIOD)) {
       send_ptp_sync_msg(c_tx, i);
       last_sync_time[i] = t;
     }
 
-    if ((role == PTP_SLAVE || role == PTP_UNCERTAIN) &&
-        (timeafter(t, last_pdelay_req_time + PDELAY_REQ_PERIOD))) {
+    if (timeafter(t, last_pdelay_req_time + PDELAY_REQ_PERIOD)) {
       send_ptp_pdelay_req_msg(c_tx, i);
       last_pdelay_req_time = t;
     }
