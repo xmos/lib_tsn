@@ -1150,8 +1150,7 @@ void ptp_recv(chanend c_tx,
     case PTP_SYNC_MESG:
 
       if (asCapable && 
-          ptp_port_info[src_port].role_state == PTP_SLAVE &&
-          source_port_identity_equal(msg->sourcePortIdentity, master_port_id)) {
+          ptp_port_info[src_port].role_state == PTP_SLAVE) {
         received_sync = 1;
         received_sync_id = ntoh16(msg->sequenceId);
         received_sync_ts = local_ingress_ts;
