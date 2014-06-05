@@ -738,8 +738,6 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
   unsigned char *buf = (unsigned char *) &buf0[0];
   ComMessageHdr *pComMesgHdr = (ComMessageHdr *) &buf[sizeof(ethernet_hdr_t)];
   AnnounceMessage *pAnnounceMesg = (AnnounceMessage *) &buf[sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr)];
-  unsigned cur_local_time;
-  ptp_timestamp cur_time_ptp;
 
   set_ptp_ethernet_hdr(buf);
 
@@ -816,13 +814,6 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
   {
     pAnnounceMesg->pathSequence[steps_removed_from_gm].data[i] = my_port_id.data[i];
   }
-
-  // time stamp originTS
-  cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
-
-  local_to_ptp_ts(cur_time_ptp, cur_local_time);
-
-  timestamp_to_network(pAnnounceMesg->originTimestamp, cur_time_ptp);
 
   // send the message.
   ptp_tx(c_tx, buf0, ANNOUNCE_PACKET_SIZE-(PTP_MAXIMUM_PATH_TRACE_TLV-(steps_removed_from_gm+1))*8, port_num);
