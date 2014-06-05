@@ -1100,6 +1100,37 @@ static u16_t received_pdelay_id;
 static unsigned pdelay_resp_ingress_ts;
 static ptp_timestamp pdelay_request_receipt_ts;
 
+static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias announce_msg, int this_port)
+{
+  for (int i=0; i < 8; i++) {
+    if (header.sourcePortIdentity.data[i] != my_port_id.data[i]) {
+      break;
+    }
+    if (i == 7) return 0;
+  }
+  if (header.sourcePortIdentity.data[8] == 0 &&
+      header.sourcePortIdentity.data[9] == this_port+1) {
+    return 0;
+  }
+  if (ntoh16(announce_msg.stepsRemoved) >= 255) {
+    return 0;
+  }
+
+  int tlv = ntoh16(announce_msg.tlvLength);
+  if (tlv) {
+    if (tlv > PTP_MAXIMUM_PATH_TRACE_TLV) {
+      tlv = PTP_MAXIMUM_PATH_TRACE_TLV;
+    }
+    for (int i=0; i < tlv; i++) {
+      if (!compare_clock_identity_to_me(&announce_msg.pathSequence[i])) {
+        return 0;
+      }
+    }
+  }
+
+  return 1;
+}
+
 
 void ptp_recv(chanend c_tx,
               unsigned char buf[],
@@ -1121,9 +1152,8 @@ void ptp_recv(chanend c_tx,
   switch ((msg->transportSpecific_messageType & 0xf))
     {
     case PTP_ANNOUNCE_MESG:
-      if (asCapable) {
-        AnnounceMessage *announce_msg = (AnnounceMessage *) (msg + 1);
-
+      AnnounceMessage *announce_msg = (AnnounceMessage *) (msg + 1);
+      if (asCapable && qualify_announce(*msg, *announce_msg, src_port)) {
 #if DEBUG_PRINT_ANNOUNCE
       debug_printf("RX Announce, Port %d\n", src_port);
 #endif
@@ -1291,10 +1321,9 @@ void ptp_periodic(chanend c_tx, unsigned t)
         debug_printf("RX Announce timeout, Port %d\n", i);
 #endif
       }
-      else
-        if (role == PTP_UNCERTAIN) {
-          set_new_role(PTP_MASTER, i, t);
-        }
+      else if (role == PTP_UNCERTAIN) {
+        set_new_role(PTP_MASTER, i, t);
+      }
     }
 
     if (asCapable && (role == PTP_MASTER || role == PTP_UNCERTAIN) &&
