@@ -741,15 +741,16 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
 
   set_ptp_ethernet_hdr(buf);
 
+  int message_length = sizeof(ComMessageHdr) + sizeof(AnnounceMessage);
+
   // setup the common message header.
-  memset(pComMesgHdr, 0, sizeof(ComMessageHdr) + sizeof(AnnounceMessage));
+  memset(pComMesgHdr, 0, message_length);
 
   pComMesgHdr->transportSpecific_messageType =
     PTP_TRANSPORT_SPECIFIC_HDR | PTP_ANNOUNCE_MESG;
 
   pComMesgHdr->versionPTP = PTP_VERSION_NUMBER;
-  pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
-                                     sizeof(AnnounceMessage));
+
   pComMesgHdr->flagField[1] =
    ((PTP_LEAP61 & 0x1)) |
    ((PTP_LEAP59 & 0x1) << 1) |
@@ -813,8 +814,12 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
     pAnnounceMesg->pathSequence[steps_removed_from_gm].data[i] = my_port_id.data[i];
   }
 
+  message_length -= (PTP_MAXIMUM_PATH_TRACE_TLV-(steps_removed_from_gm+1))*8;
+
+  pComMesgHdr->messageLength = hton16(message_length);
+
   // send the message.
-  ptp_tx(c_tx, buf0, ANNOUNCE_PACKET_SIZE-(PTP_MAXIMUM_PATH_TRACE_TLV-(steps_removed_from_gm+1))*8, port_num);
+  ptp_tx(c_tx, buf0, sizeof(ethernet_hdr_t)+message_length, port_num);
 
 #if DEBUG_PRINT_ANNOUNCE
   debug_printf("TX Announce, Port %d\n", port_num);
@@ -932,14 +937,17 @@ static unsigned pdelay_request_sent_ts;
 
 static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
 {
+#define PDELAY_REQ_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(PdelayReqMessage))
   unsigned int buf0[(PDELAY_REQ_PACKET_SIZE+3)/4];
   unsigned char *buf = (unsigned char *) &buf0[0];
   ComMessageHdr *pComMesgHdr = (ComMessageHdr *) &buf[sizeof(ethernet_hdr_t)];
 
   set_ptp_ethernet_hdr(buf);
 
+  int message_length = sizeof(ComMessageHdr) + sizeof(PdelayReqMessage);
+
   // clear the send data first.
-  memset(pComMesgHdr, 0, sizeof(ComMessageHdr));
+  memset(pComMesgHdr, 0, message_length);
 
   // build up the packet as required.
   pComMesgHdr->transportSpecific_messageType =
@@ -947,7 +955,7 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
 
   pComMesgHdr->versionPTP = PTP_VERSION_NUMBER;
 
-  pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr));
+  pComMesgHdr->messageLength = hton16(message_length);
 
 
   // correction field, & flagField are zero.

@@ -68,8 +68,6 @@
 
 #define RECV_ANNOUNCE_TIMEOUT (PTP_ANNOUNCE_RECEIPT_TIMEOUT_MULTIPLE * ANNOUNCE_PERIOD)
 
-#define PDELAY_REQ_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(PdelayReqMessage))
-
 // This is fixed for 100Mbit, should be updated for gigabit
 #define LOCAL_EGRESS_DELAY 00
 
