@@ -976,7 +976,7 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
 
   // control field for backward compatiability
   pComMesgHdr->controlField = PTP_CTL_FIELD_OTHERS;
-  pComMesgHdr->logMessageInterval = 0x7F;
+  pComMesgHdr->logMessageInterval = PTP_LOG_MIN_PDELAY_REQ_INTERVAL;
 
   // sent out the data and record the time.
 
@@ -1062,7 +1062,7 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
   pTxMesgHdr->sourcePortIdentity.data[9] = port_num + 1;
 
   pTxMesgHdr->controlField = PTP_CTL_FIELD_OTHERS;
-  pTxMesgHdr->logMessageInterval = PTP_LOG_MIN_PDELAY_REQ_INTERVAL;
+  pTxMesgHdr->logMessageInterval = 0x7F;
 
   pTxMesgHdr->sequenceId = pRxMesgHdr->sequenceId;
 
