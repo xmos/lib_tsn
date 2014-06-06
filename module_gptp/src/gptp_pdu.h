@@ -3,9 +3,6 @@
 
 #include "nettypes.h"
 
-// Bit mask for PTP Message Type
-#define PTP_MESSAGE_TYPE_MASK             (0xF)
-
 // PTP Message type definations
 #define PTP_SYNC_MESG                     (0x0)
 #define PTP_DELAY_REQ_MESG                (0x1)
@@ -26,8 +23,10 @@
 #define PTP_CTL_FIELD_MANAGEMENT          (0x4)
 #define PTP_CTL_FIELD_OTHERS              (0x5)
 
-// PTP common message header length
-#define PTP_COMMON_MESG_HDR_LENGTH        (34)
+#define PTP_TRANSPORT_SPECIFIC_HDR     (0x1 << 4)
+#define PTP_TRANSPORT_SPECIFIC_MASK    (0xF0)
+#define PTP_MESSAGE_TYPE_MASK          (0x0F)
+#define GET_PTP_TRANSPORT_SPECIFIC(pkt)     (((pkt)->transportSpecific_messageType & PTP_TRANSPORT_SPECIFIC_MASK) >> 4)
 
 // PTP Common Message Header format
 typedef struct

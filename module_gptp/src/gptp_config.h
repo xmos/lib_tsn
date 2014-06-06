@@ -13,8 +13,6 @@
 #define PTP_LOG_SYNC_INTERVAL                      (-3)
 #define PTP_LOG_ANNOUNCE_INTERVAL (0)
 
-#define PTP_TRANSPORT_SPECIFIC_HDR     (0x1 << 4)
-
 #define PTP_LEAP61 (0)
 #define PTP_LEAP59 (1)
 #define PTP_CURRENT_UTC_OFFSET_VALID (1)

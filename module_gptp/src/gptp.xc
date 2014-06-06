@@ -1164,6 +1164,10 @@ void ptp_recv(chanend c_tx,
 
   int asCapable = ptp_port_info[src_port].asCapable;
 
+  if (GET_PTP_TRANSPORT_SPECIFIC(msg) != 1) {
+    return;
+  }
+
   switch ((msg->transportSpecific_messageType & 0xf))
     {
     case PTP_ANNOUNCE_MESG:
