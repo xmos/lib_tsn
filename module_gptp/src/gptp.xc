@@ -861,7 +861,8 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
                                       sizeof(SyncMessage));
 
-  pComMesgHdr->flagField[0]                 = 0x2;   // set two steps flag
+  pComMesgHdr->flagField[0] = 0x2;   // set two steps flag
+  pComMesgHdr->flagField[1] = (PTP_TIMESCALE & 0x1) << 3;
 
   for(int i=0;i<8;i++) pComMesgHdr->correctionField.data[i] = 0;
 
@@ -904,6 +905,8 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
 
   pComMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
                                       sizeof(FollowUpMessage));
+
+  pComMesgHdr->flagField[0] = 0;   // clear two steps flag for follow up
 
   // populate the time in packet
   local_to_ptp_ts(ptp_egress_ts, local_egress_ts);
@@ -957,6 +960,7 @@ static void send_ptp_pdelay_req_msg(chanend c_tx, int port_num)
 
   pComMesgHdr->messageLength = hton16(message_length);
 
+  pComMesgHdr->flagField[1] = (PTP_TIMESCALE & 0x1) << 3;
 
   // correction field, & flagField are zero.
   for(int i=0;i<8;i++) pComMesgHdr->correctionField.data[i] = 0;
@@ -1049,6 +1053,9 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
   pTxMesgHdr->messageLength = hton16(sizeof(ComMessageHdr) +
                                      sizeof(PdelayRespMessage));
 
+  pTxMesgHdr->flagField[0] = 0x2;   // set two steps flag
+  pTxMesgHdr->flagField[1] = (PTP_TIMESCALE & 0x1) << 3;
+
   for (int i=0; i < 8; i++) {
     pTxMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
   }
@@ -1088,6 +1095,8 @@ static void send_ptp_pdelay_resp_msg(chanend c_tx,
 
   pTxMesgHdr->transportSpecific_messageType =
     PTP_TRANSPORT_SPECIFIC_HDR | PTP_PDELAY_RESP_FOLLOW_UP_MESG;
+
+  pTxMesgHdr->flagField[0] = 0;   // clear two steps flag
 
   timestamp_to_network(pTxFollowUpHdr->responseOriginTimestamp,
                        epoch_resp_ts);
