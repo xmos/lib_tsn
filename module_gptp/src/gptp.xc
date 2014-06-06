@@ -758,8 +758,6 @@ static void send_ptp_announce_msg(chanend c_tx, int port_num)
    ((PTP_TIME_TRACEABLE & 0x1) << 4) |
    ((PTP_FREQUENCY_TRACEABLE & 0x1) << 5);
 
-  pComMesgHdr->flagField[0]                 = 0x2;   // set two steps flag
-
   // portId assignment
   for (int i=0; i < 8; i++) {
     pComMesgHdr->sourcePortIdentity.data[i] = my_port_id.data[i];
