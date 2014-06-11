@@ -3,6 +3,8 @@
 
 #include "nettypes.h"
 
+#define PTP_VERSION_NUMBER       (2)
+
 // PTP Message type definations
 #define PTP_SYNC_MESG                     (0x0)
 #define PTP_DELAY_REQ_MESG                (0x1)
@@ -27,6 +29,14 @@
 #define PTP_TRANSPORT_SPECIFIC_MASK    (0xF0)
 #define PTP_MESSAGE_TYPE_MASK          (0x0F)
 #define GET_PTP_TRANSPORT_SPECIFIC(pkt)     (((pkt)->transportSpecific_messageType & PTP_TRANSPORT_SPECIFIC_MASK) >> 4)
+
+#define PTP_ANNOUNCE_TLV_TYPE (0x8)
+
+#define PTP_8021AS_DEST_ADDR { 0x01, 0x80, 0xc2, 0x0, 0x0, 0xe }
+
+#define PTP_DEFAULT_DEST_ADDR PTP_8021AS_DEST_ADDR
+
+#define PTP_ETHERTYPE                 (0x88f7)
 
 // PTP Common Message Header format
 typedef struct
