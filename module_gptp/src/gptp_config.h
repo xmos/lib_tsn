@@ -5,8 +5,6 @@
 #include "avb_conf.h"
 #endif
 
-#define PTP_VERSION_NUMBER       (2)
-
 #define PTP_NUM_PORTS   (NUM_ETHERNET_MASTER_PORTS)
 
 #define PTP_LOG_MIN_PDELAY_REQ_INTERVAL            (0)
@@ -32,14 +30,7 @@
 #define PTP_OFFSET_SCALED_LOG_VARIANCE (1)
 #define PTP_TIMESOURCE (0xA0) // internal oscillator
 
-#define PTP_ANNOUNCE_TLV_TYPE (0x8)
 #define PTP_MAXIMUM_PATH_TRACE_TLV (8)
-
-#define PTP_8021AS_DEST_ADDR { 0x01, 0x80, 0xc2, 0x0, 0x0, 0xe }
-
-#define PTP_DEFAULT_DEST_ADDR PTP_8021AS_DEST_ADDR
-
-#define PTP_ETHERTYPE                 (0x88f7)
 
 #define TIMER_TICKS_PER_SEC (100000000)
 #define LOG_SEC_TO_TIMER_TICKS(x) (x < 0 ? (TIMER_TICKS_PER_SEC >> (-x)) : TIMER_TICKS_PER_SEC << (x))
