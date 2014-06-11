@@ -17,7 +17,7 @@
 #define PTP_TIMESCALE (1)
 #define PTP_TIME_TRACEABLE (0)
 #define PTP_FREQUENCY_TRACEABLE (0)
-#define PTP_CURRENT_UTC_OFFSET                     (33)
+#define PTP_CURRENT_UTC_OFFSET                     (35)
 #ifndef PTP_DEFAULT_GM_CAPABLE_PRIORITY1
 #define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 (250)  // default for portable timeaware-system
 
