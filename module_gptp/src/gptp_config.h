@@ -53,5 +53,6 @@
 #define PTP_SYNC_LOCK_STABILITY_COUNT 5
 
 #define PTP_THROW_AWAY_SYNC_OUTLIERS 1
+#define PTP_ALLOWED_LOST_RESPONSES 3
 
 #endif // __gptp_config_h__

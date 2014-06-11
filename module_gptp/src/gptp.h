@@ -74,7 +74,8 @@ typedef enum ptp_port_role_t {
 
 typedef struct ptp_path_delay_t {
   int valid;
-  unsigned pdelay;
+  unsigned int pdelay;
+  unsigned int lost_responses;
   n80_t rcvd_source_identity;
 } ptp_path_delay_t;
 
