@@ -252,6 +252,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
     g_ptp_adjust = 0;
     g_inv_ptp_adjust = 0;
     prev_adjust_valid = 0;
+    g_ptp_adjust_valid = 0;
     // Since there has been a role change there may be a gm discontinuity
     // to detect
     expect_gm_discontinuity = 1;
