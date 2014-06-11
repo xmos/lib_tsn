@@ -56,6 +56,8 @@ static u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
 /* Timing variables */
 static unsigned last_received_announce_time_valid[PTP_NUM_PORTS];
 static unsigned last_received_announce_time[PTP_NUM_PORTS];
+static unsigned last_received_sync_time[PTP_NUM_PORTS];
+static unsigned last_receive_sync_upstream_interval[PTP_NUM_PORTS];
 static unsigned last_announce_time[PTP_NUM_PORTS];
 static unsigned last_sync_time[PTP_NUM_PORTS];
 static unsigned last_pdelay_req_time[PTP_NUM_PORTS];
@@ -1192,10 +1194,13 @@ void ptp_recv(chanend c_tx,
     case PTP_SYNC_MESG:
 
       if (asCapable && 
+          !received_sync &&
           ptp_port_info[src_port].role_state == PTP_SLAVE) {
         received_sync = 1;
         received_sync_id = ntoh16(msg->sequenceId);
         received_sync_ts = local_ingress_ts;
+        last_received_sync_time[src_port] = local_ingress_ts;
+        last_receive_sync_upstream_interval[src_port] = LOG_SEC_TO_TIMER_TICKS((signed char)(msg->logMessageInterval));
 #if DEBUG_PRINT
         debug_printf("RX Sync, Port %d\n", src_port);
 #endif
@@ -1355,6 +1360,13 @@ void ptp_periodic(chanend c_tx, unsigned t)
       else if (role == PTP_UNCERTAIN) {
         set_new_role(PTP_MASTER, i, t);
       }
+    }
+
+    if (asCapable &&
+        (received_sync == 1) &&
+        (ptp_port_info[i].role_state == PTP_SLAVE) &&
+        timeafter(t, last_received_sync_time[i] + last_receive_sync_upstream_interval[i])) {
+      received_sync = 0;
     }
 
     if (asCapable && (role == PTP_MASTER || role == PTP_UNCERTAIN) &&
