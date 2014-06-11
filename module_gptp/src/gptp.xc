@@ -1286,7 +1286,13 @@ void ptp_recv(chanend c_tx,
                             pdelay_resp_ingress_ts[src_port],
                             ptp_port_info[src_port]);
 
-          ptp_port_info[src_port].asCapable = 1;
+          if (ptp_port_info[src_port].delay_info.valid &&
+              ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS) {
+            ptp_port_info[src_port].asCapable = 1;
+          }
+          else {
+            ptp_port_info[src_port].asCapable = 0;
+          }
           ptp_port_info[src_port].delay_info.lost_responses = 0;
 
 #if DEBUG_PRINT

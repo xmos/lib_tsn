@@ -55,4 +55,6 @@
 #define PTP_THROW_AWAY_SYNC_OUTLIERS 1
 #define PTP_ALLOWED_LOST_RESPONSES 3
 
+#define PTP_NEIGHBOR_PROP_DELAY_THRESH_NS 800
+
 #endif // __gptp_config_h__
