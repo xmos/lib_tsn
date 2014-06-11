@@ -478,7 +478,7 @@ static void update_path_delay(ptp_timestamp &master_ingress_ts,
     /* Re-average the adjust with a given weighting.
        This method loses a few bits of precision */
     port_info.delay_info.pdelay = ((port_info.delay_info.pdelay * (PTP_PATH_DELAY_WEIGHT - 1)) + (int) delay) / PTP_PATH_DELAY_WEIGHT;
-    }
+  }
   else {
     port_info.delay_info.pdelay = delay;
     port_info.delay_info.valid = 1;
