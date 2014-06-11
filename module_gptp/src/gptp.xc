@@ -1121,12 +1121,14 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
     if (header.sourcePortIdentity.data[i] != my_port_id.data[i]) {
       break;
     }
-    if (i == 7) return 0;
+    if (i == 7) {
+      if (header.sourcePortIdentity.data[8] == 0 &&
+          header.sourcePortIdentity.data[9] == this_port+1) {
+        return 0;
+      }
+    }
   }
-  if (header.sourcePortIdentity.data[8] == 0 &&
-      header.sourcePortIdentity.data[9] == this_port+1) {
-    return 0;
-  }
+
   if (ntoh16(announce_msg.stepsRemoved) >= 255) {
     return 0;
   }
