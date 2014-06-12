@@ -492,12 +492,14 @@ static void update_path_delay(ptp_timestamp &master_ingress_ts,
 */
 static int compare_clock_identity_to_me(n64_t *clockIdentity)
 {
-  // FIXME: data[8] and 9 are the port number (fixed to 1 for single port implementation)
-  for (int i=0;i<8;i++)
-    if (clockIdentity->data[i] > my_port_id.data[i])
+  for (int i=0;i<8;i++) {
+    if (clockIdentity->data[i] > my_port_id.data[i]) {
       return -1;
-    else if (clockIdentity->data[i] < my_port_id.data[i])
+    }
+    else if (clockIdentity->data[i] < my_port_id.data[i]) {
       return 1;
+    }
+  }
 
   // Thje two clock identities are the same
   return 0;
@@ -506,12 +508,14 @@ static int compare_clock_identity_to_me(n64_t *clockIdentity)
 static int compare_clock_identity(n64_t *c1,
                                   n64_t *c2)
 {
-  for (int i=0;i<8;i++)
-    if (c1->data[i] > c2->data[i])
+  for (int i=0;i<8;i++) {
+    if (c1->data[i] > c2->data[i]) {
       return -1;
-    else if (c1->data[i] < c2->data[i])
+    }
+    else if (c1->data[i] < c2->data[i]) {
       return 1;
-
+    }
+  }
   // Thje two clock identities are the same
   return 0;
 }
