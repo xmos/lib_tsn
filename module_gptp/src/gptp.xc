@@ -1136,7 +1136,7 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
     return 0;
   }
 
-  int tlv = ntoh16(announce_msg.tlvLength);
+  int tlv = ntoh16(announce_msg.tlvLength) / 8;
   if (tlv) {
     if (tlv > PTP_MAXIMUM_PATH_TRACE_TLV) {
       tlv = PTP_MAXIMUM_PATH_TRACE_TLV;
