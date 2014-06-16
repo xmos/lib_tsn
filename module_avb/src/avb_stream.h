@@ -4,6 +4,7 @@
 #include "xc2compat.h"
 #include <xccompat.h>
 #include "avb_conf.h"
+#include "avb_1722_listener.h"
 
 /** Struct containing fields required for SRP reservations */
 typedef struct avb_srp_info_t {
