@@ -1198,7 +1198,7 @@ void ptp_recv(chanend c_tx,
       break;
     case PTP_SYNC_MESG:
 
-      if (asCapable && 
+      if (asCapable &&
           !received_sync &&
           ptp_port_info[src_port].role_state == PTP_SLAVE) {
         received_sync = 1;

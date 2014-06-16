@@ -5,8 +5,14 @@ sc_avb Change Log
 -----
   * Support added for sw_avb_lc single port reference design
   * gptp.c moved to XC
-  * Misc M*RP AVnu compliance fixes 
+  * Misc M*RP AVnu compliance fixes
   * gPTP AVnu compliance fixes
+
+  * Changes to dependencies:
+
+    - sc_ethernet: 2.3.1rc0 -> 2.3.2rc0
+
+      + Updated timestamp adjustements for LAN8710A PHY to realistic values
 
 6.0.7
 -----
