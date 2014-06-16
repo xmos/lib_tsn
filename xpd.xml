@@ -66,7 +66,9 @@
     <release parenthash = "dc2f592902484715a3a2f874ca406c508a0596c6" version = "6.0.0alpha0"></release>
     <subpartnumber>XR-000008-SW</subpartnumber>
     <vendor>XMOS</vendor>
-    <version_defines></version_defines>
     <xcore_repo>https://github.com/xcore/sw_avb_lc.git</xcore_repo>
+    <version_defines>
+        <version_define type = "str" name = "AVB_1722_1_FIRMWARE_VERSION_STRING" format = "%VERSION%"></version_define>
+    </version_defines>
     <xpd_version>1.0</xpd_version>
 </xpd>
