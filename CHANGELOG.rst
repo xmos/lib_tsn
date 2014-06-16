@@ -1,6 +1,13 @@
 sc_avb Change Log
 =================
 
+6.1.0
+-----
+  * Support added for sw_avb_lc single port reference design
+  * gptp.c moved to XC
+  * Misc M*RP AVnu compliance fixes 
+  * gPTP AVnu compliance fixes
+
 6.0.7
 -----
 
