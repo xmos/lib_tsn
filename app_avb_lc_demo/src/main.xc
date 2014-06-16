@@ -263,7 +263,7 @@ int main(void)
     }
 
     on tile[1]: application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
-    
+
     on tile[0].core[0]: avb_1722_1_task(otp_ports0,
                                         i_avb[AVB_MANAGER_TO_1722_1],
                                         i_1722_1_entity,
