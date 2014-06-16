@@ -2,11 +2,9 @@
 sw_avb_lc
 ............
 
-:Latest release: 6.0.0alpha0
+:Latest release: 6.0.0alpha1
 :Maintainer: ajwlucas
 :Description: AVB-DC specific application software
-
-
 
 
 Description
