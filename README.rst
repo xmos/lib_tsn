@@ -2,11 +2,12 @@
 sw_avb_lc
 ............
 
-:Stable release:  eg 0.5.1, 1.1.3, unreleased
+:Latest release: 6.0.0alpha0
+:Maintainer: ajwlucas
+:Description: AVB-DC specific application software
 
-:Status:  eg, Feature complete, draft, idea, alpha
 
-:Maintainer:  <github username of maintainer>
+
 
 Description
 ===========
@@ -33,13 +34,18 @@ Known Issues
 
 * <Bullet pointed list of problems>
 
-Required Repositories
-================
-
-* <list of repos, likely to include xcommon if it uses the build system>
-* xcommon git\@github.com:xcore/xcommon.git
-
 Support
 =======
 
 <Description of support model>
+
+Required software (dependencies)
+================================
+
+  * sc_avb (https://github.com/xcore/sc_avb.git)
+  * sc_ethernet (https://github.com/xcore/sc_ethernet.git)
+  * sc_i2c (https://github.com/xcore/sc_i2c.git)
+  * sc_slicekit_support (git@github.com:xcore/sc_slicekit_support)
+  * sc_otp (https://github.com/xcore/sc_otp.git)
+  * sc_util (git://github.com/xcore/sc_util)
+
