@@ -82,6 +82,7 @@ static int tile_timer_offset;
 
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
+#define DEBUG_PRINT_AS_CAPABLE 0
 
 ptp_port_role_t ptp_current_state()
 {
@@ -1155,6 +1156,31 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
   return 1;
 }
 
+static void set_ascapable(int eth_port) {
+  ptp_port_info[eth_port].asCapable = 1;
+#if DEBUG_PRINT_AS_CAPABLE
+  debug_printf("asCapable = 1\n");
+#endif
+}
+
+static void reset_ascapable(int eth_port) {
+  ptp_port_info[eth_port].asCapable = 0;
+#if DEBUG_PRINT_AS_CAPABLE
+  debug_printf("asCapable = 0\n");
+#endif
+}
+
+static void pdelay_req_reset(int src_port) {
+  if (ptp_port_info[src_port].delay_info.lost_responses <= PTP_ALLOWED_LOST_RESPONSES) {
+    ptp_port_info[src_port].delay_info.lost_responses++;
+#if DEBUG_PRINT_AS_CAPABLE
+    debug_printf("lost_responses: %d\n", ptp_port_info[src_port].delay_info.lost_responses);
+#endif
+  }
+  else {
+    reset_ascapable(src_port);
+  }
+}
 
 void ptp_recv(chanend c_tx,
               unsigned char buf[],
@@ -1268,7 +1294,7 @@ void ptp_recv(chanend c_tx,
             ptp_port_info[src_port].delay_info.lost_responses++;
           }
           else {
-            ptp_port_info[src_port].asCapable = 0;
+            reset_ascapable(src_port);
           }
         }
         pdelay_request_sent[src_port] = 0;
@@ -1293,10 +1319,10 @@ void ptp_recv(chanend c_tx,
 
           if (ptp_port_info[src_port].delay_info.valid &&
               ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS) {
-            ptp_port_info[src_port].asCapable = 1;
+            set_ascapable(src_port);
           }
           else {
-            ptp_port_info[src_port].asCapable = 0;
+            reset_ascapable(src_port);
           }
           ptp_port_info[src_port].delay_info.lost_responses = 0;
 
@@ -1306,12 +1332,7 @@ void ptp_recv(chanend c_tx,
 
         }
         else {
-          if (ptp_port_info[src_port].delay_info.lost_responses <= PTP_ALLOWED_LOST_RESPONSES) {
-            ptp_port_info[src_port].delay_info.lost_responses++;
-          }
-          else {
-            ptp_port_info[src_port].asCapable = 0;
-          }
+          pdelay_req_reset(src_port);
         }
         received_pdelay[src_port] = 0;
       break;
@@ -1393,6 +1414,9 @@ void ptp_periodic(chanend c_tx, unsigned t)
     }
 
     if (timeafter(t, last_pdelay_req_time[i] + PDELAY_REQ_PERIOD)) {
+      if (pdelay_request_sent[i] && !received_pdelay[i]) {
+        pdelay_req_reset(i);
+      }
       send_ptp_pdelay_req_msg(c_tx, i);
       last_pdelay_req_time[i] = t;
     }
