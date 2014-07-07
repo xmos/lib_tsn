@@ -1130,10 +1130,7 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
       break;
     }
     if (i == 7) {
-      if (header.sourcePortIdentity.data[8] == 0 &&
-          header.sourcePortIdentity.data[9] == this_port+1) {
-        return 0;
-      }
+      return 0;
     }
   }
 
