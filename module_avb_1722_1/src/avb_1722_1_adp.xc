@@ -382,7 +382,7 @@ void avb_1722_1_adp_advertising_periodic(chanend c_tx, chanend ptp)
             avb_1722_1_create_adp_packet(ENTITY_DEPARTING, my_guid);
             mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ADP_PACKET_SIZE, -1);
 
-            adp_advertise_state = ADP_ADVERTISE_DEPART_THEN_ADVERTISE ? ADP_ADVERTISE_ADVERTISE_0 : ADP_ADVERTISE_IDLE;
+            adp_advertise_state = (adp_advertise_state == ADP_ADVERTISE_DEPART_THEN_ADVERTISE) ? ADP_ADVERTISE_ADVERTISE_0 : ADP_ADVERTISE_IDLE;
             avb_1722_1_available_index = 0;
 
             break;
