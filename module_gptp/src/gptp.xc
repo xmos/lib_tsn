@@ -1378,8 +1378,14 @@ void ptp_periodic(chanend c_tx, unsigned t)
     int role = ptp_port_info[i].role_state;
     int asCapable = ptp_port_info[i].asCapable;
 
-    if (last_received_announce_time_valid[i] &&
-        timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) {
+    int recv_sync_timeout_interval = last_receive_sync_upstream_interval[i] * PTP_SYNC_RECEIPT_TIMEOUT_MULTIPLE;
+
+    if ((last_received_announce_time_valid[i] &&
+        timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) ||
+        (received_sync && (ptp_port_info[i].role_state == PTP_SLAVE) &&
+        timeafter(t, last_received_sync_time[i] + recv_sync_timeout_interval)))  {
+
+      received_sync = 0;
 
       if (role == PTP_SLAVE ) {
         set_new_role(PTP_UNCERTAIN, i, t);
@@ -1392,13 +1398,6 @@ void ptp_periodic(chanend c_tx, unsigned t)
       else if (role == PTP_UNCERTAIN) {
         set_new_role(PTP_MASTER, i, t);
       }
-    }
-
-    if (asCapable &&
-        (received_sync == 1) &&
-        (ptp_port_info[i].role_state == PTP_SLAVE) &&
-        timeafter(t, last_received_sync_time[i] + last_receive_sync_upstream_interval[i])) {
-      received_sync = 0;
     }
 
     if (asCapable && (role == PTP_MASTER || role == PTP_UNCERTAIN) &&
