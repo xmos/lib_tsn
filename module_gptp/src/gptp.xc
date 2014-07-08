@@ -538,26 +538,31 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
    /* Message is from a different clock. Let's work out if it is better or
       worse according to the BMCA */
     if (pAnnounceMesg->grandmasterPriority1 > best_announce_msg.grandmasterPriority1) {
+      new_best = -1;
     }
     else if (pAnnounceMesg->grandmasterPriority1 < best_announce_msg.grandmasterPriority1) {
       new_best = 1;
     }
     else if (pAnnounceMesg->clockClass > best_announce_msg.clockClass)  {
+      new_best = -1;
     }
     else if (pAnnounceMesg->clockClass < best_announce_msg.clockClass) {
      new_best = 1;
     }
     else if (pAnnounceMesg->clockAccuracy > best_announce_msg.clockAccuracy) {
+      new_best = -1;
     }
     else if (pAnnounceMesg->clockAccuracy < best_announce_msg.clockAccuracy) {
      new_best = 1;
     }
     else if (ntoh16(pAnnounceMesg->clockOffsetScaledLogVariance) > ntoh16(best_announce_msg.clockOffsetScaledLogVariance)) {
+      new_best = -1;
     }
     else if (ntoh16(pAnnounceMesg->clockOffsetScaledLogVariance) < ntoh16(best_announce_msg.clockOffsetScaledLogVariance)) {
      new_best = 1;
     }
     else if (pAnnounceMesg->grandmasterPriority2 > best_announce_msg.grandmasterPriority2) {
+      new_best = -1;
     }
     else if (pAnnounceMesg->grandmasterPriority2 < best_announce_msg.grandmasterPriority2) {
      new_best = 1;
@@ -578,7 +583,7 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
   }
 
 
-  if (new_best) {
+  if (new_best > 0) {
     memcpy(&best_announce_msg, pAnnounceMesg, sizeof(AnnounceMessage));
     master_port_id = pComMesgHdr->sourcePortIdentity;
 
@@ -593,6 +598,10 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
       last_received_announce_time_valid[port_num] = 0;
       master_port_id = pComMesgHdr->sourcePortIdentity;
     }
+  }
+  else if (new_best < 0 && ptp_port_info[port_num].role_state == PTP_SLAVE) {
+    set_new_role(PTP_MASTER, port_num, t);
+    last_received_announce_time_valid[port_num] = 0;
   }
 }
 
