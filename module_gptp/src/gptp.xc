@@ -1376,8 +1376,12 @@ void ptp_periodic(chanend c_tx, unsigned t)
 
     if ((last_received_announce_time_valid[i] &&
         timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) ||
+        // syncReceiptTimeout
         (received_sync && (ptp_port_info[i].role_state == PTP_SLAVE) &&
-        timeafter(t, last_received_sync_time[i] + recv_sync_timeout_interval)))  {
+        timeafter(t, last_received_sync_time[i] + recv_sync_timeout_interval)) ||
+        // followUpReceiptTimeout:
+        (received_sync == 1 && (ptp_port_info[i].role_state == PTP_SLAVE) &&
+        timeafter(t, last_received_sync_time[i] + last_receive_sync_upstream_interval[i])))  {
 
       received_sync = 0;
 
