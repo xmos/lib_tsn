@@ -1233,27 +1233,29 @@ void ptp_recv(chanend c_tx,
       break;
     case PTP_FOLLOW_UP_MESG:
       if ((received_sync == 1) &&
-          received_sync_id == ntoh16(msg->sequenceId) &&
           source_port_identity_equal(msg->sourcePortIdentity, master_port_id)) {
-        FollowUpMessage *follow_up_msg = (FollowUpMessage *) (msg + 1);
-        ptp_timestamp master_egress_ts;
-        long long correction;
 
-        correction = ntoh64(msg->correctionField);
+        if (received_sync_id == ntoh16(msg->sequenceId)) {
+          FollowUpMessage *follow_up_msg = (FollowUpMessage *) (msg + 1);
+          ptp_timestamp master_egress_ts;
+          long long correction;
 
-        network_to_ptp_timestamp(master_egress_ts,
-                                 follow_up_msg->preciseOriginTimestamp);
+          correction = ntoh64(msg->correctionField);
 
-        ptp_timestamp_offset64(master_egress_ts, master_egress_ts,
-                               correction>>16);
+          network_to_ptp_timestamp(master_egress_ts,
+                                   follow_up_msg->preciseOriginTimestamp);
 
-        if (update_adjust(master_egress_ts,received_sync_ts) == 0) {
-          update_reference_timestamps(master_egress_ts, received_sync_ts, ptp_port_info[src_port]);
-        }
+          ptp_timestamp_offset64(master_egress_ts, master_egress_ts,
+                                 correction>>16);
+
+          if (update_adjust(master_egress_ts,received_sync_ts) == 0) {
+            update_reference_timestamps(master_egress_ts, received_sync_ts, ptp_port_info[src_port]);
+          }
 #if DEBUG_PRINT
-        debug_printf("RX Follow Up, Port %d\n", src_port);
+          debug_printf("RX Follow Up, Port %d\n", src_port);
 #endif
-        received_sync = 2;
+          received_sync = 2;
+        }
       }
       else
       {
