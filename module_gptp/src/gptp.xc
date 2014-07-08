@@ -846,12 +846,7 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   unsigned int buf0[(FOLLOWUP_PACKET_SIZE+3)/4];
   unsigned char *buf = (unsigned char *) &buf0[0];
   ComMessageHdr *pComMesgHdr = (ComMessageHdr *) &buf[sizeof(ethernet_hdr_t)];;
-  SyncMessage *pSyncMesg = (SyncMessage *) &buf[sizeof(ethernet_hdr_t) +
-                                                sizeof(ComMessageHdr)];
   FollowUpMessage *pFollowUpMesg = (FollowUpMessage *) &buf[sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr)];
-
-  unsigned cur_local_time;
-  ptp_timestamp cur_time_ptp;
   unsigned local_egress_ts = 0;
   ptp_timestamp ptp_egress_ts;
 
@@ -886,13 +881,6 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   pComMesgHdr->controlField = PTP_CTL_FIELD_SYNC;
 
   pComMesgHdr->logMessageInterval = PTP_LOG_SYNC_INTERVAL;
-
-  // extract the current time.
-  cur_local_time = get_local_time() + MESSAGE_PROCESS_TIME;
-
-  local_to_ptp_ts(cur_time_ptp, cur_local_time);
-
-  timestamp_to_network(pSyncMesg->originTimestamp, cur_time_ptp);
 
   // transmit the packet and record the egress time.
   ptp_tx_timed(c_tx, buf0,
