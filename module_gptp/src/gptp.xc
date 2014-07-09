@@ -240,9 +240,9 @@ void local_timestamp_to_ptp(ptp_timestamp &ptp_ts,
 static void create_my_announce_msg(AnnounceMessage *pAnnounceMesg);
 
 static void set_new_role(enum ptp_port_role_t new_role,
-                         int port_num,
-                         unsigned t) {
+                         int port_num) {
 
+  unsigned t = get_local_time();
 
   if (new_role == PTP_SLAVE) {
 
@@ -591,16 +591,16 @@ static void bmca_update_roles(char *msg, unsigned t, int port_num)
 #if DEBUG_PRINT_ANNOUNCE
       debug_printf("NEW BEST: %d\n", port_num);
 #endif
-      set_new_role(PTP_SLAVE, port_num, t);
+      set_new_role(PTP_SLAVE, port_num);
       if (PTP_NUM_PORTS == 2) {
-        set_new_role(PTP_MASTER, !port_num, t);
+        set_new_role(PTP_MASTER, !port_num);
       }
       last_received_announce_time_valid[port_num] = 0;
       master_port_id = pComMesgHdr->sourcePortIdentity;
     }
   }
   else if (new_best < 0 && ptp_port_info[port_num].role_state == PTP_SLAVE) {
-    set_new_role(PTP_MASTER, port_num, t);
+    set_new_role(PTP_MASTER, port_num);
     last_received_announce_time_valid[port_num] = 0;
   }
 }
@@ -1152,6 +1152,7 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
 
 static void set_ascapable(int eth_port) {
   ptp_port_info[eth_port].asCapable = 1;
+  set_new_role(PTP_MASTER, eth_port);
 #if DEBUG_PRINT_AS_CAPABLE
   debug_printf("asCapable = 1\n");
 #endif
@@ -1159,16 +1160,20 @@ static void set_ascapable(int eth_port) {
 
 static void reset_ascapable(int eth_port) {
   ptp_port_info[eth_port].asCapable = 0;
+  set_new_role(PTP_DISABLED, eth_port);
+
 #if DEBUG_PRINT_AS_CAPABLE
   debug_printf("asCapable = 0\n");
 #endif
 }
 
 static void pdelay_req_reset(int src_port) {
-  if (ptp_port_info[src_port].delay_info.lost_responses <= PTP_ALLOWED_LOST_RESPONSES) {
+  received_pdelay[src_port] = 0;
+
+  if (ptp_port_info[src_port].delay_info.lost_responses < PTP_ALLOWED_LOST_RESPONSES) {
     ptp_port_info[src_port].delay_info.lost_responses++;
 #if DEBUG_PRINT_AS_CAPABLE
-    debug_printf("lost_responses: %d\n", ptp_port_info[src_port].delay_info.lost_responses);
+    debug_printf("Lost responses: %d\n", ptp_port_info[src_port].delay_info.lost_responses);
 #endif
   }
   else {
@@ -1286,12 +1291,7 @@ void ptp_recv(chanend c_tx,
           ptp_port_info[src_port].delay_info.rcvd_source_identity = msg->sourcePortIdentity;
         }
         else {
-          if (ptp_port_info[src_port].delay_info.lost_responses <= PTP_ALLOWED_LOST_RESPONSES) {
-            ptp_port_info[src_port].delay_info.lost_responses++;
-          }
-          else {
-            reset_ascapable(src_port);
-          }
+          pdelay_req_reset(src_port);
         }
         pdelay_request_sent[src_port] = 0;
 
@@ -1313,15 +1313,19 @@ void ptp_recv(chanend c_tx,
                             pdelay_resp_ingress_ts[src_port],
                             ptp_port_info[src_port]);
 
+          ptp_port_info[src_port].delay_info.exchanges++;
+
           if (ptp_port_info[src_port].delay_info.valid &&
-              ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS) {
-            set_ascapable(src_port);
+              ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS &&
+              ptp_port_info[src_port].delay_info.exchanges >= 2) {
+            if (!ptp_port_info[src_port].asCapable) {
+              set_ascapable(src_port);
+            }
           }
           else {
             reset_ascapable(src_port);
           }
           ptp_port_info[src_port].delay_info.lost_responses = 0;
-
 #if DEBUG_PRINT
           debug_printf("RX Pdelay resp follow up, Port %d\n", src_port);
 #endif
@@ -1360,7 +1364,7 @@ void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
 
   for (int i=0; i < PTP_NUM_PORTS; i++)
   {
-    set_new_role(PTP_MASTER, i, t);
+    set_new_role(PTP_MASTER, i);
     last_received_announce_time_valid[i] = 0;
   }
 
@@ -1388,7 +1392,7 @@ void ptp_periodic(chanend c_tx, unsigned t)
       received_sync = 0;
 
       if (role == PTP_SLAVE ) {
-        set_new_role(PTP_UNCERTAIN, i, t);
+        set_new_role(PTP_UNCERTAIN, i);
         last_received_announce_time[i] = t;
         last_announce_time[i] = t - ANNOUNCE_PERIOD - 1;
 #if DEBUG_PRINT_ANNOUNCE
@@ -1396,7 +1400,7 @@ void ptp_periodic(chanend c_tx, unsigned t)
 #endif
       }
       else if (role == PTP_UNCERTAIN) {
-        set_new_role(PTP_MASTER, i, t);
+        set_new_role(PTP_MASTER, i);
       }
     }
 

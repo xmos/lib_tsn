@@ -76,6 +76,7 @@ typedef struct ptp_path_delay_t {
   int valid;
   unsigned int pdelay;
   unsigned int lost_responses;
+  unsigned int exchanges;
   n80_t rcvd_source_identity;
 } ptp_path_delay_t;
 
