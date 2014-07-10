@@ -83,7 +83,7 @@ static int periodic_counter;
 
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
-#define DEBUG_PRINT_AS_CAPABLE 1
+#define DEBUG_PRINT_AS_CAPABLE 0
 
 ptp_port_role_t ptp_current_state()
 {
