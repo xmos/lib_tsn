@@ -79,10 +79,11 @@ static unsigned long long pdelay_epoch_timer;
 static unsigned prev_pdelay_local_ts;
 
 static int tile_timer_offset;
+static int periodic_counter;
 
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
-#define DEBUG_PRINT_AS_CAPABLE 0
+#define DEBUG_PRINT_AS_CAPABLE 1
 
 ptp_port_role_t ptp_current_state()
 {
@@ -1275,6 +1276,25 @@ void ptp_recv(chanend c_tx,
       break;
     case PTP_PDELAY_RESP_MESG:
       PdelayRespMessage *resp_msg = (PdelayRespMessage *) (msg + 1);
+
+      if (!pdelay_request_sent[src_port] &&
+          received_pdelay[src_port] &&
+          !source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity) &&
+          pdelay_req_seq_id[src_port] == ntoh16(msg->sequenceId)) {
+
+        if (!ptp_port_info[src_port].delay_info.multiple_resp_count ||
+            (pdelay_req_seq_id[src_port] == ptp_port_info[src_port].delay_info.last_multiple_resp_seq_id+1)) {
+          // Count consecutive multiple pdelay responses for a single pdelay request
+          ptp_port_info[src_port].delay_info.multiple_resp_count++;
+        }
+        else {
+          ptp_port_info[src_port].delay_info.multiple_resp_count = 0;
+        }
+        ptp_port_info[src_port].delay_info.last_multiple_resp_seq_id = pdelay_req_seq_id[src_port];
+        pdelay_req_reset(src_port);
+        break;
+      }
+
       if (pdelay_request_sent[src_port] &&
           pdelay_req_seq_id[src_port] == ntoh16(msg->sequenceId) &&
           port_identity_equal(resp_msg->requestingPortIdentity, my_port_id) &&
@@ -1366,6 +1386,8 @@ void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
   {
     set_new_role(PTP_MASTER, i);
     last_received_announce_time_valid[i] = 0;
+    ptp_port_info[i].delay_info.multiple_resp_count = 0;
+    periodic_counter = 0;
   }
 
   pdelay_epoch_timer = t;
@@ -1379,6 +1401,18 @@ void ptp_periodic(chanend c_tx, unsigned t)
     int asCapable = ptp_port_info[i].asCapable;
 
     int recv_sync_timeout_interval = last_receive_sync_upstream_interval[i] * PTP_SYNC_RECEIPT_TIMEOUT_MULTIPLE;
+
+    int sending_pdelay = (ptp_port_info[i].delay_info.multiple_resp_count < 3);
+
+    if (!sending_pdelay) {
+      periodic_counter++;
+      const int five_minutes_in_periodic = 5 * 60 * (XS1_TIMER_HZ/PTP_PERIODIC_TIME);
+      if (periodic_counter >= five_minutes_in_periodic) {
+        sending_pdelay = 1;
+        ptp_port_info[i].delay_info.multiple_resp_count = 0;
+        periodic_counter = 0;
+      }
+    }
 
     if ((last_received_announce_time_valid[i] &&
         timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) ||
@@ -1420,7 +1454,7 @@ void ptp_periodic(chanend c_tx, unsigned t)
       if (pdelay_request_sent[i] && !received_pdelay[i]) {
         pdelay_req_reset(i);
       }
-      send_ptp_pdelay_req_msg(c_tx, i);
+      if (sending_pdelay) send_ptp_pdelay_req_msg(c_tx, i);
       last_pdelay_req_time[i] = t;
     }
   }
