@@ -54,6 +54,10 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   {
     return (0);
   }
+  if (AVBTP_VERSION(pAVBHdr) != 0)
+  {
+    return (0);
+  }
   if (AVBTP_CD(pAVBHdr) != AVBTP_CD_DATA)
   {
     return (0);
