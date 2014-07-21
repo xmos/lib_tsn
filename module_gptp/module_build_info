@@ -8,9 +8,10 @@
 # optimization level -O3).
 #
 # You can also set MODULE_XCC_C_FLAGS, MODULE_XCC_XC_FLAGS etc..
+DEPENDENT_MODULES = module_avb_util module_logging
 
 OPTIONAL_HEADERS += avb_conf.h
 
-MODULE_XCC_C_FLAGS = $(XCC_FLAGS) -Os 
+MODULE_XCC_C_FLAGS = $(XCC_FLAGS) -Os
 
 XCC_FLAGS_gptp_server.xc = $(XCC_FLAGS) -fsubword-select
