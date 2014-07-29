@@ -697,6 +697,10 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
           mrp_change_applicant_state(st, e, MRP_AN);
           break;
         case MRP_AN:
+          if (st->registrar_state != MRP_IN) {
+            mrp_change_applicant_state(st, e, MRP_AA);
+            break;
+          }
         case MRP_AA:
         case MRP_AP:
           mrp_change_applicant_state(st, e, MRP_QA);
