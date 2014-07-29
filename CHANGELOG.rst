@@ -4,12 +4,18 @@ sw_avb_lc Change Log
 6.0.1
 -----
 
+  * Changes to dependencies:
+
+    - sc_avb: 6.1.0alpha1 -> 6.1.1alpha0
+
+      + Various gPTP AVnu compliance fixes (June 2014 report)
+
 6.0.0
 -----
   * Update to include new common sc_avb module structure
 
-5.2.1 (sw_avb)
---------------
+5.2.1
+-----
   * Fixed issue with PLL pin drive logic that could appear as an oscillation in the PI loop output
   * Updates to sc_ethernet to meet timing under xTIMEcomposer v13beta1
   * Added support for DSP4YOU AVB module
@@ -76,7 +82,7 @@ sw_avb_lc Change Log
   * Major rewrite, many internal APIs changed, overall performance improvements
   * Added gigabit ethernet support
   * Added flexible internal routing (local streams) with simplified
-    API, framework is much more powerful for many-channel applications 
+    API, framework is much more powerful for many-channel applications
   * Rewritten audio_clock_recovery as more flexible media_clock_server
   * Added demos for audio interface board
   * Added 8-channel TDM audio interface
@@ -84,7 +90,6 @@ sw_avb_lc Change Log
   * Various bug fixes
 
 31st July 2009
---------------
   * Dropped support for xs1a architecture
   * Major rewrite, many internal APIs changed, overall performance  improvements
   * New mii-ethernet layer (better performance, capable of 2-port switch)
@@ -100,32 +105,27 @@ sw_avb_lc Change Log
   * Some 802.1as bug fixes
 
 30th April 2009
-------------------
   * Added capability to have multiple talker endpoints on network
   * Some 802.1as bug fixes
 
 6th April 2009
-------------------
   * Added XC-2 mii code
   * Now default to xslb
   * Windows makefile issues fixed
 
 14th February 2009
-------------------
   * Code restructuring
   * Added dsp based clock recovery
   * Documentation updates
 
 30th January 2009
------------------
   * Various bug fixes
   * Major code restructuring
   * PTP now defaults to old multicast mac address (can be set to
     802.1as multicast with build flag)
-  
+
 
 15th January 2009
-------------------
 
   * Various bug fixes.
 
@@ -133,41 +133,37 @@ sw_avb_lc Change Log
 
   * First spec of host side API for communicating to an XMOS device
     implementing AVB.
-  
+
 
 19th December 2008
-------------------
 
   * Media clock recovery now fully based on 802.1AS
     timestamps. Presentation time is honoured.
-  
+
   * Changed 1588v2 timing protocol to 802.1as (note that some issues
     remain - see release notes for details)
 
 10th December 2008
-------------------
- 
-  * Code now runs codec in slave mode on the listener and implements 
+
+  * Code now runs codec in slave mode on the listener and implements
     media clock recovery.
 
   * Fixed timestamp to match spec. Timestamps are generated every 8
-    samples (according to IEC61883-6 SYT_INTERVAL)  - so a valid 
+    samples (according to IEC61883-6 SYT_INTERVAL)  - so a valid
     timestamp is generated every 3 out of 4 packets
 
-  * Implemented internal bandwidth restriction in mac layer. Each 
-    link going the mac layer (e.g. ptp, avb stream) 
+  * Implemented internal bandwidth restriction in mac layer. Each
+    link going the mac layer (e.g. ptp, avb stream)
     can be set to use no more than a certain number of Mbps of
-    bandwidth (see the mac_set_bandwidth function). 
+    bandwidth (see the mac_set_bandwidth function).
 
 27th November 2008
-------------------
 
   * Fixed bug in Mii ethernet layer that hung the demo when a short
     (<64 bytes) packet was received.
 
 
 21st November 2008
-------------------
 
   * General internal code restructuring to prepare for future
     enhancements
@@ -177,4 +173,4 @@ sw_avb_lc Change Log
   * Tested on RevB silicon
 
 
-  
+
