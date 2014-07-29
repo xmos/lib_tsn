@@ -1063,6 +1063,13 @@ static void send_leave_indication(CLIENT_INTERFACE(avb_interface, avb), mrp_attr
   }
 }
 
+static void msrp_types_event(mrp_event e, unsigned int port_num) {
+  attribute_type_event(MSRP_TALKER_ADVERTISE, e, port_num);
+  attribute_type_event(MSRP_TALKER_FAILED, e, port_num);
+  attribute_type_event(MSRP_LISTENER, e, port_num);
+  attribute_type_event(MSRP_DOMAIN_VECTOR, e, port_num);
+}
+
 extern unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
 
 void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
@@ -1077,18 +1084,18 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 
   #ifdef MRP_FULL_PARTICIPANT
     int msrp_leaveall_timer_expired = avb_timer_expired(&msrp_leaveall_timer[i]);
+    if (msrp_leaveall_timer_expired) {
+      msrp_types_event(MRP_EVENT_RECEIVE_LEAVE_ALL, i);
+
+      msrp_leaveall_active[i] = 1;
+      start_avb_timer(&msrp_leaveall_timer[i], MRP_LEAVEALL_TIMER_PERIOD_CENTISECONDS / MRP_LEAVEALL_TIMER_MULTIPLIER);
+    }
+
     int mvrp_leaveall_timer_expired = avb_timer_expired(&mvrp_leaveall_timer[i]);
-    if (msrp_leaveall_timer_expired || mvrp_leaveall_timer_expired)
-    {
-      global_event(MRP_EVENT_RECEIVE_LEAVE_ALL, i);
-      if (msrp_leaveall_timer_expired) {
-        msrp_leaveall_active[i] = 1;
-        start_avb_timer(&msrp_leaveall_timer[i], MRP_PERIODIC_TIMER_PERIOD_CENTISECONDS / MRP_PERIODIC_TIMER_MULTIPLIER);
-      }
-      if (mvrp_leaveall_timer_expired) {
-        mvrp_leaveall_active[i] = 1;
-        start_avb_timer(&mvrp_leaveall_timer[i], MRP_PERIODIC_TIMER_PERIOD_CENTISECONDS / MRP_PERIODIC_TIMER_MULTIPLIER);
-      }
+    if (mvrp_leaveall_timer_expired) {
+      attribute_type_event(MVRP_VID_VECTOR, MRP_EVENT_RECEIVE_LEAVE_ALL, i);
+      mvrp_leaveall_active[i] = 1;
+      start_avb_timer(&mvrp_leaveall_timer[i], MRP_LEAVEALL_TIMER_PERIOD_CENTISECONDS / MRP_LEAVEALL_TIMER_MULTIPLIER);
     }
   #endif
 
@@ -1107,10 +1114,7 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         create_empty_msg(MSRP_DOMAIN_VECTOR, 1);  send(c_mac_tx, i);
         msrp_leaveall_active[i] = 0;
       }
-      attribute_type_event(MSRP_TALKER_ADVERTISE, tx_event, i);
-      attribute_type_event(MSRP_TALKER_FAILED, tx_event, i);
-      attribute_type_event(MSRP_LISTENER, tx_event, i);
-      attribute_type_event(MSRP_DOMAIN_VECTOR, tx_event, i);
+      msrp_types_event(tx_event, i);
       force_send(c_mac_tx, i);
 
       tx_event = mvrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
