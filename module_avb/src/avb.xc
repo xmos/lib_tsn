@@ -295,7 +295,7 @@ static void update_source_state(unsigned source_num,
         valid = 0;
       }
 
-      if (source->reservation.vlan_id <= 0) {
+      if (source->reservation.vlan_id < 0) {
         valid = 0;
       }
 
@@ -342,12 +342,14 @@ static void update_source_state(unsigned source_num,
             *c <: AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
         }
 
-        master {
-          *c <: AVB1722_SET_VLAN;
-          *c <: (int)source->reservation.vlan_id;
-        }
-        for (int i=0; i < MRP_NUM_PORTS; i++) {
-          avb_join_vlan(source->reservation.vlan_id, i);
+        if (source->reservation.vlan_id) {
+          master {
+            *c <: AVB1722_SET_VLAN;
+            *c <: (int)source->reservation.vlan_id;
+          }
+          for (int i=0; i < MRP_NUM_PORTS; i++) {
+            avb_join_vlan(source->reservation.vlan_id, i);
+          }
         }
 
         source->reservation.tspec_max_frame_size = avb_srp_calculate_max_framesize(source);
@@ -385,16 +387,21 @@ static void update_source_state(unsigned source_num,
              state == AVB_SOURCE_STATE_ENABLED) {
       // start transmitting
 
-      debug_printf("%s #%d on\n", stream_string, source_num);
+      if (source->reservation.vlan_id > 0) {
+        debug_printf("%s #%d on\n", stream_string, source_num);
 
-      master {
-        *c <: AVB1722_SET_VLAN;
-        *c <: (int)source->reservation.vlan_id;
+        master {
+          *c <: AVB1722_SET_VLAN;
+          *c <: (int)source->reservation.vlan_id;
+        }
+
+        master {
+          *c <: AVB1722_TALKER_GO;
+          *c <: (int)source->stream.local_id;
+        }
       }
-
-      master {
-        *c <: AVB1722_TALKER_GO;
-        *c <: (int)source->stream.local_id;
+      else {
+        debug_printf("Did not start Talker stream #%d: invalid VID\n", source_num);
       }
     }
     else if (prev != AVB_SOURCE_STATE_DISABLED &&
