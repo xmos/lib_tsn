@@ -1408,6 +1408,8 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
 {
   char *end = (char *) &buf[0] + len;
   char *msg = (char *) &buf[0] + sizeof(mrp_header);
+  mrp_header *hdr = (mrp_header *)&buf[0];
+  unsigned char protocol_version = hdr->ProtocolVersion;
 
   while (msg < end && (msg[0]!=0 || msg[1]!=0))
   {
@@ -1415,12 +1417,13 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
 
     unsigned first_value_len = hdr->AttributeLength;
     int attr_type = decode_attr_type(etype, hdr->AttributeType);
-    if (attr_type==-1) {
-      return;
-    }
-
-    if (first_value_lengths[attr_type] != first_value_len) {
-      return;
+    if (protocol_version == 0) {
+      if (attr_type==-1) {
+        return;
+      }
+      if (first_value_lengths[attr_type] != first_value_len) {
+        return;
+      }
     }
 
     msg = msg + sizeof(mrp_msg_header);
