@@ -71,12 +71,15 @@ typedef struct
 // 2. "a" is the value in HOST byte order to set.
 #define SET_AVBTP_PCP(x, a)   do{ x->flagVID[0] |= (a << 5); } while (0)
 #define SET_AVBTP_CFI(x, a)   do{ x->flagVID[0] |= (a & 0x1) << 4; } while (0)
-#define SET_AVBTP_VID(x, a)   do{ x->flagVID[0] |= (a & 0xF00) >> 8; \
+#define SET_AVBTP_VID(x, a)   do{ x->flagVID[0] |= ((a >> 8) & 0xF); \
                                   x->flagVID[1] = (a & 0xFF); } while (0)
 #define SET_AVBTP_TPID(x, a)  do{ x->TPID[0] = (a >> 8); \
                                   x->TPID[1] = a & 0xFF; } while (0)
 #define SET_AVBTP_ETYPE(x, a) do{ x->etype[0] = (a >> 8); \
                                   x->etype[1] = a & 0xFF; } while (0)
+
+#define CLEAR_AVBTP_VID(x)   do{ x->flagVID[0] &= 0xF0; \
+                                  x->flagVID[1] = 0; } while (0)
 
 // AVB common stream data header format
 typedef struct

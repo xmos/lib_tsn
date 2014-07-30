@@ -75,6 +75,7 @@ void avb_leave_vlan(int vlan)
 
   if (found != -1) {
     mrp_mad_leave(entries[found].attr);
+    entries[found].active = 0;
   }
 }
 
