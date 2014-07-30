@@ -425,12 +425,13 @@ int avb_srp_match_listener(mrp_attribute_state *attr,
   unsigned long long stream_id=0, my_stream_id=0;
   srp_listener_first_value *first_value = (srp_listener_first_value *) fv;
 
-  if (sink_info == NULL) return 0;
-
-  /*
-  if (four_packed_event != AVB_SRP_FOUR_PACKED_EVENT_READY)
+  if (sink_info == NULL) {
     return 0;
-  */
+  }
+
+  if (four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_IGNORE) {
+    return 0;
+  }
 
   my_stream_id = sink_info->reservation.stream_id[0];
   my_stream_id = (my_stream_id << 32) + sink_info->reservation.stream_id[1];
