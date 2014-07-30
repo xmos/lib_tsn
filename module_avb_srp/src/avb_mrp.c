@@ -1105,9 +1105,20 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 
     if (avb_timer_expired(&joinTimer[i]))
     {
-      mrp_event tx_event = msrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
       start_avb_timer(&joinTimer[i], MRP_JOINTIMER_PERIOD_CENTISECONDS);
       sort_attrs();
+
+      mrp_event tx_event = mvrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
+      configure_send_buffer(mvrp_dest_mac, AVB_MVRP_ETHERTYPE);
+      if (mvrp_leaveall_active[i])
+      {
+        create_empty_msg(MVRP_VID_VECTOR, 1); send(c_mac_tx, i);
+        mvrp_leaveall_active[i] = 0;
+      }
+      attribute_type_event(MVRP_VID_VECTOR, tx_event, i);
+      force_send(c_mac_tx, i);
+
+      tx_event = msrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
 
       configure_send_buffer(srp_dest_mac, AVB_SRP_ETHERTYPE);
       if (msrp_leaveall_active[i])
@@ -1119,16 +1130,6 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         msrp_leaveall_active[i] = 0;
       }
       msrp_types_event(tx_event, i);
-      force_send(c_mac_tx, i);
-
-      tx_event = mvrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
-      configure_send_buffer(mvrp_dest_mac, AVB_MVRP_ETHERTYPE);
-      if (mvrp_leaveall_active[i])
-      {
-        create_empty_msg(MVRP_VID_VECTOR, 1); send(c_mac_tx, i);
-        mvrp_leaveall_active[i] = 0;
-      }
-      attribute_type_event(MVRP_VID_VECTOR, tx_event, i);
       force_send(c_mac_tx, i);
     }
 
