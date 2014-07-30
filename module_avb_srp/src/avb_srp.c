@@ -478,6 +478,7 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
     avb_get_source_state(avb, stream, &state);
 
     int entry = srp_match_reservation_entry_by_id(sink_info->reservation.stream_id);
+    int enable_stream = 0;
 
 #if (MRP_NUM_PORTS == 2)
     if (mrp_match_attr_by_stream_and_type(attr, 1, 0)) { // Listener ready on the other port also, therefore send on both ports
@@ -486,11 +487,12 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
         srp_increase_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
         set_avb_source_port(stream, -1);
         stream_table[entry].bw_reserved[attr->port_num] = 1;
+        enable_stream = 1;
       }
     }
     else
 #endif
-    { // Just this port
+    if (mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, sink_info->reservation.stream_id, attr->port_num)){ // Just this port
       if (stream_table[entry].bw_reserved[attr->port_num] != 1) {
         srp_increase_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
         set_avb_source_port(stream, attr->port_num);
@@ -499,10 +501,11 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
       else {
         set_avb_source_port(stream, attr->port_num);
       }
+      enable_stream = 1;
     }
 
 
-    if (state == AVB_SOURCE_STATE_POTENTIAL) {
+    if (enable_stream && (state == AVB_SOURCE_STATE_POTENTIAL)) {
       if (four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY ||
         four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY_FAILED) {
   #if SRP_AUTO_TALKER_STREAM_CONTROL
@@ -641,6 +644,7 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
 void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
   // LJ1. Find Talker advertise attribute that has not been propagated
   mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
+  mrp_attribute_state *matched_talker_failed = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, stream_id, -1);
 
   if (matched_talker_advertise) {
     mrp_attribute_state *matched_listener_same_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 0, 0);
@@ -663,7 +667,7 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
     matched_listener_same_port->here = 1;
     mrp_mad_join(matched_listener_same_port, 1);
   }
-  else { // LJ4: If the Talker advertise hasn't matched, then it probably hasn't arrived yet
+  else if (!matched_talker_failed) { // LJ4: If the Talker advertise hasn't matched, then it probably hasn't arrived yet
     // LJ5: Create Listener attrs on both ports but leave them disabled
     avb_stream_entry *stream_ptr = srp_add_reservation_entry_stream_id_only(stream_id);
     if (stream_ptr) {
