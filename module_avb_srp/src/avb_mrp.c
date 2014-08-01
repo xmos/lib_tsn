@@ -1170,6 +1170,7 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
             reservation->failure_bridge_id[i] = i;
           }
         }
+        mrp_mad_join(&attrs[j], 1);
       }
       else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
                 !srp_domain_boundary_port[i] &&
@@ -1179,6 +1180,7 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         avb_stream_entry *stream_info = attrs[j].attribute_info;
         stream_info->talker_present = 1;
         debug_printf("MSRP_TALKER_FAILED -> MSRP_TALKER_ADVERTISE\n");
+        mrp_mad_join(&attrs[j], 1);
       }
 
   #ifdef MRP_FULL_PARTICIPANT
