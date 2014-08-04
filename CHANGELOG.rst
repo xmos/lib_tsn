@@ -1,6 +1,10 @@
 sc_avb Change Log
 =================
 
+6.1.2
+-----
+  * Various minor SRP compliance fixes
+
 6.1.1
 -----
   * Various gPTP AVnu compliance fixes (June 2014 report)
