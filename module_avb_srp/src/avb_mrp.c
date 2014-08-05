@@ -505,7 +505,9 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
       if (st->registrar_state == MRP_LV) {
         stop_avb_timer(&st->leaveTimer);
       }
-      if (st->registrar_state == MRP_MT) {
+      if (st->registrar_state == MRP_MT ||
+          ((st->four_vector_parameter == AVB_SRP_FOUR_PACKED_EVENT_ASKING_FAILED) &&
+            (four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY))) {
           st->pending_indications |= PENDING_JOIN;
           st->four_vector_parameter = four_packed_event;
       }
@@ -1152,13 +1154,12 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
           send_leave_indication(avb, &attrs[j], attrs[j].four_vector_parameter);
         }
         attrs[j].pending_indications = 0;
-        attrs[j].four_vector_parameter = 0;
       }
 
       avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
 
       if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[i]) {
-        debug_printf("MSRP_TALKER_ADVERTISE -> MSRP_TALKER_FAILED\n");
+        debug_printf("Talker Advertise -> Failed for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
         attrs[j].attribute_type = MSRP_TALKER_FAILED;
         if (reservation) {
           avb_stream_entry *stream_info = attrs[j].attribute_info;
