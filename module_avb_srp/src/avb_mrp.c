@@ -1179,7 +1179,7 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
         avb_stream_entry *stream_info = attrs[j].attribute_info;
         stream_info->talker_present = 1;
-        debug_printf("MSRP_TALKER_FAILED -> MSRP_TALKER_ADVERTISE\n");
+        debug_printf("Talker Failed -> Advertise for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
         mrp_mad_join(&attrs[j], 1);
       }
 

@@ -75,14 +75,14 @@ static int srp_calculate_stream_bandwidth(int max_frame_size, int extra_byte) {
 static void srp_increase_port_bandwidth(int max_frame_size, int extra_byte, int port) {
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] += stream_bandwidth_bps;
-  debug_printf("Increasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
+  debug_printf("Increasing port %d shaper bandwidth to %d bps\n", port, port_bandwidth[port]);
   mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
 }
 
 static void srp_decrease_port_bandwidth(int max_frame_size, int extra_byte, int port) {
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] -= stream_bandwidth_bps;
-   debug_printf("Decreasing port %d shaper bandwidth to %d\n", port, port_bandwidth[port]);
+   debug_printf("Decreasing port %d shaper bandwidth to %d bps\n", port, port_bandwidth[port]);
   if (port_bandwidth[port] < 0) __builtin_trap();
   mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
 }
@@ -379,8 +379,12 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
     }
 
     if (failed) {
+      srp_talker_failed_first_value *first_value = (srp_talker_failed_first_value *) fv;
       attr->attribute_type = MSRP_TALKER_FAILED;
       stream_info->reservation_failed = 1;
+      debug_printf("WARNING: Talker failed (Stream ID: %x%x, failure code: %d)\n", source_info->reservation.stream_id[0],
+                                                                    source_info->reservation.stream_id[1],
+                                                                    first_value->FailureCode);
     }
     else {
       attr->attribute_type = MSRP_TALKER_ADVERTISE;
