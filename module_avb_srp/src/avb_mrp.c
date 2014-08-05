@@ -931,7 +931,6 @@ mrp_attribute_state *mrp_get_attr(void)
       return &attrs[i];
     }
   }
-  __builtin_trap();
   return NULL;
 }
 
