@@ -353,7 +353,7 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
 {
   avb_source_info_t *source_info = (avb_source_info_t *) attr->attribute_info;
   unsigned long long stream_id=0, my_stream_id=0;
-  srp_talker_first_value *first_value = (srp_talker_first_value *) fv;
+  srp_talker_failed_first_value *first_value = (srp_talker_failed_first_value *) fv;
 
   if (source_info == NULL) return 0;
 
@@ -379,15 +379,20 @@ int avb_srp_match_talker_advertise(mrp_attribute_state *attr,
     }
 
     if (failed) {
-      srp_talker_failed_first_value *first_value = (srp_talker_failed_first_value *) fv;
       attr->attribute_type = MSRP_TALKER_FAILED;
       stream_info->reservation_failed = 1;
       debug_printf("WARNING: Talker failed (Stream ID: %x%x, failure code: %d)\n", source_info->reservation.stream_id[0],
                                                                     source_info->reservation.stream_id[1],
                                                                     first_value->FailureCode);
+      memcpy(&source_info->reservation.failure_bridge_id, &first_value->FailureBridgeId, 8);
+      source_info->reservation.failure_code = first_value->FailureCode;
     }
     else {
       attr->attribute_type = MSRP_TALKER_ADVERTISE;
+      if (stream_info->reservation_failed) {
+        memset(&source_info->reservation.failure_bridge_id, 0, 8);
+        first_value->FailureCode = 0;
+      }
       stream_info->reservation_failed = 0;
     }
 
