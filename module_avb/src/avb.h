@@ -78,7 +78,7 @@ void avb_process_1722_control_packet(unsigned int buf[],
                                     chanend c_tx,
                                     client interface avb_interface i_avb,
                                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                                    client interface spi_interface i_spi);
+                                    client interface spi_interface ?i_spi);
 
 /** Process an AVB SRP control packet.
 

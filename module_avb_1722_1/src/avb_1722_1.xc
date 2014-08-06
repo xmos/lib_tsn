@@ -63,7 +63,7 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
                                 chanend c_tx,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
                                 CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                CLIENT_INTERFACE(spi_interface, i_spi))
+                                CLIENT_INTERFACE(spi_interface, ?i_spi))
 {
     avb_1722_1_packet_header_t *pkt = (avb_1722_1_packet_header_t *) &buf[0];
     unsigned subtype = GET_1722_1_SUBTYPE(pkt);
@@ -113,7 +113,7 @@ void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_inter
 void avb_1722_1_task(otp_ports_t &otp_ports,
                      client interface avb_interface i_avb,
                      client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                     client interface spi_interface i_spi,
+                     client interface spi_interface ?i_spi,
                      chanend c_mac_rx,
                      chanend c_mac_tx,
                      chanend c_ptp) {

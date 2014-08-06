@@ -22,7 +22,11 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     chanend c_tx,
                                     CLIENT_INTERFACE(avb_interface, i_avb_api),
                                     CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
+#ifdef __XC__
+                                    CLIENT_INTERFACE(spi_interface, ?i_spi));
+#else
                                     CLIENT_INTERFACE(spi_interface, i_spi));
+#endif
 #ifdef __XC__
 }
 #endif

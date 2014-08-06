@@ -485,6 +485,7 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
   return GET_1722_1_DATALENGTH(&pkt->header);
 }
 
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
 static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
                                                 unsigned char src_addr[6],
                                                 unsigned char *status,
@@ -553,6 +554,7 @@ static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
   }
   return GET_1722_1_DATALENGTH(&pkt->header);
 }
+#endif
 
 static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
@@ -668,12 +670,14 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         cd_len = process_aem_cmd_getset_control(pkt, &status, command_type, i_1722_1_entity) + sizeof(avb_1722_1_aem_getset_control_t) + AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
         break;
       }
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
       case AECP_AEM_CMD_START_OPERATION:
       case AECP_AEM_CMD_ABORT_OPERATION:
       {
         cd_len = process_aem_cmd_start_abort_operation(pkt, src_addr, &status, command_type, i_spi, c_tx);
         break;
       }
+#endif
       default:
       {
         // AECP_AEM_STATUS_NOT_IMPLEMENTED
@@ -740,6 +744,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
   }
 }
 
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
 static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
                                             int message_type,
@@ -785,6 +790,7 @@ static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t 
     mac_tx(c_tx, avb_1722_1_buf, 304, -1);
   }
 }
+#endif
 
 
 void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
@@ -807,11 +813,13 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
 #endif
       break;
     }
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
     case AECP_CMD_ADDRESS_ACCESS_COMMAND:
     {
       process_avb_1722_1_aecp_address_access_cmd(pkt, src_addr, message_type, num_pkt_bytes, i_spi, c_tx);
       break;
     }
+#endif
     case AECP_CMD_AVC_COMMAND:
     {
       break;

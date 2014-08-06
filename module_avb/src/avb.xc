@@ -558,7 +558,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
                                      chanend c_tx,
                                      client interface avb_interface i_avb,
                                      client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                                     client interface spi_interface i_spi) {
+                                     client interface spi_interface ?i_spi) {
   if (nbytes == STATUS_PACKET_LEN) {
     if (((unsigned char *)buf0)[0]) { // Link up
       // Do something on link up
