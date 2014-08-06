@@ -119,14 +119,21 @@ unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe 
 
     hton_32(&cmd->stream_id[0], reservation->stream_id[0]);
     hton_32(&cmd->stream_id[4], reservation->stream_id[1]);
-    // TODO: Accumulated latency
+    hton_32(cmd->msrp_accumulated_latency, reservation->accumulated_latency);
+    memcpy(&cmd->msrp_failure_bridge_id, &reservation->failure_bridge_id, 8);
+    cmd->msrp_failure_code = reservation->failure_code;
+
     memcpy(cmd->stream_dest_mac, reservation->dest_mac_addr, 6);
     hton_16(cmd->stream_vlan_id, reservation->vlan_id);
 
-    hton_32(cmd->flags, AECP_STREAM_INFO_FLAGS_STREAM_VLAN_ID_VALID |
-                        AECP_STREAM_INFO_FLAGS_STREAM_DESC_MAC_VALID |
-                        AECP_STREAM_INFO_FLAGS_STREAM_ID_VALID |
-                        AECP_STREAM_INFO_FLAGS_STREAM_FORMAT_VALID);
+    int flags = AECP_STREAM_INFO_FLAGS_STREAM_VLAN_ID_VALID |
+                AECP_STREAM_INFO_FLAGS_STREAM_DESC_MAC_VALID |
+                AECP_STREAM_INFO_FLAGS_STREAM_ID_VALID |
+                AECP_STREAM_INFO_FLAGS_STREAM_FORMAT_VALID |
+                AECP_STREAM_INFO_FLAGS_MSRP_ACC_LAT_VALID |
+                reservation->failure_bridge_id[1] ? AECP_STREAM_INFO_FLAGS_MSRP_FAILURE_VALID : 0;
+
+    hton_32(cmd->flags, flags);
 
   }
   else
