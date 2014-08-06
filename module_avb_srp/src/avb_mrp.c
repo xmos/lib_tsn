@@ -1166,8 +1166,12 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
           stream_info->talker_present = 0;
           reservation->failure_code = 8;
           for (int i=0; i < 8; i++) {
-            // TODO: 2 zeros + My mac address
-            reservation->failure_bridge_id[i] = i;
+            mrp_ethernet_hdr *hdr = (mrp_ethernet_hdr *) &send_buf[0];
+            if (i < 2) {
+              reservation->failure_bridge_id[i] = 0;
+            } else {
+              reservation->failure_bridge_id[i] = hdr->src_addr[i];
+            }
           }
         }
         mrp_mad_join(&attrs[j], 1);
