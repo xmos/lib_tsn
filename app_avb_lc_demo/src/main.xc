@@ -42,11 +42,18 @@ on tile[0]: fl_spi_ports spi_ports = {
   XS1_CLKBLK_1
 };
 
+// Buttons on Atterotech board
+enum button_mask
+{
+  STREAM_SEL=1, REMOTE_SEL=2, CHAN_SEL=4,
+  BUTTON_TIMEOUT_PERIOD = 20000000
+};
+
 #if !AVB_XA_SK_AUDIO_PLL_SLICE
 // Note that this port must be at least declared to ensure it
 // drives the mute low
 on tile[1]: out port p_mute_led_remote = PORT_MUTE_LED_REMOTE; // mute, led remote;
-on tile[1]: out port p_leds = PORT_LEDS;
+on tile[1]: out port p_chan_leds = PORT_LEDS;
 on tile[1]: in port p_buttons = PORT_BUTTONS;
 #else
 on tile[0]: out port p_leds = XS1_PORT_4F;
@@ -189,7 +196,6 @@ int main(void)
   interface avb_interface i_avb[NUM_AVB_MANAGER_CHANS];
   interface srp_interface i_srp;
   interface avb_1722_1_control_callbacks i_1722_1_entity;
-  interface spi_interface i_spi;
 
   par
   {
@@ -267,11 +273,10 @@ int main(void)
     on tile[0].core[0]: avb_1722_1_task(otp_ports0,
                                         i_avb[AVB_MANAGER_TO_1722_1],
                                         i_1722_1_entity,
-                                        i_spi,
+                                        null,
                                         c_mac_rx[MAC_RX_TO_1722_1],
                                         c_mac_tx[MAC_TX_TO_1722_1],
                                         c_ptp[PTP_TO_1722_1]);
-    on tile[0].core[0]: spi_task(i_spi, spi_ports);
   }
 
     return 0;
@@ -281,6 +286,16 @@ int main(void)
 [[combinable]]
 void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity)
 {
+  int button_val;
+  int buttons_active = 1;
+  unsigned buttons_timeout;
+  int selected_chan = 0;
+  timer button_tmr;
+
+  p_mute_led_remote <: ~0;
+  p_chan_leds <: ~(1 << selected_chan);
+  p_buttons :> button_val;
+
 #if AVB_DEMO_ENABLE_TALKER
   const int channels_per_stream = AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
   int map[AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES];
@@ -311,6 +326,69 @@ void application_task(client interface avb_interface avb, server interface avb_1
   {
     select
     {
+      case buttons_active => p_buttons when pinsneq(button_val) :> unsigned new_button_val:
+      {
+        if ((button_val & CHAN_SEL) == CHAN_SEL && (new_button_val & CHAN_SEL) == 0)
+        {
+          selected_chan++;
+          if (selected_chan > ((AVB_NUM_MEDIA_OUTPUTS>>1)-1))
+          {
+            selected_chan = 0;
+          }
+          p_chan_leds <: ~(1 << selected_chan);
+          if (AVB_NUM_MEDIA_OUTPUTS > 2)
+          {
+            int map[AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS];
+            int len;
+            enum avb_sink_state_t cur_state[AVB_NUM_SINKS];
+
+            for (int i=0; i < AVB_NUM_SINKS; i++)
+            {
+              avb.get_sink_state(i, cur_state[i]);
+              if (cur_state[i] != AVB_SINK_STATE_DISABLED)
+                avb.set_sink_state(i, AVB_SINK_STATE_DISABLED);
+            }
+
+            for (int i=0; i < AVB_NUM_SINKS; i++)
+            {
+              avb.get_sink_map(i, map, len);
+              for (int j=0;j<len;j++)
+              {
+                if (map[j] != -1)
+                {
+                  map[j] += 2;
+
+                  if (map[j] > AVB_NUM_MEDIA_OUTPUTS-1)
+                  {
+                    map[j] = map[j]%AVB_NUM_MEDIA_OUTPUTS;
+                  }
+                }
+              }
+              avb.set_sink_map(i, map, len);
+            }
+
+            for (int i=0; i < AVB_NUM_SINKS; i++)
+            {
+              if (cur_state[i] != AVB_SINK_STATE_DISABLED)
+                avb.set_sink_state(i, AVB_SINK_STATE_POTENTIAL);
+            }
+          }
+          buttons_active = 0;
+        }
+        if (!buttons_active)
+        {
+          button_tmr :> buttons_timeout;
+          buttons_timeout += BUTTON_TIMEOUT_PERIOD;
+        }
+        button_val = new_button_val;
+        break;
+      }
+      case !buttons_active => button_tmr when timerafter(buttons_timeout) :> void:
+      {
+        buttons_active = 1;
+        p_buttons :> button_val;
+        break;
+      }
       case i_1722_1_entity.get_control_value(unsigned short control_index,
                                             unsigned short &values_length,
                                             unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]) -> unsigned char return_status:
@@ -339,7 +417,7 @@ void application_task(client interface avb_interface avb, server interface avb_1
           case DESCRIPTOR_INDEX_CONTROL_IDENTIFY: {
             if (values_length == 1) {
               aem_identify_control_value = values[0];
-              p_leds <: aem_identify_control_value;
+              p_mute_led_remote <: (~0) & ~((int)aem_identify_control_value<<1);
               if (aem_identify_control_value) {
                 debug_printf("IDENTIFY Ping\n");
               }
