@@ -161,9 +161,14 @@ void avb_1722_maap_relinquish_addresses()
 	maap_addr.state = MAAP_DISABLED;
 }
 
-void avb_1722_maap_get_base_address(unsigned char addr[6])
+int avb_1722_maap_get_base_address(unsigned char addr[6])
 {
-  // TODO
+  if (maap_addr.state == MAAP_DISABLED) return -1;
+  for (int i=0; i < 6; i++)
+  {
+    addr[i] = maap_addr.base[i];
+  }
+  return 0;
 }
 
 void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface avb)

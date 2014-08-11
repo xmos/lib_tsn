@@ -81,6 +81,9 @@ void avb_talker_on_source_address_reserved(client interface avb_interface i_avb,
  */
 void avb_talker_on_source_address_reserved_default(client interface avb_interface i_avb, int source_num, unsigned char mac_addr[6]);
 
+
+int avb_1722_maap_get_base_address(unsigned char addr[6]);
+
 #endif
 
 #endif
