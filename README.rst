@@ -4,38 +4,34 @@ sw_avb_lc
 
 :Latest release: 6.0.2alpha0
 :Maintainer: ajwlucas
-:Description: AVB-DC specific application software
-
-
-Description
-===========
-
-A brief description of the repo
+:Description: AVB-LC specific application software
 
 Key Features
 ============
 
-* <Bullet pointed list of features>
-
-To Do
-=====
-
-* <Bullet pointed list of missing features>
+* 1722 Talker and Listener (simultaneous) support
+* 1722 MAAP support for Talkers
+* 802.1Q MRP, MVRP, SRP protocols
+* gPTP server and protocol
+* Audio interface for I2S
+* Media clock recovery and interface to PLL clock source
+* Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
 
 Firmware Overview
 =================
 
-<One or more paragraphs detailing the functionality of modules and apps in this repo>
+This firmware is a reference endpoint implementation of Audio Video Bridging protocols for XMOS silicon. It includes a PTP time
+server to provide a stable wallclock reference and clock recovery to synchronise listener audio to talker audio
+codecs. The Stream Reservation Protocol is used to reserve bandwidth through 802.1 network infrastructure.
 
 Known Issues
 ============
 
-* <Bullet pointed list of problems>
-
 Support
 =======
 
-<Description of support model>
+The HEAD of this repository is a work in progress. It may or may not compile from time to time, and modules, code and features may be incomplete. For a stable, supported release please see the reference designs section at www.xmos.com.
+
 
 Required software (dependencies)
 ================================
