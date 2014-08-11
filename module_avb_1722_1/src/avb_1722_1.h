@@ -53,13 +53,13 @@ void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_inter
   *  \param  c_ptp chanend into the PTP server
   */
 [[combinable]]
-void avb_1722_1_task(otp_ports_t &otp_ports,
-                     client interface avb_interface i_avb,
-                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                     client interface spi_interface ?i_spi,
-                     chanend c_mac_rx,
-                     chanend c_mac_tx,
-                     chanend c_ptp);
+void avb_1722_1_maap_task(otp_ports_t &otp_ports,
+                         client interface avb_interface i_avb,
+                         client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                         client interface spi_interface ?i_spi,
+                         chanend c_mac_rx,
+                         chanend c_mac_tx,
+                         chanend c_ptp);
 
 /** Process a received 1722.1 packet
  *

@@ -561,7 +561,15 @@ void avb_process_1722_control_packet(unsigned int buf0[],
                                      client interface spi_interface ?i_spi) {
   if (nbytes == STATUS_PACKET_LEN) {
     if (((unsigned char *)buf0)[0]) { // Link up
-      // Do something on link up
+#if NUM_ETHERNET_PORTS == 1
+      unsigned char base_addr[6];
+      if (!avb_1722_maap_get_base_address(base_addr)) {
+        avb_1722_maap_request_addresses(AVB_NUM_SOURCES, base_addr);
+      }
+      else {
+        avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
+      }
+#endif
     }
   }
   else {

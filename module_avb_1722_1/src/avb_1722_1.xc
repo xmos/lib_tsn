@@ -110,13 +110,13 @@ void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_inter
 
 
 [[combinable]]
-void avb_1722_1_task(otp_ports_t &otp_ports,
-                     client interface avb_interface i_avb,
-                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                     client interface spi_interface ?i_spi,
-                     chanend c_mac_rx,
-                     chanend c_mac_tx,
-                     chanend c_ptp) {
+void avb_1722_1_maap_task(otp_ports_t &otp_ports,
+                         client interface avb_interface i_avb,
+                         client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                         client interface spi_interface ?i_spi,
+                         chanend c_mac_rx,
+                         chanend c_mac_tx,
+                         chanend c_ptp) {
   unsigned periodic_timeout;
   timer tmr;
   unsigned int nbytes;
@@ -128,13 +128,14 @@ void avb_1722_1_task(otp_ports_t &otp_ports,
   otp_board_info_get_serial(otp_ports, serial);
 
   mac_get_macaddr(c_mac_tx, mac_addr);
-  avb_1722_1_init(mac_addr, serial);
-  avb_1722_maap_init(mac_addr);
-
   mac_set_custom_filter(c_mac_rx, MAC_FILTER_AVB_CONTROL);
   mac_request_status_packets(c_mac_rx);
 
+  avb_1722_1_init(mac_addr, serial);
+  avb_1722_maap_init(mac_addr);
+#if NUM_ETHERNET_PORTS > 1
   avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
+#endif
 
   tmr :> periodic_timeout;
 
