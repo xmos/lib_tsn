@@ -270,13 +270,13 @@ int main(void)
 
     on tile[1]: application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
 
-    on tile[0].core[0]: avb_1722_1_task(otp_ports0,
-                                        i_avb[AVB_MANAGER_TO_1722_1],
-                                        i_1722_1_entity,
-                                        null,
-                                        c_mac_rx[MAC_RX_TO_1722_1],
-                                        c_mac_tx[MAC_TX_TO_1722_1],
-                                        c_ptp[PTP_TO_1722_1]);
+    on tile[0]: avb_1722_1_maap_task(otp_ports0,
+                                    i_avb[AVB_MANAGER_TO_1722_1],
+                                    i_1722_1_entity,
+                                    null,
+                                    c_mac_rx[MAC_RX_TO_1722_1],
+                                    c_mac_tx[MAC_TX_TO_1722_1],
+                                    c_ptp[PTP_TO_1722_1]);
   }
 
     return 0;
