@@ -2,9 +2,10 @@
 sw_avb_lc
 ............
 
-:Latest release: 6.0.2alpha0
+:Latest release: 6.0.3beta0
 :Maintainer: ajwlucas
-:Description: AVB-LC specific application software
+:Description: AVB-DC specific application software
+
 
 Key Features
 ============
@@ -31,7 +32,6 @@ Support
 =======
 
 The HEAD of this repository is a work in progress. It may or may not compile from time to time, and modules, code and features may be incomplete. For a stable, supported release please see the reference designs section at www.xmos.com.
-
 
 Required software (dependencies)
 ================================
