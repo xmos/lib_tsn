@@ -43,21 +43,6 @@ unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *u
   return values_length;
 }
 
-static int sampling_rate_from_sfc(int sfc)
-{
-  switch (sfc)
-  {
-    case 0: return 32000;
-    case 1: return 44100;
-    case 2: return 48000;
-    case 3: return 88200;
-    case 4: return 96000;
-    case 5: return 176400;
-    case 6: return 192000;
-    default: return 0;
-  }
-}
-
 static int sfc_from_sampling_rate(int rate)
 {
   switch (rate)
