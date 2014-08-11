@@ -5,6 +5,14 @@ sw_avb_lc Change Log
 -----
   * Add support for channel map buttons on LC board
 
+  * Changes to dependencies:
+
+    - sc_avb: 6.1.2alpha0 -> 6.2.0alpha0
+
+      + Ethernet AVB server now configures auto-negotiation on the PHY
+      + State of MAAP and PTP now reset on link up of single port configuration
+      + Minor bug fixes to 1722.1 descriptors and commands
+
 6.0.2
 -----
 
