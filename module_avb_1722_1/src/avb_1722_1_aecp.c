@@ -160,7 +160,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
     case AEM_STREAM_INPUT_TYPE:
       if (read_id < AVB_NUM_SINKS) {
         descriptor = &desc_stream_input_0[0];
-        desc_size_bytes = sizeof(aem_desc_stream_input_output_t);
+        desc_size_bytes = sizeof(desc_stream_input_0);
       }
       break;
     case AEM_STREAM_PORT_INPUT_TYPE:
@@ -174,7 +174,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
     case AEM_STREAM_OUTPUT_TYPE:
       if (read_id < AVB_NUM_SOURCES) {
         descriptor = &desc_stream_output_0[0];
-        desc_size_bytes = sizeof(aem_desc_stream_input_output_t);
+        desc_size_bytes = sizeof(desc_stream_output_0);
       }
       break;
     case AEM_STREAM_PORT_OUTPUT_TYPE:
