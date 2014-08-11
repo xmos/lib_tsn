@@ -105,7 +105,7 @@ Core Components
 
 .. doxygeninterface:: avb_1722_1_control_callbacks
 
-.. doxygenfunction:: avb_1722_1_task
+.. doxygenfunction:: avb_1722_1_maap_task
 
 .. doxygenstruct:: fl_spi_ports
 

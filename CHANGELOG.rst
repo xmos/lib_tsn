@@ -1,6 +1,12 @@
 sc_avb Change Log
 =================
 
+6.2.0
+-----
+  * Ethernet AVB server now configures auto-negotiation on the PHY
+  * State of MAAP and PTP now reset on link up of single port configuration
+  * Minor bug fixes to 1722.1 descriptors and commands
+
 6.1.2
 -----
   * Various minor SRP compliance fixes
