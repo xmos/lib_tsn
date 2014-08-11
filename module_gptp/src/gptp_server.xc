@@ -9,6 +9,7 @@
 /* These functions are the workhorse functions for the actual protocol.
    They are implemented in gptp.c  */
 void ptp_init(chanend, chanend, enum ptp_server_type stype);
+void ptp_reset(int port_num);
 void ptp_recv(chanend, unsigned char buf[], unsigned ts, unsigned src_port, unsigned len);
 void ptp_periodic(chanend, unsigned);
 void ptp_get_reference_ptp_ts_mod_64(unsigned &hi, unsigned &lo);
@@ -48,6 +49,7 @@ void ptp_server_init(chanend c_rx, chanend c_tx,
 {
 
   mac_set_custom_filter(c_rx, MAC_FILTER_PTP);
+  mac_request_status_packets(c_rx);
 
   ptp_timer :> ptp_timeout;
 
@@ -68,7 +70,16 @@ void ptp_recv_and_process_packet(chanend c_rx, chanend c_tx)
                    ts,
                    src_port,
                    MAX_PTP_MESG_LENGTH);
-  ptp_recv(c_tx, (buf, unsigned char[]), ts, src_port, len);
+  if (len == STATUS_PACKET_LEN) {
+    if (((unsigned char *)buf)[0]) { // Link up
+#if PTP_NUM_PORTS == 1
+      ptp_reset(src_port);
+#endif
+    }
+  }
+  else {
+    ptp_recv(c_tx, (buf, unsigned char[]), ts, src_port, len);
+  }
 }
 
 static void ptp_give_requested_time_info(chanend c, timer ptp_timer)

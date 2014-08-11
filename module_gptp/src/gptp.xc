@@ -79,7 +79,7 @@ static unsigned long long pdelay_epoch_timer;
 static unsigned prev_pdelay_local_ts;
 
 static int tile_timer_offset;
-static int periodic_counter;
+static int periodic_counter[PTP_NUM_PORTS];
 
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
@@ -1359,6 +1359,14 @@ void ptp_recv(chanend c_tx,
     }
 }
 
+void ptp_reset(int port_num) {
+  set_new_role(PTP_MASTER, port_num);
+  last_received_announce_time_valid[port_num] = 0;
+  ptp_port_info[port_num].delay_info.multiple_resp_count = 0;
+  periodic_counter[port_num] = 0;
+  reset_ascapable(port_num);
+}
+
 void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
 {
   unsigned t;
@@ -1374,20 +1382,18 @@ void ptp_init(chanend c_tx, chanend c_rx, enum ptp_server_type stype)
 
   mac_get_macaddr(c_tx, src_mac_addr);
 
-  for (int i=0; i < 3; i ++)
+  for (int i=0; i < 3; i ++) {
     my_port_id.data[i] = src_mac_addr[i];
+  }
 
   my_port_id.data[3] = 0xff;
   my_port_id.data[4] = 0xfe;
-  for (int i=5; i < 8; i ++)
+  for (int i=5; i < 8; i ++) {
     my_port_id.data[i] = src_mac_addr[i-2];
+  }
 
-  for (int i=0; i < PTP_NUM_PORTS; i++)
-  {
-    set_new_role(PTP_MASTER, i);
-    last_received_announce_time_valid[i] = 0;
-    ptp_port_info[i].delay_info.multiple_resp_count = 0;
-    periodic_counter = 0;
+  for (int i=0; i < PTP_NUM_PORTS; i++) {
+    ptp_reset(i);
   }
 
   pdelay_epoch_timer = t;
@@ -1405,12 +1411,12 @@ void ptp_periodic(chanend c_tx, unsigned t)
     int sending_pdelay = (ptp_port_info[i].delay_info.multiple_resp_count < 3);
 
     if (!sending_pdelay) {
-      periodic_counter++;
+      periodic_counter[i]++;
       const int five_minutes_in_periodic = 5 * 60 * (XS1_TIMER_HZ/PTP_PERIODIC_TIME);
-      if (periodic_counter >= five_minutes_in_periodic) {
+      if (periodic_counter[i] >= five_minutes_in_periodic) {
         sending_pdelay = 1;
         ptp_port_info[i].delay_info.multiple_resp_count = 0;
-        periodic_counter = 0;
+        periodic_counter[i] = 0;
       }
     }
 
