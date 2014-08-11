@@ -8,8 +8,11 @@ void avb_ethernet_server(avb_ethernet_ports_t &ports,
 {
   char mac_address[6];
   otp_board_info_get_mac(ports.otp_ports, 0, mac_address);
-  // Start server
   eth_phy_reset(ports.eth_rst);
+
+  smi_init(ports.smi);
+  eth_phy_config(1, ports.smi);
+
   ethernet_server_full(ports.mii, ports.smi,
                        mac_address,
                        c_mac_rx, num_rx,
