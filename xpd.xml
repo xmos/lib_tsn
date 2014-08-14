@@ -59,7 +59,9 @@
         <uri>https://github.com/xcore/sc_ethernet.git</uri>
         <version>2.3.2rc0</version>
     </dependency>
-    <description>AVB-DC specific application software</description>
+    <description>AVB-LC specific application software</description>
+    <docdir>doc</docdir>
+    <docdir>app_avb_lc_demo/doc_quickstart</docdir>
     <exclude_dir>tests</exclude_dir>
     <location>https://github.com/xcore/sw_avb_lc.git</location>
     <name>sw_avb_lc</name>

@@ -4,7 +4,7 @@ sw_avb_lc
 
 :Latest release: 6.0.3beta0
 :Maintainer: ajwlucas
-:Description: AVB-DC specific application software
+:Description: AVB-LC specific application software
 
 
 Key Features
@@ -28,6 +28,10 @@ codecs. The Stream Reservation Protocol is used to reserve bandwidth through 802
 Known Issues
 ============
 
+* Building will generate invalid warning messages that can be ignored:
+    * *WARNING: Include file .build/generated/module_avb_1722_1/aem_descriptors.h missing*
+    * *audio_i2s.h:187: warning: cannot unroll loop due to unknown loop iteration count*
+
 Support
 =======
 
@@ -42,4 +46,3 @@ Required software (dependencies)
   * sc_slicekit_support (git@github.com:xcore/sc_slicekit_support)
   * sc_otp (https://github.com/xcore/sc_otp.git)
   * sc_util (git://github.com/xcore/sc_util)
-

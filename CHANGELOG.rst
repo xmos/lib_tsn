@@ -1,6 +1,10 @@
 sw_avb_lc Change Log
 ====================
 
+6.0.4
+-----
+  * Adds design guide and quick start guide documentation
+
 6.0.3
 -----
   * Add support for channel map buttons on LC board
