@@ -2,7 +2,7 @@
 sw_avb_lc
 ............
 
-:Latest release: 6.0.3beta0
+:Latest release: 6.0.4beta0
 :Maintainer: ajwlucas
 :Description: AVB-LC specific application software
 
@@ -46,3 +46,4 @@ Required software (dependencies)
   * sc_slicekit_support (git@github.com:xcore/sc_slicekit_support)
   * sc_otp (https://github.com/xcore/sc_otp.git)
   * sc_util (git://github.com/xcore/sc_util)
+
