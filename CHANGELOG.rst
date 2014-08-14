@@ -1,6 +1,10 @@
 sc_avb Change Log
 =================
 
+6.2.1
+-----
+  * Fix potential parallel usage violation on PTP client function
+
 6.2.0
 -----
   * Ethernet AVB server now configures auto-negotiation on the PHY
