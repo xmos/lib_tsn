@@ -5,6 +5,12 @@ sw_avb_lc Change Log
 -----
   * Adds design guide and quick start guide documentation
 
+  * Changes to dependencies:
+
+    - sc_avb: 6.2.0alpha0 -> 6.2.1rc0
+
+      + Fix potential parallel usage violation on PTP client function
+
 6.0.3
 -----
   * Add support for channel map buttons on LC board
