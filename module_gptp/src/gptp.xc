@@ -136,9 +136,7 @@ static long long local_time_to_ptp_time(unsigned t, int l_ptp_adjust)
 {
   long long ret = ((long long) t)*10;
 
-  if (g_ptp_adjust_valid) {
-    ret = ret + ((ret * l_ptp_adjust) >> PTP_ADJUST_PREC);
-  }
+  ret = ret + ((ret * l_ptp_adjust) >> PTP_ADJUST_PREC);
   return ret;
 }
 
