@@ -3,7 +3,7 @@
 AVB Endpoint Quick Start Guide
 ==============================
 
-This guide is intended for customers who have purchased the Low-Cost AVB Audio Endpoint Kit (XK-AVB-LC-SYS).
+This guide is intended for customers who have purchased the AVB Audio Endpoint Kit (XK-AVB-LC-SYS).
 It applies to version 6 of the reference design firmware.
 
 Obtaining the latest firmware
