@@ -8,7 +8,7 @@ Obtaining the latest firmware
 -----------------------------
 
 #. Log into xmos.com and access `My XMOS` |submenu| `Reference Designs`
-#. Request access to the `XMOS AVB Reference Design Software` by clicking the `Request Access` link under `AVB Audio Endpoint`. An email will be sent to your registered email address when access is granted.
+#. Request access to the `AVB Endpoint Software` by clicking the `Request Access` link under `AVB Audio Endpoint`. An email will be sent to your registered email address when access is granted.
 #. A `Download` link will appear where the `Request Access` link previously appeared. Click and download the firmware zip.
 
 
@@ -16,7 +16,7 @@ Installing xTIMEcomposer Tools Suite
 ------------------------------------
 
 The AVB-LC software requires xTIMEcomposer version 13.0.2 or greater. It can be downloaded at the following URL
-https://www.xmos.com/en/support/downloads/xtimecomposer
+http://www.xmos.com/support/xtools
 
 
 Importing and building the firmware

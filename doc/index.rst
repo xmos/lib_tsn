@@ -1,5 +1,5 @@
-XMOS AVB-LC Design Guide
-========================
+XMOS AVB Endpoint Design Guide
+==============================
 
 
 .. toctree::

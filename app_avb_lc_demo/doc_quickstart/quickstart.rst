@@ -1,7 +1,7 @@
 .. _avb_quickstart:
 
-AVB Quick Start Guide
-=====================
+AVB Endpoint Quick Start Guide
+==============================
 
 This guide is intended for customers who have purchased the Low-Cost AVB Audio Endpoint Kit (XK-AVB-LC-SYS).
 It applies to version 6 of the reference design firmware.
@@ -10,7 +10,7 @@ Obtaining the latest firmware
 -----------------------------
 
 #. Log into xmos.com and access `My XMOS` |submenu| `Reference Designs`
-#. Request access to the `XMOS AVB Reference Design Software` by clicking the `Request Access` link under `AVB Audio Endpoint`. An email will be sent to your registered email address when access is granted.
+#. Request access to the `AVB Endpoint Software` by clicking the `Request Access` link under `AVB Audio Endpoint`. An email will be sent to your registered email address when access is granted.
 #. A `Download` link will appear where the `Request Access` link previously appeared. Click and download the firmware zip.
 
 
@@ -18,7 +18,7 @@ Installing xTIMEcomposer Studio
 -------------------------------
 
 The AVB-LC software requires xTIMEcomposer version 13.0.2 or greater. It can be downloaded at the following URL
-https://www.xmos.com/en/support/downloads/xtimecomposer
+http://www.xmos.com/support/xtools
 
 
 Importing and building the firmware
@@ -72,6 +72,7 @@ Refer to the above figure for board controls and connectors.
 #. On the second development board, connect an audio playback device to the audio output connector.
 #. If not already powered, connect the power supplies to the input power jacks of the boards and power them on.
 #. A third party 1722.1 Controller application can then be used to connect and disconnect streams between the endpoints.
+
    See https://github.com/audioscience/avdecc-lib for an example command line 1722.1 controller application and library.
 
 .. note:: 
@@ -80,6 +81,9 @@ Refer to the above figure for board controls and connectors.
 Next Steps
 ----------
 
-Read the *AVB Design Guide* to learn more about the XMOS AVB reference design and begin customizing the firmware: https://www.xmos.com/published/avb-reference-design-guide-0
+Access more support collatoral from :menuitem:`xmos.com, Support, Reference designs, AVB audio endpoint`.
 
-Design files for the XR-AVB-LC-BRD board are available from xmos.com: https://www.xmos.com/resources/xkits?category=Low-cost+AVB+Audio+Endpoint+Kit
+Including 
+
+    * AVB Endpoint Design Guide
+    * Design files for XR-AVB-LC-BRD board

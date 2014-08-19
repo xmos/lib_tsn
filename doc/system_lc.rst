@@ -619,16 +619,16 @@ memory is required depending on the number of audio channels.
    - Memory (KB)
  * - 44.1
    - n in/m out
-   - 0.5 x (n+m)
+   - 0.5 x (m)
  * - 48
    - n in/m out
-   - 0.5 x (n+m)
+   - 0.5 x (m)
  * - 88.2
    - n in/m out
-   - 1 x (n+m)
+   - 1 x (m)
  * - 96
    - n in/m out
-   - 1 x (n+m)
+   - 1 x (m)
 
 Configuration/control
 ~~~~~~~~~~~~~~~~~~~~~
