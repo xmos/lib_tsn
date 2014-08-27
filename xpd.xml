@@ -66,6 +66,7 @@
     <location>https://github.com/xcore/sw_avb_lc.git</location>
     <name>sw_avb_lc</name>
     <maintainer>ajwlucas</maintainer>
+    <licence>restricted</licence>
     <partnumber>XM-001711-DH</partnumber>
     <release parenthash = "dc2f592902484715a3a2f874ca406c508a0596c6" version = "6.0.0alpha0" githash = "3d1e4cc2ad1ef268a32b7e142f747da277decdf5"></release>
     <release parenthash = "2b21976cf68225795761c9d01b6dc7398473d39a" version = "6.0.0alpha1" githash = "233cc4ebcc68011c202a358d50b91c7c2ea6ce88"></release>
