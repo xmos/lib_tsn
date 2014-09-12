@@ -25,9 +25,9 @@
 
 #define PTP_DEFAULT_NON_GM_CAPABLE_PRIORITY1 (255)
 #define PTP_DEFAULT_PRIORITY2 (248)
-#define PTP_OFFSET_SCALED_LOG_VARIANCE (1)
 #define PTP_CLOCK_CLASS (248) // Default
 #define PTP_CLOCK_ACCURACY (0x20) // The time is accurate to within 25 ns
+#define PTP_OFFSET_SCALED_LOG_VARIANCE (0x436A) // Not specified or unknown
 #define PTP_TIMESOURCE (0xA0) // internal oscillator
 
 #define PTP_MAXIMUM_PATH_TRACE_TLV (8)
