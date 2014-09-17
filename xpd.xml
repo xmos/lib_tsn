@@ -2,10 +2,10 @@
 <xpd>
     <components>
         <component description = "AVB stack control API" type = "demoCode" scope = "Example" path = "module_avb" local = "false" id = "module_avb" name = "module_avb">
+            <componentDependency repo = "git://github.com/xcore/sc_otp" version = "1.0.0">module_otp_board_info</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_util" version = "1.0.4">module_locks</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.2">module_ethernet</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_ethernet.git" version = "2.3.2">module_ethernet_smi</componentDependency>
-            <componentDependency repo = "git://github.com/xcore/sc_otp" version = "1.0.0">module_otp_board_info</componentDependency>
             <keyword>avb</keyword>
             <keyword>api</keyword>
             <keyword>control</keyword>
@@ -52,7 +52,7 @@
             <keyword>simple_printf</keyword>
         </component>
         <component description = "Implementation of IEEE 802.1AS gPTP clock synchronisation" type = "demoCode" scope = "Example" path = "module_gptp" local = "false" id = "module_gptp" name = "sc_gptp">
-            <componentDependency repo = "git://github.com/xcore/sc_avb.git" version = "6.2.0">module_avb_util</componentDependency>
+            <componentDependency repo = "git://github.com/xcore/sc_avb.git" version = "6.2.1">module_avb_util</componentDependency>
             <componentDependency repo = "git://github.com/xcore/sc_util" version = "1.0.4">module_logging</componentDependency>
             <keyword>avb</keyword>
             <keyword>ptp</keyword>
@@ -125,7 +125,8 @@
     <release parenthash = "12922b346e30baf860f3d7dad85f9f2da2677fe7" version = "6.1.1alpha0" githash = "f8def241650458d14fe79256e07e5869db7e458b"></release>
     <release parenthash = "7f85cc3743ea87c5a6262ab6799faeb1dd8edf8b" version = "6.1.2alpha0" githash = "00f28acd6bc51141f02ef5bbd3bbdc7baa73f159"></release>
     <release parenthash = "44a9cbcab6e1a8e1a1456e06702069817cc77d90" version = "6.2.0alpha0" githash = "44e02c32f6f84a1878290c5396e782f806fb5d6c"></release>
-    <release parenthash = "ae1289d15ba724452d607e1253af8fc932b67068" version = "6.2.1rc0"></release>
+    <release parenthash = "ae1289d15ba724452d607e1253af8fc932b67068" version = "6.2.1rc0" githash = "cafaeeb787b22f1790c0b4c2708fccbfc5c9d734"></release>
+    <release parenthash = "0824794591287fbda821156d4ee3f36c86e29caf" version = "6.2.2beta0"></release>
     <subpartnumber>XM-004459-SM</subpartnumber>
     <vendor>XMOS</vendor>
     <version_defines></version_defines>
