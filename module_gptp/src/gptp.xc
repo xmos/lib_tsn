@@ -1305,26 +1305,27 @@ void ptp_recv(chanend c_tx,
           port_identity_equal(resp_msg->requestingPortIdentity, my_port_id) &&
           src_port+1 == ntoh16(resp_msg->requestingPortId)
           ) {
-          received_pdelay[src_port] = 1;
-          received_pdelay_id[src_port] = ntoh16(msg->sequenceId);
-          pdelay_resp_ingress_ts[src_port] = local_ingress_ts;
-          network_to_ptp_timestamp(pdelay_request_receipt_ts[src_port],
-                                   resp_msg->requestReceiptTimestamp);
+        received_pdelay[src_port] = 1;
+        received_pdelay_id[src_port] = ntoh16(msg->sequenceId);
+        pdelay_resp_ingress_ts[src_port] = local_ingress_ts;
+        network_to_ptp_timestamp(pdelay_request_receipt_ts[src_port],
+                                 resp_msg->requestReceiptTimestamp);
 #if DEBUG_PRINT
-          debug_printf("RX Pdelay resp, Port %d\n", src_port);
+        debug_printf("RX Pdelay resp, Port %d\n", src_port);
 #endif
-          ptp_port_info[src_port].delay_info.rcvd_source_identity = msg->sourcePortIdentity;
-        }
-        else {
-          pdelay_req_reset(src_port);
-        }
-        pdelay_request_sent[src_port] = 0;
+        ptp_port_info[src_port].delay_info.rcvd_source_identity = msg->sourcePortIdentity;
+      }
+      else {
+        pdelay_req_reset(src_port);
+        received_pdelay[src_port] = 0;
+      }
+      pdelay_request_sent[src_port] = 0;
 
       break;
     case PTP_PDELAY_RESP_FOLLOW_UP_MESG:
-      if (received_pdelay[src_port] &&
-          received_pdelay_id[src_port] == ntoh16(msg->sequenceId) &&
-          source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity)) {
+      if (received_pdelay[src_port]) {
+        if (received_pdelay_id[src_port] == ntoh16(msg->sequenceId) &&
+            source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity)) {
           ptp_timestamp pdelay_resp_egress_ts;
           PdelayRespFollowUpMessage *follow_up_msg =
             (PdelayRespFollowUpMessage *) (msg + 1);
@@ -1354,12 +1355,12 @@ void ptp_recv(chanend c_tx,
 #if DEBUG_PRINT
           debug_printf("RX Pdelay resp follow up, Port %d\n", src_port);
 #endif
-
         }
         else {
           pdelay_req_reset(src_port);
         }
-        received_pdelay[src_port] = 0;
+      }
+      received_pdelay[src_port] = 0;
       break;
     }
 }
