@@ -1276,6 +1276,12 @@ void ptp_recv(chanend c_tx,
     case PTP_PDELAY_RESP_MESG:
       PdelayRespMessage *resp_msg = (PdelayRespMessage *) (msg + 1);
 
+      if (received_pdelay[src_port] &&
+          pdelay_req_seq_id[src_port] == ntoh16(msg->sequenceId)) {
+        // Count a lost follow up message
+        pdelay_req_reset(src_port);
+      }
+
       if (!pdelay_request_sent[src_port] &&
           received_pdelay[src_port] &&
           !source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity) &&
