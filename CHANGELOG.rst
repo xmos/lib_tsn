@@ -1,6 +1,9 @@
 sw_avb_lc Change Log
 ====================
 
+6.0.5
+-----
+
 6.0.4
 -----
   * Adds design guide and quick start guide documentation

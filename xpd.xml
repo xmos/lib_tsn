@@ -39,9 +39,9 @@
     </dependency>
     <dependency repo = "sc_avb">
         <gitbranch>master</gitbranch>
-        <githash>cafaeeb787b22f1790c0b4c2708fccbfc5c9d734</githash>
+        <githash>d0bdd5626da78468e462e0e22dd5ae63ada4bd64</githash>
         <uri>https://github.com/xcore/sc_avb.git</uri>
-        <version>6.2.1rc0</version>
+        <version>6.2.2beta0</version>
     </dependency>
     <dependency repo = "sc_util">
         <githash>f09fda14976cf969ae792e7c28b4e5a30e4c1eb9</githash>
@@ -63,10 +63,10 @@
     <docdir>doc</docdir>
     <docdir>app_avb_lc_demo/doc_quickstart</docdir>
     <exclude_dir>tests</exclude_dir>
+    <licence>restricted</licence>
     <location>https://github.com/xcore/sw_avb_lc.git</location>
     <name>sw_avb_lc</name>
     <maintainer>ajwlucas</maintainer>
-    <licence>restricted</licence>
     <partnumber>XM-001711-DH</partnumber>
     <release parenthash = "dc2f592902484715a3a2f874ca406c508a0596c6" version = "6.0.0alpha0" githash = "3d1e4cc2ad1ef268a32b7e142f747da277decdf5"></release>
     <release parenthash = "2b21976cf68225795761c9d01b6dc7398473d39a" version = "6.0.0alpha1" githash = "233cc4ebcc68011c202a358d50b91c7c2ea6ce88"></release>
@@ -74,7 +74,7 @@
     <release parenthash = "67e857c34fab8ef8977612202e74d78d352e2500" version = "6.0.2alpha0" githash = "a70ae4e54b996b3386c60c0f18fe883c0de6378d"></release>
     <release parenthash = "1d45dcaf71f4116007ab6f2556138fb11c79d23a" version = "6.0.3beta0" githash = "2d7a152a45e6801485b1ff5fb1aa290fcf9357a1"></release>
     <release parenthash = "b85f7b97fcb2ae871b3c4ca75c9de96c5d465520" version = "6.0.4beta0" githash = "f6693f72ed824e36cec8ce7b0724a820c79856d9"></release>
-    <release parenthash = "e728c9b9d0339e6586b1d8622a4695dbe6227891" version = "6.0.4rc0"></release>
+    <release parenthash = "e728c9b9d0339e6586b1d8622a4695dbe6227891" version = "6.0.4rc0" githash = "051e7b0b0f1feee34905ddcae5d0d4da1c334d3b"></release>
     <subpartnumber>XR-000008-SW</subpartnumber>
     <vendor>XMOS</vendor>
     <version_defines>
