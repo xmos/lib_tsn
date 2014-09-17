@@ -45,9 +45,8 @@ static unsigned short steps_removed_from_gm;
 /* These variables make up the state of the local clock/port */
 unsigned ptp_reference_local_ts;
 ptp_timestamp ptp_reference_ptp_ts;
-static long long ptp_gmoffset = 0;
-static int expect_gm_discontinuity = 1;
-static int ptp_candidate_gmoffset_valid = 0;
+static int ptp_last_gm_freq_change = 0;
+static int ptp_gm_timebase_ind = 0;
 static n64_t my_port_id;
 static n80_t master_port_id;
 static u8_t ptp_priority1;
@@ -253,10 +252,6 @@ static void set_new_role(enum ptp_port_role_t new_role,
     g_inv_ptp_adjust = 0;
     prev_adjust_valid = 0;
     g_ptp_adjust_valid = 0;
-    // Since there has been a role change there may be a gm discontinuity
-    // to detect
-    expect_gm_discontinuity = 1;
-    ptp_candidate_gmoffset_valid = 0;
     last_pdelay_req_time[port_num] = t;
     sync_lock = 0;
     sync_count = 0;
@@ -266,14 +261,17 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
     debug_printf("PTP Port %d Role: Master\n", port_num);
 
-    // Now we are the master so no rate matching is needed
+    // Now we are the master so no rate matching is needed, but record the last rate for the
+    // follow up TLV
+    // Our internal precision is 2^30, we need to scale to (2^41 * 1/g_ptp_adjust) per the standard
+    ptp_last_gm_freq_change = g_inv_ptp_adjust << 11;
+    ptp_gm_timebase_ind++;
     g_ptp_adjust = 0;
     g_inv_ptp_adjust = 0;
 
     ptp_reference_local_ts =
       ptp_reference_local_ts;
 
-    ptp_gmoffset = 0;
     last_sync_time[port_num] = last_announce_time[port_num] = t;
   }
 
@@ -928,6 +926,9 @@ static void send_ptp_sync_msg(chanend c_tx, int port_num)
   pFollowUpMesg->organizationSubType[0] = 0;
   pFollowUpMesg->organizationSubType[1] = 0;
   pFollowUpMesg->organizationSubType[2] = 1;
+
+  pFollowUpMesg->scaledLastGmFreqChange = hton32(ptp_last_gm_freq_change);
+  pFollowUpMesg->gmTimeBaseIndicator = hton16(ptp_gm_timebase_ind);
 
   ptp_tx(c_tx, buf0, FOLLOWUP_PACKET_SIZE, port_num);
 
