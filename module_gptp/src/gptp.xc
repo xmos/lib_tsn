@@ -246,7 +246,6 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
     debug_printf("PTP Port %d Role: Slave\n", port_num);
 
-    // Reset synotization variables
     ptp_port_info[port_num].delay_info.valid = 0;
     g_ptp_adjust = 0;
     g_inv_ptp_adjust = 0;
@@ -1151,20 +1150,24 @@ static int qualify_announce(ComMessageHdr &alias header, AnnounceMessage &alias 
 }
 
 static void set_ascapable(int eth_port) {
-  ptp_port_info[eth_port].asCapable = 1;
-  set_new_role(PTP_MASTER, eth_port);
+  if (!ptp_port_info[eth_port].asCapable) {
+    ptp_port_info[eth_port].asCapable = 1;
+    set_new_role(PTP_MASTER, eth_port);
 #if DEBUG_PRINT_AS_CAPABLE
-  debug_printf("asCapable = 1\n");
+    debug_printf("asCapable = 1\n");
 #endif
+  }
 }
 
 static void reset_ascapable(int eth_port) {
-  ptp_port_info[eth_port].asCapable = 0;
-  set_new_role(PTP_DISABLED, eth_port);
-
+  if (ptp_port_info[eth_port].asCapable) {
+    ptp_port_info[eth_port].asCapable = 0;
+    ptp_port_info[eth_port].delay_info.exchanges = 0;
+    set_new_role(PTP_DISABLED, eth_port);
 #if DEBUG_PRINT_AS_CAPABLE
-  debug_printf("asCapable = 0\n");
+    debug_printf("asCapable = 0\n");
 #endif
+  }
 }
 
 static void pdelay_req_reset(int src_port) {
@@ -1344,9 +1347,7 @@ void ptp_recv(chanend c_tx,
           if (ptp_port_info[src_port].delay_info.valid &&
               ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS &&
               ptp_port_info[src_port].delay_info.exchanges >= 2) {
-            if (!ptp_port_info[src_port].asCapable) {
               set_ascapable(src_port);
-            }
           }
           else {
             reset_ascapable(src_port);
