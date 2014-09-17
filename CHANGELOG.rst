@@ -1,6 +1,14 @@
 sc_avb Change Log
 =================
 
+6.2.2
+-----
+  * PTP clock accuracy is now reported to be within 25 ns by BMCA
+  * PTP offset scaled log variance is now set to the correct unkown value (0x436A) per IEEE P802.1AS-Cor-1
+  * Grandmaster timeBaseIndicator and lastGmFreqChange parameters are now set in the PTP sync follow up TLV
+  * Pdelay exchanges are marked invalid and asCapable reset if the delay is measured as negative
+  * Fixed issue with lost PTP messages being counted twice, causing a premature asCapable reset 
+
 6.2.1
 -----
   * Fix potential parallel usage violation on PTP client function
