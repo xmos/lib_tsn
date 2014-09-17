@@ -464,12 +464,12 @@ static void update_path_delay(ptp_timestamp &master_ingress_ts,
 
   round_trip = (local_diff - master_diff);
 
-  round_trip -= LOCAL_EGRESS_DELAY;
-
   delay = round_trip / 2;
 
-  if (delay < 0)
-    delay = 0;
+  if (delay < 0) {
+    port_info.delay_info.valid = 0;
+    return;
+  }
 
   if (port_info.delay_info.valid) {
 
