@@ -115,7 +115,6 @@ void avb_1722_1_create_acmp_packet(avb_1722_1_acmp_cmd_resp *cr, int message_typ
     set_64(pkt->controller_guid, cr->controller_guid.c);
     set_64(pkt->listener_guid, cr->listener_guid.c);
     set_64(pkt->talker_guid, cr->talker_guid.c);
-    hton_16(pkt->vlan_id, cr->vlan_id);
     hton_16(pkt->talker_unique_id, cr->talker_unique_id);
     hton_16(pkt->listener_unique_id, cr->listener_unique_id);
     hton_16(pkt->connection_count, cr->connection_count);
@@ -338,7 +337,6 @@ static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp
     get_64(store->controller_guid.c, pkt->controller_guid);
     get_64(store->listener_guid.c, pkt->listener_guid);
     get_64(store->talker_guid.c, pkt->talker_guid);
-    store->vlan_id = ntoh_16(pkt->vlan_id);
     store->talker_unique_id = ntoh_16(pkt->talker_unique_id);
     store->listener_unique_id = ntoh_16(pkt->listener_unique_id);
     store->connection_count = ntoh_16(pkt->connection_count);
