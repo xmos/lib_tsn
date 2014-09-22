@@ -126,5 +126,6 @@ void avb_talker_on_listener_disconnect_default(client interface avb_interface av
   if ((state > AVB_SOURCE_STATE_DISABLED) && (connection_count == 0))
   {
     avb.set_source_state(source_num, AVB_SOURCE_STATE_DISABLED);
+    avb.set_source_vlan(source_num, 0);
   }
 }
