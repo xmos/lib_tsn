@@ -225,9 +225,7 @@ extends client interface avb_interface : {
       return 0;
     avb_source_info_t source;
     source = i._get_source_info(source_num);
-    if (vlan) {
-      source.reservation.vlan_id = vlan;
-    }
+    source.reservation.vlan_id = vlan;
     i._set_source_info(source_num, source);
     return 1;
   }
@@ -570,9 +568,7 @@ extends client interface avb_interface : {
     sink = i._get_sink_info(sink_num);
     if (sink.stream.state != AVB_SINK_STATE_DISABLED)
       return 0;
-    if (vlan) {
-      sink.reservation.vlan_id = vlan;
-    }
+    sink.reservation.vlan_id = vlan;
     i._set_sink_info(sink_num, sink);
     return 1;
   }
