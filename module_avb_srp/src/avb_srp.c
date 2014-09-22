@@ -570,6 +570,14 @@ void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
     if (matched_talker) {
       mrp_mad_leave(matched_talker);
     }
+#if (MRP_NUM_PORTS == 1)
+  mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, 0);
+
+  if (matched_listener) {
+    matched_listener->here = 0;
+    mrp_mad_leave(matched_listener);
+  }
+#endif
   }
 
 }
