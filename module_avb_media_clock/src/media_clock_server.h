@@ -35,6 +35,8 @@ typedef struct media_clock_info_t {
                             ///  this is the id of the output
                             ///  fifo it should be derived from.
   int rate;                 ///<  The rate of the media clock in Hz
+  int lock_counter;         ///< A count of the number of lock events on this media clock
+  int unlock_counter;       ///< A count of the number of unlock events on this media clock
 } media_clock_info_t;
 
 #ifdef __XC__

@@ -108,6 +108,20 @@ typedef struct {
     unsigned char descriptor_id[2];
 } avb_1722_1_aem_getset_control_t;
 
+/* 7.4.42 GET_COUNTERS */
+typedef struct {
+    unsigned char descriptor_type[2];
+    unsigned char descriptor_id[2];
+    unsigned char counters_valid[4];
+    unsigned char counters_block[128];
+} avb_1722_1_aem_get_counters_t;
+
+#define AECP_GET_COUNTERS_CLOCK_DOMAIN_LOCKED_VALID     (0x00000001)
+#define AECP_GET_COUNTERS_CLOCK_DOMAIN_UNLOCKED_VALID   (0x00000002)
+
+#define AECP_GET_COUNTERS_CLOCK_DOMAIN_LOCKED_OFFSET    (0)
+#define AECP_GET_COUNTERS_CLOCK_DOMAIN_UNLOCKED_OFFSET  (4)
+
 /* 7.4.35.1 START_STREAMING */
 typedef struct {
     unsigned char descriptor_type[2];

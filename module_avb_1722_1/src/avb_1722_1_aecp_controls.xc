@@ -261,3 +261,27 @@ unsafe void process_aem_cmd_startstop_streaming(avb_1722_1_aecp_packet_t *unsafe
     else status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
   }
 }
+
+unsafe void process_aem_cmd_get_counters(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                         unsigned char &status,
+                                         client interface avb_interface avb)
+{
+  avb_1722_1_aem_get_counters_t *cmd = (avb_1722_1_aem_get_counters_t *)(pkt->data.aem.command.payload);
+  unsigned short clock_domain_id = ntoh_16(cmd->descriptor_id);
+  unsigned short desc_type = ntoh_16(cmd->descriptor_type);
+
+  if (desc_type == AEM_CLOCK_DOMAIN_TYPE)
+  {
+    if (clock_domain_id < AVB_NUM_MEDIA_CLOCKS) {
+      media_clock_info_t info = avb._get_media_clock_info(clock_domain_id);
+      const int counters_valid = AECP_GET_COUNTERS_CLOCK_DOMAIN_LOCKED_VALID |
+                                 AECP_GET_COUNTERS_CLOCK_DOMAIN_UNLOCKED_VALID;
+      hton_32(cmd->counters_valid, counters_valid);
+      memset(&cmd->counters_block, 0, sizeof(cmd->counters_block));
+      hton_32(&cmd->counters_block[AECP_GET_COUNTERS_CLOCK_DOMAIN_LOCKED_OFFSET], info.lock_counter);
+      hton_32(&cmd->counters_block[AECP_GET_COUNTERS_CLOCK_DOMAIN_UNLOCKED_OFFSET], info.unlock_counter);
+    }
+    else status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+  }
+  else status = AECP_AEM_STATUS_NOT_SUPPORTED;
+}

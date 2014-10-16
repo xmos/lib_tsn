@@ -105,7 +105,7 @@ static void manage_buffer(buf_info_t &b,
 {
   unsigned outgoing_timestamp_local;
   unsigned presentation_timestamp;
-  int locked;
+  int fifo_locked;
   ptp_time_info_mod64 timeInfo;
   unsigned int ptp_outgoing_actual;
   int diff, sample_diff;
@@ -129,7 +129,7 @@ static void manage_buffer(buf_info_t &b,
     buf_ctl <: 0;
     buf_ctl :> othercore_now;
     tmr :> thiscore_now;
-    buf_ctl :> locked;
+    buf_ctl :> fifo_locked;
     buf_ctl :> presentation_timestamp;
     buf_ctl :> outgoing_timestamp_local;
     buf_ctl :> rdptr;
@@ -161,7 +161,7 @@ static void manage_buffer(buf_info_t &b,
                                outgoing_timestamp_local,
                                ptp_outgoing_actual,
                                presentation_timestamp,
-                               locked,
+                               fifo_locked,
                                fill);
 
 
@@ -176,7 +176,7 @@ static void manage_buffer(buf_info_t &b,
 
   sample_diff = diff / ((int) ((wordLength*10) >> WC_FRACTIONAL_BITS));
 
-  if (locked && b.lock_count < LOCK_COUNT_THRESHOLD) {
+  if (fifo_locked && b.lock_count < LOCK_COUNT_THRESHOLD) {
     b.lock_count++;
   }
 
@@ -189,7 +189,7 @@ static void manage_buffer(buf_info_t &b,
     b.stability_count = 0;
   }
 
-  if (!locked && (b.stability_count > STABLE_THRESHOLD)) {
+  if (!fifo_locked && (b.stability_count > STABLE_THRESHOLD)) {
       int max_adjust = MEDIA_OUTPUT_FIFO_WORD_SIZE-MAX_SAMPLES_PER_1722_PACKET;
       if (fill - sample_diff > max_adjust ||
           fill - sample_diff < -max_adjust) {
@@ -209,8 +209,9 @@ static void manage_buffer(buf_info_t &b,
         buf_ctl <: BUF_CTL_ADJUST_FILL;
         buf_ctl <: sample_diff;
         inct(buf_ctl);
+        media_clocks[b.media_clock].info.lock_counter++;
       }
-  } else if (locked &&
+  } else if (fifo_locked &&
            b.lock_count == LOCK_COUNT_THRESHOLD &&
            (sample_diff > LOST_LOCK_THRESHOLD ||
             sample_diff < -LOST_LOCK_THRESHOLD ||
@@ -222,6 +223,7 @@ static void manage_buffer(buf_info_t &b,
       buf_ctl <: b.fifo;
       buf_ctl <: BUF_CTL_RESET;
       inct(buf_ctl);
+      media_clocks[b.media_clock].info.unlock_counter++;
   } else {
       buf_ctl <: b.fifo;
       buf_ctl <: BUF_CTL_ACK;
