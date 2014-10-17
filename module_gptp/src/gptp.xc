@@ -1171,8 +1171,6 @@ static void reset_ascapable(int eth_port) {
 }
 
 static void pdelay_req_reset(int src_port) {
-  received_pdelay[src_port] = 0;
-
   if (ptp_port_info[src_port].delay_info.lost_responses < PTP_ALLOWED_LOST_RESPONSES) {
     ptp_port_info[src_port].delay_info.lost_responses++;
 #if DEBUG_PRINT_AS_CAPABLE
@@ -1300,6 +1298,7 @@ void ptp_recv(chanend c_tx,
         }
         ptp_port_info[src_port].delay_info.last_multiple_resp_seq_id = pdelay_req_seq_id[src_port];
         pdelay_req_reset(src_port);
+        received_pdelay[src_port] = 0;
         break;
       }
 
@@ -1344,6 +1343,10 @@ void ptp_recv(chanend c_tx,
 
           ptp_port_info[src_port].delay_info.exchanges++;
 
+#if DEBUG_PRINT_AS_CAPABLE
+          debug_printf("Average pdelay of %d ns\n", ptp_port_info[src_port].delay_info.pdelay);
+#endif
+
           if (ptp_port_info[src_port].delay_info.valid &&
               ptp_port_info[src_port].delay_info.pdelay <= PTP_NEIGHBOR_PROP_DELAY_THRESH_NS &&
               ptp_port_info[src_port].delay_info.exchanges >= 2) {
@@ -1370,6 +1373,7 @@ void ptp_reset(int port_num) {
   set_new_role(PTP_MASTER, port_num);
   last_received_announce_time_valid[port_num] = 0;
   ptp_port_info[port_num].delay_info.multiple_resp_count = 0;
+  ptp_port_info[port_num].delay_info.pdelay = 0;
   periodic_counter[port_num] = 0;
   reset_ascapable(port_num);
 }
