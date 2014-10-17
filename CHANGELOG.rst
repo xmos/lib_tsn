@@ -4,6 +4,16 @@ sw_avb_lc Change Log
 6.0.6
 -----
 
+  * Changes to dependencies:
+
+    - sc_avb: 6.2.2beta0 -> 6.3.0beta0
+
+      + MEDIA_CLOCK_SOURCE bit now set in 1722.1 ADP Talker Capabilities
+      + 1722.1 GET_COUNTERS command added for CLOCK_DOMAIN descriptor
+      + Minor bug fix in gPTP where multiple pdelay responses were not triggering AVnu specific behaviour
+      + Change to SRP interface to allow SRP to control the joining of VLANs via MVRP
+      + Max frame size reported by SRP changed to reflect the current set sample rate instead of the max supported
+
 6.0.5
 -----
 
