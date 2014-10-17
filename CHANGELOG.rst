@@ -1,6 +1,14 @@
 sc_avb Change Log
 =================
 
+6.3.0
+-----
+  * MEDIA_CLOCK_SOURCE bit now set in 1722.1 ADP Talker Capabilities
+  * 1722.1 GET_COUNTERS command added for CLOCK_DOMAIN descriptor
+  * Minor bug fix in gPTP where multiple pdelay responses were not triggering AVnu specific behaviour
+  * Change to SRP interface to allow SRP to control the joining of VLANs via MVRP
+  * Max frame size reported by SRP changed to reflect the current set sample rate instead of the max supported
+
 6.2.2
 -----
   * PTP clock accuracy is now reported to be within 25 ns by BMCA
