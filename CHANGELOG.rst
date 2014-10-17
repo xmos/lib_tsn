@@ -9,13 +9,19 @@ sc_avb Change Log
   * Change to SRP interface to allow SRP to control the joining of VLANs via MVRP
   * Max frame size reported by SRP changed to reflect the current set sample rate instead of the max supported
 
+  * Changes to dependencies:
+
+    - sc_ethernet: 2.3.2rc0 -> 2.3.3beta0
+
+      + Change to rounding of Qav slope calculation
+
 6.2.2
 -----
   * PTP clock accuracy is now reported to be within 25 ns by BMCA
   * PTP offset scaled log variance is now set to the correct unkown value (0x436A) per IEEE P802.1AS-Cor-1
   * Grandmaster timeBaseIndicator and lastGmFreqChange parameters are now set in the PTP sync follow up TLV
   * Pdelay exchanges are marked invalid and asCapable reset if the delay is measured as negative
-  * Fixed issue with lost PTP messages being counted twice, causing a premature asCapable reset 
+  * Fixed issue with lost PTP messages being counted twice, causing a premature asCapable reset
 
 6.2.1
 -----
