@@ -64,13 +64,13 @@ typedef struct srp_stream_state {
 #ifdef __XC__
 extern "C" {
 #endif
-void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation);
+short avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation);
 #ifdef __XC__
 }
 #endif
 void avb_srp_leave_talker_attrs(unsigned int stream_id[2]);
 void avb_srp_leave_listener_attrs(unsigned int stream_id[2]);
-void avb_srp_join_listener_attrs(unsigned int stream_id[2]);
+short avb_srp_join_listener_attrs(unsigned int stream_id[2], short vlan_id);
 
 int srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st);
 

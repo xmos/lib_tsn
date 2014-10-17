@@ -57,11 +57,11 @@ void avb_srp_task(client interface avb_interface i_avb,
         periodic_timeout += PERIODIC_POLL_TIME;
         break;
       }
-      case i_srp.register_stream_request(avb_srp_info_t stream_info):
+      case i_srp.register_stream_request(avb_srp_info_t stream_info) -> short vid_joined:
       {
         avb_srp_info_t local_stream_info = stream_info;
         debug_printf("MSRP: Register stream request %x:%x\n", stream_info.stream_id[0], stream_info.stream_id[1]);
-        avb_srp_create_and_join_talker_advertise_attrs(&local_stream_info);
+        vid_joined = avb_srp_create_and_join_talker_advertise_attrs(&local_stream_info);
         break;
       }
       case i_srp.deregister_stream_request(unsigned stream_id[2]):
@@ -73,13 +73,13 @@ void avb_srp_task(client interface avb_interface i_avb,
         avb_srp_leave_talker_attrs(local_stream_id);
         break;
       }
-      case i_srp.register_attach_request(unsigned stream_id[2]):
+      case i_srp.register_attach_request(unsigned stream_id[2], short vlan_id) -> short vid_joined:
       {
         unsigned int local_stream_id[2];
         local_stream_id[0] = stream_id[0];
         local_stream_id[1] = stream_id[1];
         debug_printf("MSRP: Register attach request %x:%x\n", local_stream_id[0], local_stream_id[1]);
-        avb_srp_join_listener_attrs(local_stream_id);
+        vid_joined = avb_srp_join_listener_attrs(local_stream_id, vlan_id);
         break;
       }
       case i_srp.deregister_attach_request(unsigned stream_id[2]):

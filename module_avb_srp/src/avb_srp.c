@@ -15,6 +15,7 @@
 #include "avb_1722_router.h"
 #include "avb_api.h"
 #include "ethernet_tx_client.h"
+#include "avb_mvrp.h"
 
 /* This needs to be greater than the actual max number of handled streams, because SRP
    cannot remove the attributes as quickly as a connection can be torn down and setup
@@ -582,13 +583,21 @@ void avb_srp_leave_talker_attrs(unsigned int stream_id[2]) {
 
 }
 
-void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation) {
+short avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation) {
   avb_stream_entry *stream_ptr = srp_add_reservation_entry(reservation);
 
   if (stream_ptr) {
     for (int i=0; i < MRP_NUM_PORTS; i++) {
       mrp_attribute_state *matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, reservation->stream_id, i);
       if (!matched_talker) matched_talker = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, reservation->stream_id, i);
+
+      if (reservation->vlan_id == 0) {
+        // A VID of 0 indicates that we should join the VID from the domain
+        stream_ptr->reservation.vlan_id = current_vlan_id_from_domain;
+      }
+
+      avb_join_vlan(stream_ptr->reservation.vlan_id, i);
+
       if (!matched_talker) {
         mrp_attribute_state *talker_attr = mrp_get_attr();
         if (talker_attr) {
@@ -612,6 +621,7 @@ void avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation)
 #endif
     }
   }
+  return stream_ptr->reservation.vlan_id;
   mrp_debug_dump_attrs();
 }
 
@@ -662,10 +672,12 @@ void avb_srp_leave_listener_attrs(unsigned int stream_id[2]) {
 /* LJN: Listener Join
 */
 
-void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
+short avb_srp_join_listener_attrs(unsigned int stream_id[2], short vlan_id) {
   // LJ1. Find Talker advertise attribute that has not been propagated
   mrp_attribute_state *matched_talker_advertise = mrp_match_type_non_prop_attribute(MSRP_TALKER_ADVERTISE, stream_id, -1);
   mrp_attribute_state *matched_talker_failed = mrp_match_type_non_prop_attribute(MSRP_TALKER_FAILED, stream_id, -1);
+
+  short vid_to_join = vlan_id == 0 ? current_vlan_id_from_domain : vlan_id;
 
   if (matched_talker_advertise) {
     mrp_attribute_state *matched_listener_same_port = mrp_match_attribute_pair_by_stream_id(matched_talker_advertise, 0, 0);
@@ -674,6 +686,7 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
     if (!matched_listener_same_port) {
         matched_listener_same_port = mrp_get_attr();
         if (matched_listener_same_port) {
+          avb_join_vlan(vid_to_join, matched_talker_advertise->port_num);
           mrp_attribute_init(matched_listener_same_port,
                              MSRP_LISTENER,
                              matched_talker_advertise->port_num,
@@ -685,10 +698,13 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
 
     // LJ3. Join Listener Ready on the Talker advertise port
 
-    // If we are attaching to a stream already being Listener to down stream, mark it as originating here
-    // so that we do not propagate a Leave when we disconnect
     if (matched_listener_same_port) {
+      avb_join_vlan(vid_to_join, matched_listener_same_port->port_num);
+#if (MRP_NUM_PORTS == 2)
+      // If we are attaching to a stream already being Listener to down stream, mark it as originating here
+      // so that we do not propagate a Leave when we disconnect
       matched_listener_same_port->here = 1;
+#endif
       mrp_mad_join(matched_listener_same_port, 1);
     }
   }
@@ -698,6 +714,7 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
     if (stream_ptr) {
       for (int i=0; i < MRP_NUM_PORTS; i++) {
         mrp_attribute_state *matched_listener = mrp_match_type_non_prop_attribute(MSRP_LISTENER, stream_id, i);
+        avb_join_vlan(vid_to_join, i);
         if (!matched_listener) {
           mrp_attribute_state *listener_attr = mrp_get_attr();
           if (listener_attr) {
@@ -734,6 +751,7 @@ void avb_srp_join_listener_attrs(unsigned int stream_id[2]) {
   }
 
   mrp_debug_dump_attrs();
+  return vid_to_join;
 }
 
 

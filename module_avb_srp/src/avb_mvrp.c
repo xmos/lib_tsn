@@ -59,6 +59,7 @@ int avb_join_vlan(int vlan, int port_num)
     entries[found].vlan = vlan;
     mrp_mad_begin(entries[found].attr);
     mrp_mad_join(entries[found].attr, 1);
+    debug_printf("MVRP: Joined VID %d\n", vlan);
     return 1;
   }
 
@@ -75,6 +76,7 @@ void avb_leave_vlan(int vlan)
 
   if (found != -1) {
     mrp_mad_leave(entries[found].attr);
+    debug_printf("MVRP: Left VID %d\n", vlan);
     entries[found].active = 0;
   }
 }

@@ -16,7 +16,7 @@ interface srp_interface {
    *
    *  \param stream_info Struct of type avb_srp_info_t containing parameters of the stream to register
    */
-  void register_stream_request(avb_srp_info_t stream_info);
+  short register_stream_request(avb_srp_info_t stream_info);
 
   /** Used by a Talker application entity to request removal of the Talker’s advertisement declaration,
    *  and thus remove the advertisement of a Stream, from the network.
@@ -29,7 +29,7 @@ interface srp_interface {
    *
    *  \param stream_id two int array containing the Stream ID of the stream to register
    */
-  void register_attach_request(unsigned stream_id[2]);
+  short register_attach_request(unsigned stream_id[2], short vlan_id);
 
   /** Used by a Listener application entity to remove the request to attach to the referenced Stream.
    *
