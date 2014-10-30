@@ -186,13 +186,7 @@ media_input_fifo_get_packet(media_input_fifo_t media_input_fifo0,
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
   int *rdIndex = (int *) media_input_fifo->rdIndex;
 
-  while (media_input_fifo->rdIndex==0);
-
   rdIndex = (int *) media_input_fifo->rdIndex;
-
-  while (rdIndex == (int *) media_input_fifo->startIndex);
-
-
   *ts = *rdIndex;
   *dbc = *(rdIndex+1);
 
