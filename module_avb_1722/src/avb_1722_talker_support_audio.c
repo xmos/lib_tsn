@@ -160,12 +160,6 @@ int avb1722_create_packet(unsigned char Buf0[],
     int dbc;
     int pkt_data_length;
 
-    if (stream_info->initial)
-    {
-        if (media_input_fifo_fill_level(map[0]) < MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE/2)
-            return 0;
-    }
-
     // Figure out the number of samples in the 1722 packet
     samples_in_packet = stream_info->samples_per_packet_base;
 
@@ -176,10 +170,6 @@ int avb1722_create_packet(unsigned char Buf0[],
         stream_info->rem &= 0xffff;
     }
 
-    if (stream_info->initial)
-    {
-        if (media_input_fifo_fill_level(map[0]) < MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE/2) return 0;
-    }
 
     // Check to see if there is something that can be transmitted.  If there is not, then we give up
     // transmitting this packet, because there may be other streams serviced by this thread which
@@ -194,11 +184,9 @@ int avb1722_create_packet(unsigned char Buf0[],
         // enough samples present so that this thread won't wait for data
         //
         // The worst-case is that it will read twice from the media_input_fifo
-        const int need_more_data = stream_info->initial != 0 ||
-            stream_info->samples_left_in_fifo_packet < samples_in_packet;
-        if (need_more_data)
+        if (!stream_info->initial && stream_info->samples_left_in_fifo_packet < samples_in_packet)
         {
-            const int not_enough_data = media_input_fifo_fill_level(map[i]) < (2 * samples_per_fifo_packet);
+            const int not_enough_data = (media_input_fifo_fill_level(map[i]) < (2 * samples_in_packet));
             if (not_enough_data)
                 return 0;
         }
