@@ -1163,6 +1163,8 @@ static void reset_ascapable(int eth_port) {
   if (ptp_port_info[eth_port].asCapable) {
     ptp_port_info[eth_port].asCapable = 0;
     ptp_port_info[eth_port].delay_info.exchanges = 0;
+    ptp_port_info[eth_port].delay_info.pdelay = 0;
+    ptp_port_info[eth_port].delay_info.valid = 0;
     set_new_role(PTP_DISABLED, eth_port);
 #if DEBUG_PRINT_AS_CAPABLE
     debug_printf("asCapable = 0\n");
@@ -1277,12 +1279,6 @@ void ptp_recv(chanend c_tx,
     case PTP_PDELAY_RESP_MESG:
       PdelayRespMessage *resp_msg = (PdelayRespMessage *) (msg + 1);
 
-      if (received_pdelay[src_port] &&
-          pdelay_req_seq_id[src_port] == ntoh16(msg->sequenceId)) {
-        // Count a lost follow up message
-        pdelay_req_reset(src_port);
-      }
-
       if (!pdelay_request_sent[src_port] &&
           received_pdelay[src_port] &&
           !source_port_identity_equal(msg->sourcePortIdentity, ptp_port_info[src_port].delay_info.rcvd_source_identity) &&
@@ -1298,8 +1294,14 @@ void ptp_recv(chanend c_tx,
         }
         ptp_port_info[src_port].delay_info.last_multiple_resp_seq_id = pdelay_req_seq_id[src_port];
         pdelay_req_reset(src_port);
-        received_pdelay[src_port] = 0;
         break;
+      }
+
+      if (received_pdelay[src_port] &&
+          pdelay_req_seq_id[src_port] == ntoh16(msg->sequenceId)) {
+        // Count a lost follow up message
+        received_pdelay[src_port] = 0;
+        pdelay_req_reset(src_port);
       }
 
       if (pdelay_request_sent[src_port] &&
@@ -1319,7 +1321,6 @@ void ptp_recv(chanend c_tx,
       }
       else {
         pdelay_req_reset(src_port);
-        received_pdelay[src_port] = 0;
       }
       pdelay_request_sent[src_port] = 0;
 
