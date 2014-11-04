@@ -1,6 +1,12 @@
 sc_avb Change Log
 =================
 
+6.3.1
+-----
+  * Bug fix for excessive Talker AVTP presentation time being absorbed in the FIFOs for a short period at start
+  * Fixes regression in bad gPTP pdelay follow up detection
+  * Bug fix for reported base audio clusters in AEM stream descriptors
+
 6.3.0
 -----
   * MEDIA_CLOCK_SOURCE bit now set in 1722.1 ADP Talker Capabilities
