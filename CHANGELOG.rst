@@ -5,6 +5,14 @@ sw_avb_lc Change Log
 -----
   * Firmware version submitted for final AVnu certification run
 
+  * Changes to dependencies:
+
+    - sc_avb: 6.3.0beta0 -> 6.3.1beta0
+
+      + Bug fix for excessive Talker AVTP presentation time being absorbed in the FIFOs for a short period at start
+      + Fixes regression in bad gPTP pdelay follow up detection
+      + Bug fix for reported base audio clusters in AEM stream descriptors
+
 6.0.6
 -----
 
