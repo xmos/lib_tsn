@@ -1,6 +1,10 @@
 sw_avb_lc Change Log
 ====================
 
+6.0.7
+-----
+  * Firmware version submitted for final AVnu certification run
+
 6.0.6
 -----
 

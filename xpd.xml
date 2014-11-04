@@ -39,9 +39,9 @@
     </dependency>
     <dependency repo = "sc_avb">
         <gitbranch>master</gitbranch>
-        <githash>9996af655e240c942a411759d313127b29858cbd</githash>
+        <githash>ef63831fb5568b3c7dabfc592d87a95e777dfd6d</githash>
         <uri>https://github.com/xcore/sc_avb.git</uri>
-        <version>6.3.0beta0</version>
+        <version>6.3.1beta0</version>
     </dependency>
     <dependency repo = "sc_util">
         <gitbranch>master</gitbranch>
@@ -77,7 +77,7 @@
     <release parenthash = "b85f7b97fcb2ae871b3c4ca75c9de96c5d465520" version = "6.0.4beta0" githash = "f6693f72ed824e36cec8ce7b0724a820c79856d9"></release>
     <release parenthash = "e728c9b9d0339e6586b1d8622a4695dbe6227891" version = "6.0.4rc0" githash = "051e7b0b0f1feee34905ddcae5d0d4da1c334d3b"></release>
     <release parenthash = "0137e61fb30cd4f1cdf71f35c682186f45892e68" version = "6.0.5beta0" githash = "d4b36020fde9d35f0f2c5a925cd218d1f561d6db"></release>
-    <release parenthash = "f463b167709284fb588d3d144556be7d329a6935" version = "6.0.6beta0"></release>
+    <release parenthash = "f463b167709284fb588d3d144556be7d329a6935" version = "6.0.6beta0" githash = "ff36b0afb81fcd3dbe02b465b38b53241d1cbc0c"></release>
     <subpartnumber>XR-000008-SW</subpartnumber>
     <vendor>XMOS</vendor>
     <version_defines>
