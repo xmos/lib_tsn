@@ -8,7 +8,7 @@
 #include "avb_1722_router_table.h"
 #include "print.h"
 #include "debug_print.h"
-#include "ethernet_tx_client.h"
+#include "ethernet.h"
 static chanend avb_1722_links[MAX_AVB_1722_ROUTER_LINKS];
 
 #define AVB_1722_ROUTER_UNMAPPED -1

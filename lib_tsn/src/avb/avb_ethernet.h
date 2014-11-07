@@ -3,7 +3,6 @@
 #include "xccompat.h"
 #include "otp_board_info.h"
 #include "ethernet.h"
-#include "mii.h"
 
 #ifdef __XC__
 typedef struct avb_ethernet_ports_s {

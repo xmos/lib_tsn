@@ -7,9 +7,7 @@
 #include "avb_1722_listener.h"
 #include "avb_1722_talker.h"
 #include "media_fifo.h"
-#include "ethernet_server_def.h"
-#include "ethernet_tx_client.h"
-#include "ethernet_rx_client.h"
+#include "ethernet.h"
 
 #if AVB_NUM_SOURCES != 0
 

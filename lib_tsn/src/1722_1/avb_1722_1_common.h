@@ -3,7 +3,7 @@
 
 #include <xclib.h>
 #include "nettypes.h"
-#include "ethernet_tx_client.h"
+#include "ethernet.h"
 #include "avb_1722_1_protocol.h"
 #include "xccompat.h"
 #include "xc2compat.h"

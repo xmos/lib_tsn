@@ -7,7 +7,7 @@
 #include "avb_1722_maap.h"
 #include "avb_1722_maap_protocol.h"
 #include "avb_control_types.h"
-#include "ethernet_tx_client.h"
+#include "ethernet.h"
 #include "misc_timer.h"
 #include "nettypes.h"
 #include "random.h"

@@ -9,10 +9,7 @@
 #include <string.h>
 #include "debug_print.h"
 #include <print.h>
-#include "ethernet_tx_client.h"
-#include "ethernet_rx_client.h"
-#include "ethernet_server_def.h"
-#include "mac_filter.h"
+#include "ethernet.h"
 #include "avb_1722_maap.h"
 #include "nettypes.h"
 #include "avb_1722_router.h"

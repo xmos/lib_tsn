@@ -4,10 +4,8 @@
 #include "avb_mrp.h"
 #include "avb_srp.h"
 #include "avb_mvrp.h"
-#include "ethernet_tx_client.h"
-#include "ethernet_rx_client.h"
+#include "ethernet.h"
 #include "avb_1722_router.h"
-#include "ethernet_server_def.h"
 #include "avb_mac_filter.h"
 #include "avb_srp_interface.h"
 

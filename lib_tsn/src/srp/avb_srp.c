@@ -14,7 +14,7 @@
 #include "debug_print.h"
 #include "avb_1722_router.h"
 #include "avb_api.h"
-#include "ethernet_tx_client.h"
+#include "ethernet.h"
 #include "avb_mvrp.h"
 
 /* This needs to be greater than the actual max number of handled streams, because SRP

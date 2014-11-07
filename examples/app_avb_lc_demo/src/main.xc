@@ -12,7 +12,6 @@
 #include "audio_codec_CS4270.h"
 #include "debug_print.h"
 #include "media_fifo.h"
-#include "ethernet_board_support.h"
 #include "simple_demo_controller.h"
 #include "avb_1722_1_adp.h"
 #include "app_config.h"

@@ -6,7 +6,7 @@
 #include "avb_mvrp_pdu.h"
 #include "avb_srp_pdu.h"
 #include "misc_timer.h"
-#include "ethernet_tx_client.h"
+#include "ethernet.h"
 #include <string.h>
 #include <print.h>
 #include "debug_print.h"

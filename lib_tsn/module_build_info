@@ -11,11 +11,20 @@
 
 DEPENDENT_MODULES = lib_ethernet lib_i2c lib_logging lib_xassert
 
-OPTIONAL_HEADERS += ethernet_conf.h
+OPTIONAL_HEADERS += ethernet_conf.h avb_flash_conf.h
 
 MODULE_XCC_XC_FLAGS = $(XCC_FLAGS) -g -Os
 MODULE_XCC_C_FLAGS = $(XCC_FLAGS) -g -Os
 
 XCC_FLAGS_media_clock_server.xc = $(XCC_FLAGS) -f -O3
+
+GENERATED_FILES = aem_descriptors.h aem_entity_strings.h
+
+$(GEN_DIR)/aem_descriptors.generated: $(call UNMANGLE,$(CURRENT_MODULE_DIR)/src/1722_1/generate.py) $(call UNMANGLE, src/aem_descriptors.h.in) $(call UNMANGLE,src/aem_entity_strings.h.in)  | $(GEN_DIR)
+	@echo "Generating AEM header files"
+	@echo "generated" > $(GEN_DIR)/aem_descriptors.generated
+	@xta --console-basic source "$(call UNMANGLE_NO_ESCAPE,$(CURRENT_MODULE_DIR)/src/1722_1/generate.py)" "$(call UNMANGLE_NO_ESCAPE, src/)" $(GEN_DIR) -exit
+$(GEN_DIR)/aem_descriptors.h: $(GEN_DIR)/aem_descriptors.generated
+$(GEN_DIR)/aem_entity_strings.h: $(GEN_DIR)/aem_descriptors.generated
 
 VERSION = 7.0.0

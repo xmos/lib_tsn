@@ -11,13 +11,10 @@
 #include "avb_1722.h"
 #include "avb_1722_listener.h"
 #include "media_fifo.h"
-#include "ethernet_server_def.h"
-#include "ethernet_tx_client.h"
-#include "ethernet_rx_client.h"
+#include "ethernet.h"
 
 #include "avb_srp.h"
 #include "avb_unit.h"
-#include "mac_filter.h"
 #include "avb_conf.h"
  #include <debug_print.h>
 
