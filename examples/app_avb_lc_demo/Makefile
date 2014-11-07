@@ -34,16 +34,10 @@ XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline
 
 # The USED_MODULES variable lists other module used by the application. 
 
-USED_MODULES = module_avb_1722 module_avb_1722_maap module_avb_srp module_avb_media_clock module_avb_audio module_random
-USED_MODULES += module_avb module_avb_util module_gptp module_ethernet module_ethernet_board_support module_avb_1722_1
-USED_MODULES += module_avb_flash module_logging
-
-ifeq ($(TARGET),$(filter $(TARGET),XR-AVB-LC-BRD D4U-AVB-DG SLICEKIT-L2))
-    USED_MODULES += module_i2c_simple
-endif
+USED_MODULES = lib_ethernet lib_otpinfo lib_i2c lib_tsn
 
 ifeq ($(TARGET),SLICEKIT-L2)
-    USED_MODULES += module_slicekit_support
+    USED_MODULES += lib_slicekit_support
 endif
 
 
