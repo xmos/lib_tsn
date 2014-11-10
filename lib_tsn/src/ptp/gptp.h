@@ -2,6 +2,7 @@
 #define __gptp_h__
 
 #include <xccompat.h>
+#include "ethernet.h"
 #include "nettypes.h"
 
 #define PTP_ADJUST_PREC 30
@@ -99,7 +100,7 @@ typedef struct ptp_port_info_t {
     \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
                        or ``PTP_SLAVE_ONLY``)
  **/
-void ptp_server(chanend mac_rx, chanend mac_tx,
+void ptp_server(CLIENT_INTERFACE(ethernet_if, i_eth),
                 chanend ptp_clients[], int num_clients,
                 enum ptp_server_type server_type);
 
@@ -298,34 +299,34 @@ void ptp_get_current_grandmaster(chanend ptp_server, unsigned char grandmaster[8
  *
  *  \sa do_ptp_server
  **/
-void ptp_server_init(chanend mac_rx, chanend mac_tx,
+void ptp_server_init(CLIENT_INTERFACE(ethernet_if, i_eth),
                      enum ptp_server_type server_type,
                      timer ptp_timer,
                      REFERENCE_PARAM(int, ptp_timeout));
 
 
 #ifdef __XC__
-#pragma select handler
+void ptp_recv_and_process_packet(client interface ethernet_if i_eth);
 #endif
-void ptp_recv_and_process_packet(chanend c_rx, chanend c_tx);
 #ifdef __XC__
 #pragma select handler
 #endif
 void ptp_process_client_request(chanend c, timer ptp_timer);
-void ptp_periodic(chanend, unsigned);
+void ptp_periodic(CLIENT_INTERFACE(ethernet_if, i_eth), unsigned);
 #define PTP_PERIODIC_TIME (10000)  // 0.tfp1 milliseconds
 
 
 
 
 
-#define do_ptp_server(c_rx, c_tx, client, num_clients, ptp_timer, ptp_timeout)      \
-  case ptp_recv_and_process_packet(c_rx, c_tx): \
+#define do_ptp_server(i_eth, client, num_clients, ptp_timer, ptp_timeout)      \
+  case i_eth.packet_ready(): \
+       ptp_recv_and_process_packet(i_eth); \
        break;                     \
  case (int i=0;i<num_clients;i++) ptp_process_client_request(client[i], ptp_timer): \
        break; \
   case ptp_timer when timerafter(ptp_timeout) :> void: \
-       ptp_periodic(c_tx, ptp_timeout); \
+       ptp_periodic(i_eth, ptp_timeout); \
        ptp_timeout += PTP_PERIODIC_TIME; \
        break
 

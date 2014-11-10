@@ -31,22 +31,11 @@ static unsigned char regdata[8] = {0x01,0x35,0x09,0x60,0x00,0x00,0x00,0x00};
 void audio_codec_CS4270_init(out port p_codec_reset,
                               int mask,
                               int codec_addr,
-                        #if I2C_COMBINE_SCL_SDA
-                              port r_i2c
-                        #else
-                              struct r_i2c &r_i2c
-                        #endif
-                              )
+                              client interface i2c_master_if i2c)
 {
   timer tmr;
   unsigned time;
   char data[1];
-
-#if I2C_COMBINE_SCL_SDA
-  // Unfortunately the single port and simple I2C APIs do not currently match
-  // with regards the device address
-  deviceAddr <<= 1;
-#endif
 
   // Bring codec out of reset
   p_codec_reset <: 0xF;
@@ -57,7 +46,7 @@ void audio_codec_CS4270_init(out port p_codec_reset,
 
   for(int i = 0; i < 8; i++) {
     data[0] = regdata[i];
-    i2c_master_write_reg(codec_addr, regaddr[i], data, 1, r_i2c);
+    i2c_res_t result = i2c.write_reg(codec_addr, regaddr[i], data[0]);
   }
 
 }

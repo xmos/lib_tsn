@@ -5,6 +5,7 @@
 
 #ifndef _AVB1722_TOP_H_
 #define _AVB1722_TOP_H_ 1
+#include "ethernet.h"
 
 #ifdef __XC__
 
@@ -21,7 +22,7 @@
  *  \param num_streams      the number of streams the unit controls
  **/
 void avb_1722_talker(chanend c_ptp,
-                     chanend c_mac_tx,
+                     client interface ethernet_if i_eth,
                      chanend c_talker_ctl,
                      int num_streams);
 
@@ -40,7 +41,7 @@ void avb_1722_talker(chanend c_ptp,
  *                          to avb_init())
  *  \param num_streams      the number of streams the unit will handle
  */
-void avb_1722_listener(chanend c_mac_rx,
+void avb_1722_listener(client interface ethernet_if i_eth,
                        chanend? c_buf_ctl,
                        chanend? c_ptp_ctl,
                        chanend c_listener_ctl,
@@ -49,8 +50,7 @@ void avb_1722_listener(chanend c_mac_rx,
 
 
 void avb_1722_talkerlistener(chanend c_ptp,
-                             chanend c_mac_rx,
-                             chanend c_mac_tx,
+                             client interface ethernet_if i_eth,
                              chanend c_listener_ctl,
                              chanend c_talker_ctl,
                              chanend c_buf_ctl,

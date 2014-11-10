@@ -11,12 +11,12 @@
 
 DEPENDENT_MODULES = lib_ethernet lib_i2c lib_logging lib_xassert
 
-OPTIONAL_HEADERS += ethernet_conf.h avb_flash_conf.h
+OPTIONAL_HEADERS += ethernet_conf.h avb_flash_conf.h random_conf.h avb_conf.h
 
 MODULE_XCC_XC_FLAGS = $(XCC_FLAGS) -g -Os
 MODULE_XCC_C_FLAGS = $(XCC_FLAGS) -g -Os
 
-XCC_FLAGS_media_clock_server.xc = $(XCC_FLAGS) -f -O3
+XCC_FLAGS_media_clock_server.xc = $(XCC_FLAGS) -g -O3
 
 GENERATED_FILES = aem_descriptors.h aem_entity_strings.h
 

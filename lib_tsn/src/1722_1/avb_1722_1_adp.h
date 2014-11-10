@@ -4,15 +4,16 @@
 #include "avb_api.h"
 #include "avb_1722_1_adp_pdu.h"
 #include "avb_control_types.h"
+#include "ethernet.h"
 
 #define AVB_1722_1_ADP_DEST_MAC {0x91, 0xe0, 0xf0, 0x01, 0x00, 0x00};
 
 void avb_1722_1_adp_init();
 
-void process_avb_1722_1_adp_packet(REFERENCE_PARAM(avb_1722_1_adp_packet_t, pkt), chanend c_tx);
-void avb_1722_1_adp_advertising_periodic(chanend c_tx, chanend ptp);
+void process_avb_1722_1_adp_packet(REFERENCE_PARAM(avb_1722_1_adp_packet_t, pkt), CLIENT_INTERFACE(ethernet_if, i_eth));
+void avb_1722_1_adp_advertising_periodic(CLIENT_INTERFACE(ethernet_if, i_eth), chanend ptp);
 #ifdef __XC__
-void avb_1722_1_adp_discovery_periodic(chanend c_tx, client interface avb_interface avb);
+void avb_1722_1_adp_discovery_periodic(client interface ethernet_if i_eth, client interface avb_interface avb);
 #endif
 int avb_1722_1_get_latest_new_entity_idx();
 

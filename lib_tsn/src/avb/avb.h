@@ -8,6 +8,7 @@
 #include "avb_1722_1_callbacks.h"
 #include "spi.h"
 #include "media_clock_server.h"
+#include "ethernet.h"
 
 #ifndef MAX_AVB_CONTROL_PACKET_SIZE
 #define MAX_AVB_CONTROL_PACKET_SIZE (1518)
@@ -33,30 +34,11 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
                  chanend c_media_ctl[],
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
-                 chanend c_mac_tx,
+                 client interface ethernet_if i_eth,
                  client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp);
 #endif
 
-/** Receives an 802.1Qat SRP packet or an IEEE 1722 control packet.
- *
- *  This function receives an AVB control packet from the ethernet MAC.
- *  It is selectable so can be used in a select statement as a case.
- *
- *  \param c_rx     chanend connected to the ethernet component
- *  \param buf      buffer to retrieve the packet into; buffer
- *                  must have length at least ``MAX_AVB_CONTROL_PACKET_SIZE``
- *                  bytes
- *  \param nbytes   a reference parameter that is filled with the length
- *                  of the received packet
- **/
-#ifdef __XC__
-#pragma select handler
-#endif
-void avb_get_control_packet(chanend c_rx,
-                            unsigned int buf[],
-                            REFERENCE_PARAM(unsigned int, nbytes),
-                            REFERENCE_PARAM(unsigned int, port_num));
 
 #ifdef __XC__
 /** Process an AVB 1722 control packet.
@@ -75,7 +57,8 @@ void avb_get_control_packet(chanend c_rx,
  **/
 void avb_process_1722_control_packet(unsigned int buf[],
                                     unsigned nbytes,
-                                    chanend c_tx,
+                                    eth_packet_type_t packet_type,
+                                    client interface ethernet_if i_eth,
                                     client interface avb_interface i_avb,
                                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
                                     client interface spi_interface ?i_spi);
@@ -96,7 +79,8 @@ void avb_process_1722_control_packet(unsigned int buf[],
  **/
 void avb_process_srp_control_packet(client interface avb_interface i_avb,
                                unsigned int buf[], unsigned len,
-                               chanend c_tx,
+                               eth_packet_type_t packet_type,
+                               client interface ethernet_if i_eth,
                                unsigned int port_num);
 #endif
 

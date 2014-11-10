@@ -3,14 +3,15 @@
 #include "gptp_cmd.h"
 #include "gptp_config.h"
 #include "ethernet.h"
-#include "print.h"
+#include "avb_mac_filter.h"
+#include "debug_print.h"
 
 /* These functions are the workhorse functions for the actual protocol.
    They are implemented in gptp.c  */
-void ptp_init(chanend, chanend, enum ptp_server_type stype);
+void ptp_init(client interface ethernet_if, enum ptp_server_type stype);
 void ptp_reset(int port_num);
-void ptp_recv(chanend, unsigned char buf[], unsigned ts, unsigned src_port, unsigned len);
-void ptp_periodic(chanend, unsigned);
+void ptp_recv(client interface ethernet_if, unsigned char buf[], unsigned ts, unsigned src_port, unsigned len);
+void ptp_periodic(client interface ethernet_if, unsigned);
 void ptp_get_reference_ptp_ts_mod_64(unsigned &hi, unsigned &lo);
 void ptp_current_grandmaster(char grandmaster[8]);
 ptp_port_role_t ptp_current_state(void);
@@ -31,53 +32,35 @@ extern ptp_timestamp ptp_reference_ptp_ts;
 extern signed int g_ptp_adjust;
 extern signed int g_inv_ptp_adjust;
 
-#define do_ptp_server(c_rx, c_tx, client, num_clients, ptp_timer, ptp_timeout)      \
-  case ptp_recv_and_process_packet(c_rx, c_tx): \
-       break;                     \
- case (int i=0;i<num_clients;i++) ptp_process_client_request(client[i], ptp_timer): \
-       break; \
-  case ptp_timer when timerafter(ptp_timeout) :> void: \
-       ptp_periodic(c_tx, ptp_timeout); \
-       ptp_timeout += PTP_PERIODIC_TIME; \
-       break
-
-void ptp_server_init(chanend c_rx, chanend c_tx,
+void ptp_server_init(client interface ethernet_if i_eth,
                      enum ptp_server_type server_type,
                      timer ptp_timer,
                      int &ptp_timeout)
 {
 
-  mac_set_custom_filter(c_rx, MAC_FILTER_PTP);
-  mac_request_status_packets(c_rx);
+  i_eth.set_receive_filter_mask(1 << MAC_FILTER_PTP);
 
   ptp_timer :> ptp_timeout;
 
-  ptp_init(c_tx, c_rx, server_type);
+  ptp_init(i_eth, server_type);
 
 }
 
-#pragma select handler
-void ptp_recv_and_process_packet(chanend c_rx, chanend c_tx)
+void ptp_recv_and_process_packet(client interface ethernet_if i_eth)
 {
-  unsigned int buf[MAX_PTP_MESG_LENGTH/4];
-  unsigned ts;
-  unsigned src_port;
-  unsigned len;
-  safe_mac_rx_timed(c_rx,
-                   (buf, unsigned char[]),
-                   len,
-                   ts,
-                   src_port,
-                   MAX_PTP_MESG_LENGTH);
-  if (len == STATUS_PACKET_LEN) {
-    if (((unsigned char *)buf)[0]) { // Link up
-#if PTP_NUM_PORTS == 1
-      ptp_reset(src_port);
-#endif
+  unsigned char buf[MAX_PTP_MESG_LENGTH];
+
+  ethernet_packet_info_t packet_info;
+  i_eth.get_packet(packet_info, buf, MAX_PTP_MESG_LENGTH);
+
+
+  if (packet_info.type == ETH_IF_STATUS) {
+    if (buf[1] == ETHERNET_LINK_UP) {
+      ptp_reset(packet_info.src_port);
     }
   }
-  else {
-    ptp_recv(c_tx, (buf, unsigned char[]), ts, src_port, len);
+  else if (packet_info.type == ETH_DATA) {
+    ptp_recv(i_eth, buf, packet_info.timestamp, packet_info.src_port, packet_info.len);
   }
 }
 
@@ -169,18 +152,18 @@ void ptp_process_client_request(chanend c, timer ptp_timer)
 }
 
 
-void ptp_server(chanend c_rx, chanend c_tx,
+void ptp_server(client interface ethernet_if i_eth,
                 chanend ptp_clients[], int num_clients,
                 enum ptp_server_type server_type)
 {
   timer ptp_timer;
   int ptp_timeout;
-  ptp_server_init(c_rx, c_tx, server_type, ptp_timer, ptp_timeout);
+  ptp_server_init(i_eth, server_type, ptp_timer, ptp_timeout);
 
   while (1) {
     select
       {
-        do_ptp_server(c_rx, c_tx, ptp_clients, num_clients, ptp_timer, ptp_timeout);
+        do_ptp_server(i_eth, ptp_clients, num_clients, ptp_timer, ptp_timeout);
       }
   }
 }

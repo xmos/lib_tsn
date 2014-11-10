@@ -55,7 +55,7 @@ static void keys_from_stream_id(unsigned int stream_id[2], int *key0, int *key1)
         (s[6] << 24);
 }
 
-void avb_1722_enable_stream_forwarding(chanend c_tx,
+void avb_1722_enable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
                                       unsigned int stream_id[2]) {
   int key0, key1;
   keys_from_stream_id(stream_id, &key0, &key1);
@@ -64,10 +64,10 @@ void avb_1722_enable_stream_forwarding(chanend c_tx,
     debug_printf("1722 router: Enabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
-  mac_1722_router_enable_forwarding(c_tx, key0, key1);
+  // mac_1722_router_enable_forwarding(i_eth, key0, key1);
 }
 
-void avb_1722_disable_stream_forwarding(chanend c_tx,
+void avb_1722_disable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
                                        unsigned int stream_id[2]) {
   int key0, key1;
   keys_from_stream_id(stream_id, &key0, &key1);
@@ -76,10 +76,10 @@ void avb_1722_disable_stream_forwarding(chanend c_tx,
     debug_printf("1722 router: Disabled forwarding for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
-  mac_1722_router_disable_forwarding(c_tx, key0, key1);
+  // mac_1722_router_disable_forwarding(i_eth, key0, key1);
 }
 
-void avb_1722_add_stream_mapping(chanend c_tx,
+void avb_1722_add_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
                                 unsigned int stream_id[2],
                                 int link_num,
                                 int avb_hash) {
@@ -90,14 +90,14 @@ void avb_1722_add_stream_mapping(chanend c_tx,
     debug_printf("1722 router: Enabled map for stream %x%x (link_num:%x, hash:%x)\n", stream_id[0], stream_id[1], link_num, avb_hash);
   }
 
-  mac_1722_update_router(c_tx, AVB_1722_ROUTER_UPDATE, key0, key1,
-                        link_num != AVB_1722_ROUTER_UNMAPPED ? avb_1722_links[link_num] : AVB_1722_ROUTER_UNMAPPED,
-                        avb_hash);
+  // mac_1722_update_router(i_eth, AVB_1722_ROUTER_UPDATE, key0, key1,
+  //                      link_num != AVB_1722_ROUTER_UNMAPPED ? avb_1722_links[link_num] : AVB_1722_ROUTER_UNMAPPED,
+  //                      avb_hash);
 
 }
 
 
-void avb_1722_remove_stream_mapping(chanend c_tx,
+void avb_1722_remove_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
                                     unsigned int stream_id[2])
 {
   int key0, key1;
@@ -107,11 +107,11 @@ void avb_1722_remove_stream_mapping(chanend c_tx,
     debug_printf("1722 router: Disabled map for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
-  mac_1722_update_router(c_tx, AVB_1722_ROUTER_UPDATE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);
+  // mac_1722_update_router(i_eth, AVB_1722_ROUTER_UPDATE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);
 
 }
 
-void avb_1722_remove_stream_from_table(chanend c_tx,
+void avb_1722_remove_stream_from_table(CLIENT_INTERFACE(ethernet_if, i_eth),
                                         unsigned int stream_id[2])
 {
   int key0, key1;
@@ -121,6 +121,6 @@ void avb_1722_remove_stream_from_table(chanend c_tx,
     debug_printf("1722 router: Removed entry for stream %x%x\n", stream_id[0], stream_id[1]);
   }
 
-  mac_1722_update_router(c_tx, AVB_1722_ROUTER_REMOVE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);
+  // mac_1722_update_router(i_eth, AVB_1722_ROUTER_REMOVE, key0, key1, AVB_1722_ROUTER_UNMAPPED, AVB_1722_ROUTER_UNMAPPED);
 
 }

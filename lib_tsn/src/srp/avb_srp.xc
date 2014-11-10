@@ -14,27 +14,23 @@
 [[combinable]]
 void avb_srp_task(client interface avb_interface i_avb,
                   server interface srp_interface i_srp,
-                  chanend c_mac_rx,
-                  chanend c_mac_tx) {
+                  client interface ethernet_if i_eth) {
   unsigned periodic_timeout;
   timer tmr;
-  unsigned int nbytes;
-  unsigned int buf[(MAX_AVB_CONTROL_PACKET_SIZE+1)>>2];
-  unsigned int port_num;
+  unsigned int buf[(MAX_AVB_CONTROL_PACKET_SIZE+3)>>2];
   unsigned char mac_addr[6];
 
-  srp_store_mac_tx_chanend(c_mac_tx);
-  mrp_store_mac_tx_chanend(c_mac_tx);
+  srp_store_ethernet_interface(i_eth);
+  mrp_store_ethernet_interface(i_eth);
 
-  mac_get_macaddr(c_mac_tx, mac_addr);
+  i_eth.get_macaddr(mac_addr);
   mrp_init(mac_addr);
   srp_domain_init();
   avb_mvrp_init();
 
-  mac_initialize_routing_table(c_mac_tx);
+  // mac_initialize_routing_table(c_mac_tx);
 
-  mac_set_custom_filter(c_mac_rx, MAC_FILTER_AVB_SRP);
-  mac_request_status_packets(c_mac_rx);
+  i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_SRP);
 
   i_avb.initialise();
 
@@ -42,9 +38,11 @@ void avb_srp_task(client interface avb_interface i_avb,
 
   while (1) {
     select {
-      case avb_get_control_packet(c_mac_rx, buf, nbytes, port_num):
+      case i_eth.packet_ready():
       {
-        avb_process_srp_control_packet(i_avb, buf, nbytes, c_mac_tx, port_num);
+        ethernet_packet_info_t packet_info;
+        i_eth.get_packet(packet_info, (char *)buf, MAX_AVB_CONTROL_PACKET_SIZE);
+        avb_process_srp_control_packet(i_avb, buf, packet_info.len, packet_info.type, i_eth, packet_info.src_port);
         break;
       }
       // Periodic processing

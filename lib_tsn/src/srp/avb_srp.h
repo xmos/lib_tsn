@@ -9,6 +9,7 @@
 #include "avb_stream.h"
 #include "avb_api.h"
 #include "avb_srp_interface.h"
+#include "ethernet.h"
 
 #define AVB_SRP_ETHERTYPE (0x22ea)
 
@@ -36,8 +37,7 @@ typedef struct avb_stream_entry
 [[combinable]]
 void avb_srp_task(client interface avb_interface i_avb,
                   server interface srp_interface i_srp,
-                  chanend c_mac_rx,
-                  chanend c_mac_tx);
+                  client interface ethernet_if i_eth);
 #endif
 
 
@@ -122,7 +122,7 @@ void avb_srp_domain_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribut
 void srp_domain_init(void);
 void srp_domain_join(void);
 
-void srp_store_mac_tx_chanend(chanend c_mac_tx0);
+void srp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i));
 
 
 #endif // _avb_srp_h_

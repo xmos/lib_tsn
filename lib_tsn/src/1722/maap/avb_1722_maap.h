@@ -31,9 +31,9 @@ void avb_1722_maap_request_addresses(int num_addresses, char start_address[]);
 void avb_1722_maap_init(unsigned char macaddr[6]);
 
 #ifdef __XC__
-void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes, unsigned char src_addr[6], chanend c_tx);
+void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes, unsigned char src_addr[6], client interface ethernet_if i_eth);
 #else
-void avb_1722_maap_process_packet(unsigned char buf[], unsigned int nbytes, unsigned char src_addr[6], chanend c_tx);
+void avb_1722_maap_process_packet(unsigned char buf[], unsigned int nbytes, unsigned char src_addr[6], CLIENT_INTERFACE(ethernet_if, i_eth));
 #endif
 
 /** Relinquish the reserved MAAP address range
@@ -63,7 +63,7 @@ void avb_1722_maap_rerequest_addresses();
  *  \param c_tx    Channel for ethernet transmission
  *  \param i_avb   client interface of type avb_interface into avb_manager()
  */
-void avb_1722_maap_periodic(chanend c_tx, client interface avb_interface i_avb);
+void avb_1722_maap_periodic(client interface ethernet_if i_eth, client interface avb_interface i_avb);
 
 /** MAAP has indicated that a multicast address has been successfully reserved for this Talker stream
  *

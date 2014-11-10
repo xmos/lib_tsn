@@ -53,7 +53,7 @@ extern void acmp_zero_listener_stream_info(int unique_id);
 extern unsigned int avb_1722_1_buf[AVB_1722_1_PACKET_SIZE_WORDS];
 
 
-void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp * alias command, int retry, int inflight_idx, chanend c_tx)
+void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp * alias command, int retry, int inflight_idx, client interface ethernet_if i_eth)
 {
     /* We need to save the sequence_id of the Listener command that generated this Talker command for the response */
     unsigned short original_sequence_id = command->sequence_id;
@@ -62,8 +62,8 @@ void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_re
     sequence_id[entity_type]++;
 
     avb_1722_1_create_acmp_packet(command, message_type, ACMP_STATUS_SUCCESS);
-    mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ACMP_PACKET_SIZE, -1);
-    process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t *)pkt_without_eth_header, c_tx);
+    i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ACMP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
+    process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t *)pkt_without_eth_header, i_eth);
 
     if (!retry)
     {
@@ -78,13 +78,13 @@ void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_re
     }
 }
 
-void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, chanend c_tx)
+void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, client interface ethernet_if i_eth)
 {
     avb_1722_1_create_acmp_packet(response, message_type, status);
-    mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ACMP_PACKET_SIZE, -1);
+    i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ACMP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
 }
 
-void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, chanend c_tx)
+void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, client interface ethernet_if i_eth)
 {
     acmp_controller_cmd_resp.controller_guid = my_guid;
     acmp_controller_cmd_resp.talker_guid.l = talker_guid.l;
@@ -92,7 +92,7 @@ void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talke
     acmp_controller_cmd_resp.talker_unique_id = talker_id;
     acmp_controller_cmd_resp.listener_unique_id = listener_id;
 
-    acmp_send_command(CONTROLLER, message_type, &acmp_controller_cmd_resp, FALSE, -1, c_tx);
+    acmp_send_command(CONTROLLER, message_type, &acmp_controller_cmd_resp, FALSE, -1, i_eth);
 }
 
 
@@ -128,7 +128,7 @@ static unsigned acmp_listener_is_connected(int connected_to, client interface av
 }
 
 
-void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_interface avb)
+void avb_1722_1_acmp_controller_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_controller_state)
     {
@@ -167,7 +167,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
             else
             {
                 acmp_send_command(CONTROLLER, acmp_controller_inflight_commands[i].command.message_type,
-                                        &acmp_controller_inflight_commands[i].command, TRUE, i, c_tx);
+                                        &acmp_controller_inflight_commands[i].command, TRUE, i, i_eth);
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
                 debug_printf("ACMP Controller: Sent retry for timed out %s - seq id: %d\n",
@@ -189,7 +189,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
             if (acmp_controller_cmd_resp.status != ACMP_STATUS_SUCCESS)
             {
                 avb_talker_on_listener_connect_failed(avb, my_guid, acmp_controller_cmd_resp.talker_unique_id,
-                        acmp_controller_cmd_resp.listener_guid, acmp_controller_cmd_resp.status, c_tx);
+                        acmp_controller_cmd_resp.listener_guid, acmp_controller_cmd_resp.status, i_eth);
             }
 
             acmp_controller_state = ACMP_CONTROLLER_WAITING;
@@ -223,7 +223,7 @@ void avb_1722_1_acmp_controller_periodic(chanend c_tx, client interface avb_inte
     }
 }
 
-void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interface avb)
+void avb_1722_1_acmp_talker_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_talker_state)
     {
@@ -239,7 +239,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
         {
             if (!acmp_talker_valid_talker_unique())
             {
-                acmp_send_response(ACMP_CMD_CONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_TALKER_UNKNOWN_ID, c_tx);
+                acmp_send_response(ACMP_CMD_CONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_TALKER_UNKNOWN_ID, i_eth);
             }
             else
             {
@@ -248,7 +248,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
                 avb_talker_on_listener_connect(avb, acmp_talker_rcvd_cmd_resp.talker_unique_id, acmp_talker_rcvd_cmd_resp.listener_guid);
 
                 acmp_set_talker_response();
-                acmp_send_response(ACMP_CMD_CONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, c_tx);
+                acmp_send_response(ACMP_CMD_CONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, i_eth);
 
             }
             acmp_talker_state = ACMP_TALKER_WAITING;
@@ -258,7 +258,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
         {
             if (!acmp_talker_valid_talker_unique())
             {
-                acmp_send_response(ACMP_CMD_DISCONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_TALKER_UNKNOWN_ID, c_tx);
+                acmp_send_response(ACMP_CMD_DISCONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_TALKER_UNKNOWN_ID, i_eth);
             }
             else
             {
@@ -268,7 +268,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
                 avb_talker_on_listener_disconnect(avb, unique_id, acmp_talker_rcvd_cmd_resp.listener_guid, acmp_talker_streams[unique_id].connection_count);
 
                 acmp_set_talker_response();
-                acmp_send_response(ACMP_CMD_DISCONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, c_tx);
+                acmp_send_response(ACMP_CMD_DISCONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, i_eth);
             }
             acmp_talker_state = ACMP_TALKER_WAITING;
             break;
@@ -284,7 +284,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
             {
                 acmp_status = acmp_talker_get_state();
             }
-            acmp_send_response(ACMP_CMD_GET_TX_STATE_RESPONSE, &acmp_talker_rcvd_cmd_resp, acmp_status, c_tx);
+            acmp_send_response(ACMP_CMD_GET_TX_STATE_RESPONSE, &acmp_talker_rcvd_cmd_resp, acmp_status, i_eth);
 
             acmp_talker_state = ACMP_TALKER_WAITING;
             return;
@@ -300,7 +300,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
             {
                 acmp_status = acmp_talker_get_connection();
             }
-            acmp_send_response(ACMP_CMD_GET_TX_CONNECTION_RESPONSE, &acmp_talker_rcvd_cmd_resp, acmp_status, c_tx);
+            acmp_send_response(ACMP_CMD_GET_TX_CONNECTION_RESPONSE, &acmp_talker_rcvd_cmd_resp, acmp_status, i_eth);
 
             acmp_talker_state = ACMP_TALKER_WAITING;
             return;
@@ -308,7 +308,7 @@ void avb_1722_1_acmp_talker_periodic(chanend c_tx, client interface avb_interfac
     }
 }
 
-void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interface avb)
+void avb_1722_1_acmp_listener_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_listener_state)
     {
@@ -333,18 +333,18 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
         {
             if (!acmp_listener_valid_listener_unique())
             {
-                acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_UNKNOWN_ID, c_tx);
+                acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_UNKNOWN_ID, i_eth);
             }
             else
             {
                 if (acmp_listener_is_connected(0, avb))
                 {
-                    acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_EXCLUSIVE, c_tx);
+                    acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_EXCLUSIVE, i_eth);
                 }
                 else
                 {
 
-                    acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, c_tx);
+                    acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
                 }
             }
             acmp_listener_state = ACMP_LISTENER_WAITING;
@@ -354,14 +354,14 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
         {
             if (!acmp_listener_valid_listener_unique())
             {
-                acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_UNKNOWN_ID, c_tx);
+                acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_LISTENER_UNKNOWN_ID, i_eth);
             }
             else
             {
                 if (acmp_listener_is_connected(1, avb))
                 {
                     unsigned stream_id[2];
-                    acmp_send_command(LISTENER, ACMP_CMD_DISCONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, c_tx);
+                    acmp_send_command(LISTENER, ACMP_CMD_DISCONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
 
                     stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
                     stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
@@ -375,7 +375,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                 }
                 else
                 {
-                    acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_NOT_CONNECTED, c_tx);
+                    acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_NOT_CONNECTED, i_eth);
                 }
             }
             acmp_listener_state = ACMP_LISTENER_WAITING;
@@ -401,7 +401,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
     #endif
                         if (acmp_listener_rcvd_cmd_resp.flags & AVB_1722_1_ACMP_FLAGS_CLASS_B)
                         {
-                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_INCOMPATIBLE_REQUEST, c_tx);
+                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, ACMP_STATUS_INCOMPATIBLE_REQUEST, i_eth);
                         }
                         else
                         {
@@ -417,7 +417,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                                                         acmp_listener_rcvd_cmd_resp.vlan_id,
                                                         my_guid);
 
-                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, c_tx);
+                            acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, i_eth);
                             acmp_add_listener_stream_info();
                         }
                     }
@@ -440,7 +440,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                     {
                         acmp_listener_rcvd_cmd_resp.sequence_id = inflight->original_sequence_id;
 
-                        acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, c_tx);
+                        acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, i_eth);
                         acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
 
         #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
@@ -474,7 +474,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
                 status = acmp_listener_get_state();
             }
 
-            acmp_send_response(ACMP_CMD_GET_RX_STATE_RESPONSE, &acmp_listener_rcvd_cmd_resp, status, c_tx);
+            acmp_send_response(ACMP_CMD_GET_RX_STATE_RESPONSE, &acmp_listener_rcvd_cmd_resp, status, i_eth);
 
             acmp_listener_state = ACMP_LISTENER_WAITING;
             break;
@@ -487,7 +487,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
             {
                 inflight->command.sequence_id = inflight->original_sequence_id;
                 // + 7 of the message_type transforms a CONNECT_TX_COMMAND to a CONNECT_RX_RESPONSE etc.
-                acmp_send_response(inflight->command.message_type + 7, &inflight->command, ACMP_STATUS_LISTENER_TALKER_TIMEOUT, c_tx);
+                acmp_send_response(inflight->command.message_type + 7, &inflight->command, ACMP_STATUS_LISTENER_TALKER_TIMEOUT, i_eth);
                 // Remove inflight command
                 inflight->in_use = 0;
 
@@ -502,7 +502,7 @@ void avb_1722_1_acmp_listener_periodic(chanend c_tx, client interface avb_interf
             {
                 int message_type = inflight->command.message_type;
 
-                acmp_send_command(LISTENER, message_type, &inflight->command, TRUE, i, c_tx);
+                acmp_send_command(LISTENER, message_type, &inflight->command, TRUE, i, i_eth);
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
                 debug_printf("ACMP Listener:  Sent retry for timed out %d %s - seq id: %d\n",

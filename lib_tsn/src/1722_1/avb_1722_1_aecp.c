@@ -13,6 +13,7 @@
 #include <xs1.h>
 #include <platform.h>
 #include "avb_util.h"
+#include "ethernet_wrappers.h"
 
 #if AVB_1722_1_USE_AVC
 #include "avc_commands.h"
@@ -363,7 +364,7 @@ static unsigned short avb_1722_1_create_acquire_response_packet(unsigned char st
   return sizeof(avb_1722_1_aem_acquire_entity_command_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
 }
 
-static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, unsigned char *status, unsigned char src_addr[6], chanend c_tx)
+static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, unsigned char *status, unsigned char src_addr[6], CLIENT_INTERFACE(ethernet_if, i_eth))
 {
   unsigned short descriptor_index = ntoh_16(pkt->data.aem.command.acquire_entity_cmd.descriptor_id);
   unsigned short descriptor_type = ntoh_16(pkt->data.aem.command.acquire_entity_cmd.descriptor_type);
@@ -446,7 +447,7 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
             aecp_controller_available_sequence++;
 
             avb_1722_1_create_controller_available_packet();
-            mac_tx(c_tx, avb_1722_1_buf, 64, -1);
+            eth_send_packet(i_eth, (char *)avb_1722_1_buf, 64, ETHERNET_ALL_INTERFACES);
 
             start_avb_timer(&aecp_aem_controller_available_timer, 12);
             aecp_aem_controller_available_state = AECP_AEM_CONTROLLER_AVAILABLE_IN_A;
@@ -560,7 +561,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
                                             int message_type,
                                             int num_pkt_bytes,
-                                            chanend c_tx,
+                                            CLIENT_INTERFACE(ethernet_if, i_eth),
                                             CLIENT_INTERFACE(avb_interface, i_avb_api),
                                             CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                             CLIENT_INTERFACE(spi_interface, i_spi))
@@ -578,7 +579,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
     {
       case AECP_AEM_CMD_ACQUIRE_ENTITY: // Long term exclusive control of the entity
       {
-        cd_len = process_aem_cmd_acquire(pkt, &status, src_addr, c_tx);
+        cd_len = process_aem_cmd_acquire(pkt, &status, src_addr, i_eth);
         break;
       }
       case AECP_AEM_CMD_LOCK_ENTITY: // Atomic operation on the entity
@@ -608,7 +609,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
 
         if (num_tx_bytes < 64) num_tx_bytes = 64;
 
-        mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
 
         break;
       }
@@ -741,7 +742,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
 
     if (num_tx_bytes < 64) num_tx_bytes = 64;
 
-    mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+    eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
 
     if (command_type == AECP_AEM_CMD_REBOOT) {
       waitfor(10000); // Wait for the response packet to egress
@@ -802,7 +803,7 @@ static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t 
 void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     avb_1722_1_aecp_packet_t *pkt,
                                     int num_pkt_bytes,
-                                    chanend c_tx,
+                                    CLIENT_INTERFACE(ethernet_if, i_eth),
                                     CLIENT_INTERFACE(avb_interface, i_avb),
                                     CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                     CLIENT_INTERFACE(spi_interface, i_spi))
@@ -815,7 +816,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
     case AECP_CMD_AEM_RESPONSE:
     {
 #if AVB_1722_1_AEM_ENABLED
-      process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, c_tx, i_avb, i_1722_1_entity, i_spi);
+      process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, i_eth, i_avb, i_1722_1_entity, i_spi);
 #endif
       break;
     }
@@ -844,7 +845,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
   }
 }
 
-void avb_1722_1_aecp_aem_periodic(chanend c_tx)
+void avb_1722_1_aecp_aem_periodic(CLIENT_INTERFACE(ethernet_if, i_eth))
 {
   char available_timeouts[5] = {12, 1, 11, 12, 2};
   if (avb_timer_expired(&aecp_aem_controller_available_timer))
@@ -915,7 +916,7 @@ void avb_1722_1_aecp_aem_periodic(chanend c_tx)
         num_tx_bytes = 64;
       }
 
-      mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+      eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
     }
   }
 

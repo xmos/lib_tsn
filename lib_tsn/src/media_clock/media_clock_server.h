@@ -3,6 +3,7 @@
 
 #include "avb_conf.h"
 #include "gptp.h"
+#include "ethernet.h"
 
 #ifndef AVB_NUM_MEDIA_CLOCKS
 #define AVB_NUM_MEDIA_CLOCKS 1
@@ -70,8 +71,7 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
                         chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                         out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-                        ,chanend c_rx,
-                        chanend c_tx,
+                        ,client interface ethernet_if i_eth,
                         chanend c_ptp[num_ptp],
                         unsigned num_ptp,
                         enum ptp_server_type server_type

@@ -153,10 +153,10 @@ void avb_init(chanend c_media_ctl[],
               chanend (&?c_talker_ctl)[],
               client interface media_clock_if ?i_media_clock_ctl,
               chanend c_ptp,
-              chanend c_mac_tx)
+              client interface ethernet_if i_eth)
 {
   unsigned char mac_addr[6];
-  mac_get_macaddr(c_mac_tx, mac_addr);
+  i_eth.get_macaddr(mac_addr);
   register_talkers(c_talker_ctl, mac_addr);
   register_listeners(c_listener_ctl);
 }
@@ -184,7 +184,7 @@ static int valid_to_leave_vlan(int vlan)
 static void update_sink_state(unsigned sink_num,
                               enum avb_sink_state_t prev,
                               enum avb_sink_state_t state,
-                              chanend c_mac_tx,
+                              client interface ethernet_if i_eth,
                               client interface media_clock_if ?i_media_clock_ctl,
                               client interface srp_interface i_srp) {
   unsafe {
@@ -225,7 +225,7 @@ static void update_sink_state(unsigned sink_num,
         *c :> router_link;
       }
 
-      avb_1722_add_stream_mapping(c_mac_tx,
+      avb_1722_add_stream_mapping(i_eth,
                                   sink->reservation.stream_id,
                                   router_link,
                                   sink->stream.local_id);
@@ -243,7 +243,7 @@ static void update_sink_state(unsigned sink_num,
 
       i_srp.deregister_attach_request(sink->reservation.stream_id);
 
-      avb_1722_remove_stream_mapping(c_mac_tx, sink->reservation.stream_id);
+      avb_1722_remove_stream_mapping(i_eth, sink->reservation.stream_id);
 
 #if MRP_NUM_PORTS == 1
       int vid = sink->reservation.vlan_id;
@@ -269,7 +269,7 @@ static unsigned avb_srp_calculate_max_framesize(avb_source_info_t *source_info)
 static void update_source_state(unsigned source_num,
                                 enum avb_source_state_t prev,
                                 enum avb_source_state_t state,
-                                chanend c_mac_tx,
+                                client interface ethernet_if i_eth,
                                 client interface media_clock_if ?i_media_clock_ctl,
                                 client interface srp_interface i_srp) {
   unsafe {
@@ -442,7 +442,7 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                  chanend c_media_ctl[],
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
-                 chanend c_mac_tx,
+                 client interface ethernet_if i_eth,
                  client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp) {
 
@@ -453,7 +453,7 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
     select {
     case avb[int i].initialise(void):
       unsafe {
-        avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, i_media_clock_ctl, c_ptp, c_mac_tx);
+        avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, i_media_clock_ctl, c_ptp, i_eth);
       }
       break;
     case avb[int i]._get_source_info(unsigned source_num) -> avb_source_info_t info:
@@ -463,7 +463,7 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
       enum avb_source_state_t prev_state = sources[source_num].stream.state;
       sources[source_num] = info;
       unsafe {
-        update_source_state(source_num, prev_state, info.stream.state, c_mac_tx,
+        update_source_state(source_num, prev_state, info.stream.state, i_eth,
                             i_media_clock_ctl, i_srp);
       }
       break;
@@ -474,7 +474,7 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
       enum avb_sink_state_t prev_state = sinks[sink_num].stream.state;
       sinks[sink_num] = info;
       unsafe {
-        update_sink_state(sink_num, prev_state, info.stream.state, c_mac_tx,
+        update_sink_state(sink_num, prev_state, info.stream.state, i_eth,
                           i_media_clock_ctl, i_srp);
       }
       break;
@@ -531,12 +531,14 @@ void set_avb_source_volumes(unsigned sink_num, int volumes[], int count)
 
 void avb_process_1722_control_packet(unsigned int buf0[],
                                      unsigned nbytes,
-                                     chanend c_tx,
+                                     eth_packet_type_t packet_type,
+                                     client interface ethernet_if i_eth,
                                      client interface avb_interface i_avb,
                                      client interface avb_1722_1_control_callbacks i_1722_1_entity,
                                      client interface spi_interface ?i_spi) {
-  if (nbytes == STATUS_PACKET_LEN) {
-    if (((unsigned char *)buf0)[0]) { // Link up
+
+  if (packet_type == ETH_IF_STATUS) {
+    if (((unsigned char *)buf0)[1] == ETHERNET_LINK_UP) {
 #if NUM_ETHERNET_PORTS == 1
       unsigned char base_addr[6];
       if (!avb_1722_maap_get_base_address(base_addr)) {
@@ -548,7 +550,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 #endif
     }
   }
-  else {
+  else if (packet_type == ETH_DATA) {
     struct ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *) &buf0[0];
 
     int etype, eth_hdr_size;
@@ -568,8 +570,8 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 
     switch (etype) {
       case AVB_1722_ETHERTYPE:
-        avb_1722_1_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, c_tx, i_avb, i_1722_1_entity, i_spi);
-        avb_1722_maap_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, c_tx);
+        avb_1722_1_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth, i_avb, i_1722_1_entity, i_spi);
+        avb_1722_maap_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth);
         break;
     }
   }
@@ -579,14 +581,14 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 extern unsigned char srp_dest_mac[6];
 extern unsigned char mvrp_dest_mac[6];
 
-void avb_process_srp_control_packet(client interface avb_interface avb, unsigned int buf0[], unsigned nbytes, chanend c_tx, unsigned int port_num)
+void avb_process_srp_control_packet(client interface avb_interface avb, unsigned int buf0[], unsigned nbytes, eth_packet_type_t packet_type, client interface ethernet_if i_eth, unsigned int port_num)
 {
-  if (nbytes == STATUS_PACKET_LEN) {
-    if (((unsigned char *)buf0)[0]) { // Link up
+  if (packet_type == ETH_IF_STATUS) {
+    if (((unsigned char *)buf0)[1] == ETHERNET_LINK_UP) {
       srp_domain_join();
     }
   }
-  else {
+  else if (packet_type == ETH_DATA) {
     struct ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *) &buf0[0];
 
     int etype, eth_hdr_size;
@@ -684,18 +686,6 @@ unsigned avb_get_sink_stream_index_from_pointer(avb_sink_info_t *unsafe p)
 		if (p == &sinks[i]) return i;
 	}
 	return -1u;
-}
-
-void avb_get_control_packet(chanend c_rx,
-                            unsigned int buf[],
-                            unsigned int &nbytes,
-                            unsigned int &port_num)
-{
-  safe_mac_rx(c_rx,
-              (buf, unsigned char[]),
-              nbytes,
-              port_num,
-              MAX_AVB_CONTROL_PACKET_SIZE);
 }
 
 int avb_register_listener_streams(chanend listener_ctl,

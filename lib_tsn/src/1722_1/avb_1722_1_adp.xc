@@ -234,7 +234,7 @@ static unsigned avb_1722_1_entity_database_check_timeout()
     return 0;
 }
 
-void process_avb_1722_1_adp_packet(avb_1722_1_adp_packet_t &pkt, chanend c_tx)
+void process_avb_1722_1_adp_packet(avb_1722_1_adp_packet_t &pkt, client interface ethernet_if i_eth)
 {
     unsigned message_type = GET_1722_1_MSG_TYPE(((avb_1722_1_packet_header_t*)&pkt));
     guid_t zero_guid = { 0 };
@@ -302,7 +302,7 @@ static void avb_1722_1_create_adp_packet(int message_type, guid_t guid)
     }
 }
 
-void avb_1722_1_adp_discovery_periodic(chanend c_tx, client interface avb_interface avb_api)
+void avb_1722_1_adp_discovery_periodic(client interface ethernet_if i_eth, client interface avb_interface avb_api)
 {
     switch (adp_discovery_state)
     {
@@ -327,13 +327,13 @@ void avb_1722_1_adp_discovery_periodic(chanend c_tx, client interface avb_interf
         case ADP_DISCOVERY_DISCOVER:
         {
             avb_1722_1_create_adp_packet(ENTITY_DISCOVER, discover_guid);
-            mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ADP_PACKET_SIZE, -1);
+            i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ADP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
             adp_discovery_state = ADP_DISCOVERY_WAITING;
             break;
         }
         case ADP_DISCOVERY_ADDED:
         {
-            avb_entity_on_new_entity_available(avb_api, my_guid, &entities[adp_latest_entity_added_index], c_tx);
+            avb_entity_on_new_entity_available(avb_api, my_guid, &entities[adp_latest_entity_added_index], i_eth);
             adp_discovery_state = ADP_DISCOVERY_WAITING;
             break;
         }
@@ -346,7 +346,7 @@ void avb_1722_1_adp_discovery_periodic(chanend c_tx, client interface avb_interf
     }
 }
 
-void avb_1722_1_adp_advertising_periodic(chanend c_tx, chanend ptp)
+void avb_1722_1_adp_advertising_periodic(client interface ethernet_if i_eth, chanend ptp)
 {
     guid_t ptp_current;
 
@@ -370,7 +370,7 @@ void avb_1722_1_adp_advertising_periodic(chanend c_tx, chanend ptp)
 
         case ADP_ADVERTISE_ADVERTISE_1:
             avb_1722_1_create_adp_packet(ENTITY_AVAILABLE, my_guid);
-            mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ADP_PACKET_SIZE, -1);
+            i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ADP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
 
             start_avb_timer(adp_readvertise_timer, AVB_1722_1_ADP_REPEAT_TIME);
             adp_advertise_state = ADP_ADVERTISE_WAITING;
@@ -380,7 +380,7 @@ void avb_1722_1_adp_advertising_periodic(chanend c_tx, chanend ptp)
         case ADP_ADVERTISE_DEPART_THEN_ADVERTISE:
         case ADP_ADVERTISE_DEPARTING:
             avb_1722_1_create_adp_packet(ENTITY_DEPARTING, my_guid);
-            mac_tx(c_tx, avb_1722_1_buf, AVB_1722_1_ADP_PACKET_SIZE, -1);
+            i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ADP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
 
             adp_advertise_state = (adp_advertise_state == ADP_ADVERTISE_DEPART_THEN_ADVERTISE) ? ADP_ADVERTISE_ADVERTISE_0 : ADP_ADVERTISE_IDLE;
             avb_1722_1_available_index = 0;

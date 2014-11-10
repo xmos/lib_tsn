@@ -38,10 +38,10 @@ static mrp_attribute_state *domain_attr[MRP_NUM_PORTS];
 unsigned int srp_domain_boundary_port[MRP_NUM_PORTS];
 unsigned int current_vlan_id_from_domain;
 
-static chanend c_mac_tx;
+static unsigned i_eth;
 
-void srp_store_mac_tx_chanend(chanend c_mac_tx0) {
-  c_mac_tx = c_mac_tx0;
+void srp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i)) {
+  i_eth = i;
 }
 
 void srp_domain_init(void) {
@@ -77,7 +77,7 @@ static void srp_increase_port_bandwidth(int max_frame_size, int extra_byte, int 
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] += stream_bandwidth_bps;
   debug_printf("Increasing port %d shaper bandwidth to %d bps\n", port, port_bandwidth[port]);
-  mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
+  // mac_set_qav_bandwidth(i_eth, port, port_bandwidth[port]);
 }
 
 static void srp_decrease_port_bandwidth(int max_frame_size, int extra_byte, int port) {
@@ -85,7 +85,7 @@ static void srp_decrease_port_bandwidth(int max_frame_size, int extra_byte, int 
   port_bandwidth[port] -= stream_bandwidth_bps;
    debug_printf("Decreasing port %d shaper bandwidth to %d bps\n", port, port_bandwidth[port]);
   if (port_bandwidth[port] < 0) __builtin_trap();
-  mac_set_qav_bandwidth(c_mac_tx, port, port_bandwidth[port]);
+  // mac_set_qav_bandwidth(i_eth, port, port_bandwidth[port]);
 }
 
 int avb_srp_match_listener_to_talker_stream_id(unsigned stream_id[2], avb_srp_info_t **stream, int is_listener)
@@ -201,7 +201,7 @@ int srp_cleanup_reservation_entry(mrp_event event, mrp_attribute_state *st) {
       avb_srp_info_t *attribute_info = st->attribute_info;
       if (attribute_info == NULL) __builtin_trap();
 
-      avb_1722_remove_stream_from_table(c_mac_tx, attribute_info->stream_id);
+      avb_1722_remove_stream_from_table(i_eth, attribute_info->stream_id);
       srp_remove_reservation_entry(attribute_info);
     }
 
@@ -261,7 +261,7 @@ static void avb_srp_map_join(mrp_attribute_state *attr, int new, int listener)
         if (!stream_table[entry].bw_reserved[attr->port_num]) {
           stream_table[entry].bw_reserved[attr->port_num] = 1;
           srp_increase_port_bandwidth(attribute_info->tspec_max_frame_size, 1, attr->port_num);
-          avb_1722_enable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
+          avb_1722_enable_stream_forwarding(i_eth, attribute_info->stream_id);
         }
       }
       if (matched_stream_id_opposite_port)
@@ -304,7 +304,7 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
       if (matched_talker_listener && !matched_talker_listener->here) { // We are not the Talker
         if (stream_table[entry].bw_reserved[attr->port_num]) {
           srp_decrease_port_bandwidth(attribute_info->tspec_max_frame_size, 1, attr->port_num);
-          avb_1722_disable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
+          avb_1722_disable_stream_forwarding(i_eth, attribute_info->stream_id);
           stream_table[entry].bw_reserved[attr->port_num] = 0;
           // Propagate Listener leave only if we are not also Listening to this stream
           if (matched_stream_id_opposite_port->propagated && !matched_stream_id_opposite_port->here)
@@ -325,7 +325,7 @@ void avb_srp_map_leave(mrp_attribute_state *attr)
 
     if (matched_talker_listener && stream_table[entry].bw_reserved[matched_talker_listener->port_num]) {
       srp_decrease_port_bandwidth(attribute_info->tspec_max_frame_size, 1, matched_talker_listener->port_num);
-      avb_1722_disable_stream_forwarding(c_mac_tx, attribute_info->stream_id);
+      avb_1722_disable_stream_forwarding(i_eth, attribute_info->stream_id);
       stream_table[entry].bw_reserved[matched_talker_listener->port_num] = 0;
     }
 

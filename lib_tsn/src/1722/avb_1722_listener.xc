@@ -12,11 +12,11 @@
 #include "avb_1722_listener.h"
 #include "media_fifo.h"
 #include "ethernet.h"
-
+#include "avb_mac_filter.h"
 #include "avb_srp.h"
 #include "avb_unit.h"
 #include "avb_conf.h"
- #include <debug_print.h>
+#include <debug_print.h>
 
 #define TIMEINFO_UPDATE_INTERVAL 50000000
 
@@ -94,7 +94,7 @@ static void disable_stream(avb_1722_stream_info_t &s)
 	s.state = 0;
 }
 
-void avb_1722_listener_init(chanend c_mac_rx,
+void avb_1722_listener_init(client interface ethernet_if i_eth,
                             chanend c_listener_ctl,
                             avb_1722_listener_state_t &st,
                             int num_streams)
@@ -109,37 +109,31 @@ void avb_1722_listener_init(chanend c_mac_rx,
     st.listener_streams[i].state = 0;
   }
 
-  // initialisation
-  mac_set_queue_size(c_mac_rx, num_streams+2);
-  mac_set_custom_filter(c_mac_rx, ROUTER_LINK(st.router_link));
+  i_eth.set_receive_filter_mask(ROUTER_LINK(st.router_link));
 }
 
-
-#pragma select handler
-void avb_1722_listener_handle_packet(chanend c_mac_rx,
+void avb_1722_listener_handle_packet(client interface ethernet_if i_eth,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
                                      ptp_time_info_mod64 &?timeInfo)
 {
-  unsigned pktByteCnt;
-  unsigned int RxBuf[(MAX_PKT_BUF_SIZE_LISTENER+3)/4];
-  unsigned int src_port;
-  int stream_id;
+  unsigned char rxbuf[MAX_PKT_BUF_SIZE_LISTENER];
+  ethernet_packet_info_t packet_info;
+  i_eth.get_packet(packet_info, rxbuf, ETHERNET_MAX_PACKET_SIZE);
+  unsigned stream_id = packet_info.filter_data;
 
-  mac_rx_offset2(c_mac_rx,
-                 (RxBuf, unsigned char[]),
-                 pktByteCnt,
-                 stream_id,
-                 src_port);
-  pktByteCnt -= 4;
+  if (packet_info.type != ETH_DATA) {
+    return;
+  }
+  // pktByteCnt -= 4;
 
   // process the audio packet if enabled.
   if (stream_id < MAX_AVB_STREAMS_PER_LISTENER &&
       st.listener_streams[stream_id].active) {
     // process the current packet
     avb_1722_listener_process_packet(c_buf_ctl,
-                                     (RxBuf, unsigned char[]),
-                                     pktByteCnt,
+                                     rxbuf,
+                                     packet_info.len,
                                      st.listener_streams[stream_id],
                                      timeInfo,
                                      stream_id,
@@ -191,7 +185,7 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
 
 
 #pragma unsafe arrays
-void avb_1722_listener(chanend c_mac_rx,
+void avb_1722_listener(client interface ethernet_if i_eth,
                        chanend? c_buf_ctl,
                        chanend? c_ptp,
                        chanend c_listener_ctl,
@@ -207,7 +201,7 @@ void avb_1722_listener(chanend c_mac_rx,
   ptp_time_info_mod64 timeInfo;
 #endif
   set_thread_fast_mode_on();
-  avb_1722_listener_init(c_mac_rx, c_listener_ctl, st, num_streams);
+  avb_1722_listener_init(i_eth, c_listener_ctl, st, num_streams);
 
 #if defined(AVB_1722_FORMAT_61883_4)
   // Conditional due to compiler bug 11998.
@@ -238,7 +232,7 @@ void avb_1722_listener(chanend c_mac_rx,
         break;
 #endif
 
-      case avb_1722_listener_handle_packet(c_mac_rx,
+      case i_eth.packet_ready(): avb_1722_listener_handle_packet(i_eth,
                                            c_buf_ctl,
                                            st,
                                            #ifdef AVB_1722_FORMAT_61883_4
@@ -246,7 +240,7 @@ void avb_1722_listener(chanend c_mac_rx,
                                            #else
                                            null
                                            #endif
-                                           ):
+                                           );
         break;
 
 

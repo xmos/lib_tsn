@@ -41,36 +41,15 @@
 #define CODEC_STATUS_MASK				(0x1a)
 #define CODEC_MUTEC						(0x1b)
 
-
-static unsigned REGWR(unsigned reg, unsigned val,
-                  #if I2C_COMBINE_SCL_SDA
-                     port r_i2c
-                  #else
-                     struct r_i2c &r_i2c
-                  #endif
-                     )
-{
-  unsigned char data[1];
-	data[0] = val;
-
-	return i2c_master_write_reg(DEVICE_ADRS, reg, data, 1, r_i2c);
-}
-
 static const char error_msg[] = "CS42448 Config Failed";
 
 void audio_codec_CS42448_init(out port p_reset,
-                           #if I2C_COMBINE_SCL_SDA
-                               port r_i2c
-                           #else
-                               struct r_i2c &r_i2c
-                           #endif
-                              ,int mode)
+                              client interface i2c_master_if i2c,
+                              int mode)
 {
    timer t;
    unsigned int time;
-   unsigned res = 1;
-
-   i2c_master_init(r_i2c);
+   i2c_res_t res = I2C_SUCCEEDED;
 
    // Reset the codec
    p_reset <: 0;
@@ -82,10 +61,10 @@ void audio_codec_CS42448_init(out port p_reset,
 	   // DAC_FM = 0 (single speed)
 	   // ADC_FM = 0 (single speed)
 	   // MFREQ = 2 (MCLK = /512 - 48Khz)
-	   res = REGWR(CODEC_FUNCTIONAL_MODE, 0b11111000, r_i2c);
+      res = i2c.write_reg(DEVICE_ADRS, CODEC_FUNCTIONAL_MODE, 0b11111000);
    } else {
 	   // Default to I2S
-	   res = REGWR(CODEC_FUNCTIONAL_MODE, 0b00000100, r_i2c);
+      res = i2c.write_reg(DEVICE_ADRS, CODEC_FUNCTIONAL_MODE, 0b00000100);
    }
 
    if (res == 0) {
@@ -98,10 +77,10 @@ void audio_codec_CS42448_init(out port p_reset,
 	   // AUX_DIF = 0 - left justified
 	   // DAC_DIF=1 (I2S)
 	   // ADC_DIF = 1 (I2S)
-	   res = REGWR(CODEC_INTERFACE_FORMATS, 0b00110110, r_i2c);
+      res = i2c.write_reg(DEVICE_ADRS, CODEC_INTERFACE_FORMATS, 0b00110110);
    } else  {
 	   // Left justified for DAC and ADC
-	   res = REGWR(CODEC_INTERFACE_FORMATS, 0b00000000, r_i2c);
+      res = i2c.write_reg(DEVICE_ADRS, CODEC_INTERFACE_FORMATS, 0b00000000);
    }
 
    if (res == 0) {
@@ -117,28 +96,28 @@ void audio_codec_CS42448_init(out port p_reset,
    // ADC3_SINGLE = 1
    // AIN5_MUX = 0
    // AIN6_MUX = 0
-   res = REGWR(CODEC_ADC_CONTROL, 0b00011100, r_i2c);
+   res = i2c.write_reg(DEVICE_ADRS, CODEC_ADC_CONTROL, 0b00011100);
    if (res == 0) {
 	   printstr(error_msg);
 	   return;
    }
 
    // -10dB attenuation for input
-   res = REGWR(CODEC_ADC_CONTROL, 0b11101100, r_i2c);
+   res = i2c.write_reg(DEVICE_ADRS, CODEC_ADC_CONTROL, 0b11101100);
    if (res == 0) {
 	   printstr(error_msg);
 	   return;
    }
 
    // Use same volume control for all inputs and all outputs
-   res = REGWR(CODEC_TRANSITION_CONTROL, 0b10110101, r_i2c);
+   res = i2c.write_reg(DEVICE_ADRS, CODEC_TRANSITION_CONTROL, 0b10110101);
    if (res == 0) {
 	   printstr(error_msg);
 	   return;
    }
 
    // -3dB attenuation on inputs
-   res = REGWR(CODEC_VOL_AIN_1, 0b11111010, r_i2c);
+   res = i2c.write_reg(DEVICE_ADRS, CODEC_VOL_AIN_1, 0b11111010);
    if (res == 0) {
 	   printstr(error_msg);
 	   return;

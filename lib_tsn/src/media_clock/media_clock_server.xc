@@ -315,8 +315,7 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
                         chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                         out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-                        ,chanend c_rx,
-                        chanend c_tx,
+                        ,client interface ethernet_if i_eth,
                         chanend c_ptp[num_ptp],
                         unsigned num_ptp,
                         enum ptp_server_type server_type
@@ -336,7 +335,7 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
 
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-  ptp_server_init(c_rx, c_tx, server_type, tmr, ptp_timeout);
+  ptp_server_init(i_eth, server_type, tmr, ptp_timeout);
 #endif
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
@@ -376,19 +375,23 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
 
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-  case ptp_recv_and_process_packet(c_rx, c_tx):
-       break;
+      case i_eth.packet_ready():
+      {
+        debug_printf("PTP packet ready\n");
+        ptp_recv_and_process_packet(i_eth);
+        break;
+      }
       case (int i=0;i<num_ptp;i++) ptp_process_client_request(c_ptp[i],
                                                               tmr):
-       break;
+        break;
       case tmr when timerafter(ptp_timeout) :> void:
         if (timeafter(ptp_timeout, clk_time)) {
           update_media_clocks(ptp_svr, clk_time);
           clk_time += CLOCK_RECOVERY_PERIOD;
         }
-        ptp_periodic(c_tx, ptp_timeout);
+        ptp_periodic(i_eth, ptp_timeout);
         ptp_timeout += PTP_PERIODIC_TIME;
-       break;
+        break;
 #else
       case tmr when timerafter(clk_time) :> int _:
         update_media_clocks(ptp_svr, clk_time);

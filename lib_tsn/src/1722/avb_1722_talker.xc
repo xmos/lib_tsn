@@ -112,7 +112,7 @@ static void stop_stream(avb1722_Talker_StreamConfig_t &stream) {
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          chanend c_mac_tx,
+                          client interface ethernet_if i_eth,
                           avb_1722_talker_state_t &st,
                           int num_streams)
  {
@@ -127,7 +127,7 @@ void avb_1722_talker_init(chanend c_talker_ctl,
   avb_register_talker_streams(c_talker_ctl, num_streams);
 
   // Initialise local data structure.
-  mac_get_macaddr(c_mac_tx, st.mac_addr);
+  i_eth.get_macaddr(st.mac_addr);
 
   for (int i = 0; i < AVB_MAX_STREAMS_PER_TALKER_UNIT; i++)
     st.talker_streams[i].active = 0;
@@ -205,7 +205,7 @@ void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
 }
 
 
-void avb_1722_talker_send_packets(chanend c_mac_tx,
+void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
                                   avb_1722_talker_state_t &st,
                                   ptp_time_info_mod64 &timeInfo,
                                   timer tmr)
@@ -225,10 +225,7 @@ void avb_1722_talker_send_packets(chanend c_mac_tx,
                             t);
     if (packet_size) {
       if (packet_size < 60) packet_size = 60;
-      ethernet_send_frame_offset2(c_mac_tx,
-                                  st.TxBuf,
-                                  packet_size,
-                                  st.talker_streams[st.cur_avb_stream].txport);
+      i_eth.send_packet((st.TxBuf, unsigned char[]), packet_size, st.talker_streams[st.cur_avb_stream].txport);
       st.talker_streams[st.cur_avb_stream].last_transmit_time = t;
 
     }
@@ -257,7 +254,7 @@ void avb_1722_talker_send_packets(chanend c_mac_tx,
  *  2. Convert the local timer value to global PTP timestamp.
  *  3. AVB payload generation and transmit to Ethernet.
  */
-void avb_1722_talker(chanend c_ptp, chanend c_mac_tx,
+void avb_1722_talker(chanend c_ptp, client interface ethernet_if i_eth,
                      chanend c_talker_ctl, int num_streams) {
   avb_1722_talker_state_t st;
   ptp_time_info_mod64 timeInfo;
@@ -266,7 +263,7 @@ void avb_1722_talker(chanend c_ptp, chanend c_mac_tx,
   int pending_timeinfo = 0;
 
   set_thread_fast_mode_on();
-  avb_1722_talker_init(c_talker_ctl, c_mac_tx, st, num_streams);
+  avb_1722_talker_init(c_talker_ctl, i_eth, st, num_streams);
 
   ptp_request_time_info_mod64(c_ptp);
   ptp_get_requested_time_info_mod64_use_timer(c_ptp, timeInfo, tmr);
@@ -299,7 +296,7 @@ void avb_1722_talker(chanend c_ptp, chanend c_mac_tx,
 
         // Call the 1722 packet construction
       default:
-        avb_1722_talker_send_packets(c_mac_tx, st, timeInfo, tmr);
+        avb_1722_talker_send_packets(i_eth, st, timeInfo, tmr);
         break;
     }
   }

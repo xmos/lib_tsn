@@ -7,6 +7,7 @@
 #include "avb_srp_pdu.h"
 #include "misc_timer.h"
 #include "ethernet.h"
+#include "ethernet_wrappers.h"
 #include <string.h>
 #include <print.h>
 #include "debug_print.h"
@@ -61,10 +62,10 @@ static int msrp_leaveall_active[MRP_NUM_PORTS];
 static int mvrp_leaveall_active[MRP_NUM_PORTS];
 //!@}
 
-static chanend c_mac_tx;
+static unsigned i_eth;
 
-void mrp_store_mac_tx_chanend(chanend c_mac_tx0) {
-  c_mac_tx = c_mac_tx0;
+void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i)) {
+  i_eth = i;
 }
 
 
@@ -150,7 +151,7 @@ static void strip_attribute_list_length_fields()
 // this forces the sending of the current PDU.  this happens when
 // that PDU has had all of the attributes that it is going to get,
 // or when adding an attribute has filled the PDU up.
-static void force_send(chanend c_tx, int ifnum)
+static void force_send(CLIENT_INTERFACE(ethernet_if, i_eth), int ifnum)
 {
   char *buf = &send_buf[0];
   char *ptr = send_ptr;
@@ -168,7 +169,7 @@ static void force_send(chanend c_tx, int ifnum)
     for (char *p = ptr;p<end;p++) *p = 0;
 
     // Transmit
-    mac_tx(c_tx, (unsigned int *) buf, end - buf, ifnum);
+    eth_send_packet(i_eth, buf, end - buf, ifnum);
   }
   send_ptr = buf+sizeof(mrp_ethernet_hdr)+sizeof(mrp_header);
   return;
@@ -177,11 +178,11 @@ static void force_send(chanend c_tx, int ifnum)
 // this considers whether the send a PDU after an attribute has been
 // added, but does not if other attributes could potentially be added
 // to it.
-static void send(chanend c_tx, int ifnum)
+static void send(CLIENT_INTERFACE(ethernet_if, i_eth), int ifnum)
 {
   // Send only when the buffer is full
   if (send_buf + MRP_SEND_BUFFER_SIZE < send_ptr + MAX_MRP_MSG_SIZE + sizeof(mrp_footer)) {
-    force_send(c_tx, ifnum);
+    force_send(i_eth, ifnum);
   }
 }
 
@@ -475,7 +476,7 @@ static void doTx(mrp_attribute_state *st,
       debug_printf("Port %d out: %s %s, stream %x:%x\n", port_to_transmit, debug_attribute_type[(st)->attribute_type], debug_attribute_event[(vector)], stream_id[0], stream_id[1]);
     }
   }
-  send(c_mac_tx, port_to_transmit);
+  send(i_eth, port_to_transmit);
 
   if (st->remove_after_next_tx) {
     mrp_change_applicant_state(st, MRP_EVENT_DUMMY, MRP_UNUSED);
@@ -1113,25 +1114,25 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
       configure_send_buffer(mvrp_dest_mac, AVB_MVRP_ETHERTYPE);
       if (mvrp_leaveall_active[i])
       {
-        create_empty_msg(MVRP_VID_VECTOR, 1); send(c_mac_tx, i);
+        create_empty_msg(MVRP_VID_VECTOR, 1); send(i_eth, i);
         mvrp_leaveall_active[i] = 0;
       }
       attribute_type_event(MVRP_VID_VECTOR, tx_event, i);
-      force_send(c_mac_tx, i);
+      force_send(i_eth, i);
 
       tx_event = msrp_leaveall_active[i] ? MRP_EVENT_TX_LEAVE_ALL : MRP_EVENT_TX;
 
       configure_send_buffer(srp_dest_mac, AVB_SRP_ETHERTYPE);
       if (msrp_leaveall_active[i])
       {
-        create_empty_msg(MSRP_TALKER_ADVERTISE, 1);  send(c_mac_tx, i);
-        create_empty_msg(MSRP_TALKER_FAILED, 1);  send(c_mac_tx, i);
-        create_empty_msg(MSRP_LISTENER, 1);  send(c_mac_tx, i);
-        create_empty_msg(MSRP_DOMAIN_VECTOR, 1);  send(c_mac_tx, i);
+        create_empty_msg(MSRP_TALKER_ADVERTISE, 1);  send(i_eth, i);
+        create_empty_msg(MSRP_TALKER_FAILED, 1);  send(i_eth, i);
+        create_empty_msg(MSRP_LISTENER, 1);  send(i_eth, i);
+        create_empty_msg(MSRP_DOMAIN_VECTOR, 1);  send(i_eth, i);
         msrp_leaveall_active[i] = 0;
       }
       msrp_types_event(tx_event, i);
-      force_send(c_mac_tx, i);
+      force_send(i_eth, i);
     }
 
     for (int j=0;j<MRP_MAX_ATTRS;j++)

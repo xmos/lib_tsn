@@ -15,23 +15,33 @@
 #include "simple_demo_controller.h"
 #include "avb_1722_1_adp.h"
 #include "app_config.h"
-#include "avb_ethernet.h"
 #include "avb_1722.h"
 #include "gptp.h"
 #include "media_clock_server.h"
 #include "avb_1722_1.h"
 #include "avb_srp.h"
 #include "aem_descriptor_types.h"
+#include "ethernet.h"
+#include "avb_mac_filter.h"
 
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
-avb_ethernet_ports_t avb_ethernet_ports =
-{
-  on ETHERNET_DEFAULT_TILE: OTP_PORTS_INITIALIZER,
-    ETHERNET_SMI_INIT,
-    ETHERNET_MII_INIT_full,
-    ETHERNET_DEFAULT_RESET_INTERFACE_INIT
-};
+on tile[1]: otp_ports_t otp_ports1 = OTP_PORTS_INITIALIZER;
 
+smi_ports_t smi_ports = on tile[1]: {XS1_PORT_1G, XS1_PORT_1I};
+
+port p_eth_rxclk  = on tile[1]: XS1_PORT_1A;
+port p_eth_rxd    = on tile[1]: XS1_PORT_4C;
+port p_eth_txd    = on tile[1]: XS1_PORT_4D;
+port p_eth_rxdv   = on tile[1]: XS1_PORT_1D;
+port p_eth_txen   = on tile[1]: XS1_PORT_1E;
+port p_eth_txclk  = on tile[1]: XS1_PORT_1C;
+port p_eth_rxerr  = on tile[1]: XS1_PORT_1B;
+port p_eth_reset  = on tile[1]: XS1_PORT_1H;
+
+clock eth_rxclk   = on tile[1]: XS1_CLKBLK_2;
+clock eth_txclk   = on tile[1]: XS1_CLKBLK_3;
+
+#define ETH_SMI_PHY_ADDRESS 0x0
 
 on tile[0]: fl_spi_ports spi_ports = {
   PORT_SPI_MISO,
@@ -58,13 +68,10 @@ on tile[1]: in port p_buttons = PORT_BUTTONS;
 on tile[0]: out port p_leds = XS1_PORT_4F;
 #endif
 
-//***** AVB audio ports ****
-#if I2C_COMBINE_SCL_SDA
-on tile[AVB_I2C_TILE]: port r_i2c = PORT_I2C;
-#else
-on tile[AVB_I2C_TILE]: struct r_i2c r_i2c = { PORT_I2C_SCL, PORT_I2C_SDA };
-#endif
+on tile[AVB_I2C_TILE]: port p_i2c_scl = PORT_I2C_SCL;
+on tile[AVB_I2C_TILE]: port p_i2c_sda = PORT_I2C_SDA;
 
+//***** AVB audio ports ****
 on tile[0]: out buffered port:32 p_fs[1] = { PORT_SYNC_OUT };
 on tile[0]: i2s_ports_t i2s_ports =
 {
@@ -107,18 +114,18 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
 
 [[combinable]] void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity);
 
-[[distributable]] void audio_hardware_setup(void)
+[[distributable]] void audio_hardware_setup(client interface i2c_master_if i2c)
 {
 #if PLL_TYPE_CS2100
-  audio_clock_CS2100CP_init(r_i2c, MASTER_TO_WORDCLOCK_RATIO);
+  audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
 #elif PLL_TYPE_CS2300
-  audio_clock_CS2300CP_init(r_i2c, MASTER_TO_WORDCLOCK_RATIO);
+  audio_clock_CS2300CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
 #endif
 #if AVB_XA_SK_AUDIO_PLL_SLICE
   const int codec1_addr = 0x48;
   const int codec2_addr = 0x49;
-  audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, r_i2c);
-  audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, r_i2c);
+  audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, i2c);
+  audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
 #endif
 
   while (1) {
@@ -127,25 +134,18 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
   }
 }
 
-enum mac_rx_chans {
-  MAC_RX_TO_MEDIA_CLOCK = 0,
-#if AVB_DEMO_ENABLE_LISTENER
-  MAC_RX_TO_LISTENER,
-#endif
-  MAC_RX_TO_SRP,
-  MAC_RX_TO_1722_1,
-  NUM_MAC_RX_CHANS
-};
-
-enum mac_tx_chans {
-  MAC_TX_TO_MEDIA_CLOCK = 0,
+enum mac_clients {
+  MAC_TO_MEDIA_CLOCK = 0,
 #if AVB_DEMO_ENABLE_TALKER
-  MAC_TX_TO_TALKER,
+  MAC_TO_TALKER,
 #endif
-  MAC_TX_TO_SRP,
-  MAC_TX_TO_1722_1,
-  MAC_TX_TO_AVB_MANAGER,
-  NUM_MAC_TX_CHANS
+#if AVB_DEMO_ENABLE_LISTENER
+  MAC_TO_LISTENER,
+#endif
+  MAC_TO_SRP,
+  MAC_TO_1722_1,
+  MAC_TO_AVB_MANAGER,
+  NUM_ETH_CLIENTS
 };
 
 enum avb_manager_chans {
@@ -166,9 +166,9 @@ enum ptp_chans {
 
 int main(void)
 {
-  // Ethernet channels
-  chan c_mac_tx[NUM_MAC_TX_CHANS];
-  chan c_mac_rx[NUM_MAC_RX_CHANS];
+  ethernet_if i_eth[NUM_ETH_CLIENTS];
+  ethernet_config_if i_eth_config;
+  ethernet_filter_callback_if i_eth_filter;
 
   // PTP channels
   chan c_ptp[NUM_PTP_CHANS];
@@ -195,24 +195,44 @@ int main(void)
   interface avb_interface i_avb[NUM_AVB_MANAGER_CHANS];
   interface srp_interface i_srp;
   interface avb_1722_1_control_callbacks i_1722_1_entity;
+  i2c_master_if i2c[1];
 
   par
   {
-    on ETHERNET_DEFAULT_TILE: avb_ethernet_server(avb_ethernet_ports,
-                                        c_mac_rx, NUM_MAC_RX_CHANS,
-                                        c_mac_tx, NUM_MAC_TX_CHANS);
+    on tile[1].core[0]: smsc_LAN8710_driver(i_eth_config,
+                                    smi_ports, p_eth_reset,
+                                    ETH_SMI_PHY_ADDRESS);
+
+    on tile[1]:
+    {
+      char mac_address[6];
+      otp_board_info_get_mac(otp_ports1, 0, mac_address);
+      mii_ethernet_rt(i_eth_filter, i_eth_config,
+                     i_eth, NUM_ETH_CLIENTS,
+                     mac_address,
+                     p_eth_rxclk, p_eth_rxerr, p_eth_rxd, p_eth_rxdv,
+                     p_eth_txclk, p_eth_txen, p_eth_txd,
+                     eth_rxclk, eth_txclk,
+                     (MII_RX_BUFSIZE_LOW_PRIORITY + 3) / 4,
+                     (MII_TX_BUFSIZE_LOW_PRIORITY + 3) / 4,
+                     (MII_RX_BUFSIZE_HIGH_PRIORITY + 3 ) / 4,
+                     (MII_TX_BUFSIZE_HIGH_PRIORITY + 3) / 4,
+                     ETHERNET_ENABLE_SHAPER);
+    }
+
+    on tile[1]: avb_eth_filter(i_eth_filter);
 
     on tile[0]: media_clock_server(i_media_clock_ctl,
                                    null,
                                    c_buf_ctl,
                                    AVB_NUM_LISTENER_UNITS,
                                    p_fs,
-                                   c_mac_rx[MAC_RX_TO_MEDIA_CLOCK],
-                                   c_mac_tx[MAC_TX_TO_MEDIA_CLOCK],
+                                   i_eth[MAC_TO_MEDIA_CLOCK],
                                    c_ptp, NUM_PTP_CHANS,
                                    PTP_GRANDMASTER_CAPABLE);
 
-    on tile[AVB_I2C_TILE]: [[distribute]] audio_hardware_setup();
+    on tile[AVB_I2C_TILE]: [[distribute]] i2c_master(i2c, 1, p_i2c_scl, p_i2c_sda, 100);
+    on tile[AVB_I2C_TILE]: [[distribute]] audio_hardware_setup(i2c[0]);
 
     // AVB - Audio
     on tile[0]:
@@ -238,14 +258,14 @@ int main(void)
 #if AVB_DEMO_ENABLE_TALKER
     // AVB Talker - must be on the same tile as the audio interface
     on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
-                                c_mac_tx[MAC_TX_TO_TALKER],
+                                i_eth[MAC_TO_TALKER],
                                 c_talker_ctl[0],
                                 AVB_NUM_SOURCES);
 #endif
 
 #if AVB_DEMO_ENABLE_LISTENER
     // AVB Listener
-    on tile[0]: avb_1722_listener(c_mac_rx[MAC_RX_TO_LISTENER],
+    on tile[0]: avb_1722_listener(i_eth[MAC_TO_LISTENER],
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],
@@ -258,13 +278,12 @@ int main(void)
                   c_media_ctl,
                   c_listener_ctl,
                   c_talker_ctl,
-                  c_mac_tx[MAC_TX_TO_AVB_MANAGER],
+                  i_eth[MAC_TO_AVB_MANAGER],
                   i_media_clock_ctl,
                   c_ptp[PTP_TO_AVB_MANAGER]);
       avb_srp_task(i_avb[AVB_MANAGER_TO_SRP],
                    i_srp,
-                   c_mac_rx[MAC_RX_TO_SRP],
-                   c_mac_tx[MAC_TX_TO_SRP]);
+                   i_eth[MAC_TO_SRP]);
     }
 
     on tile[1]: application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
@@ -273,8 +292,7 @@ int main(void)
                                     i_avb[AVB_MANAGER_TO_1722_1],
                                     i_1722_1_entity,
                                     null,
-                                    c_mac_rx[MAC_RX_TO_1722_1],
-                                    c_mac_tx[MAC_TX_TO_1722_1],
+                                    i_eth[MAC_TO_1722_1],
                                     c_ptp[PTP_TO_1722_1]);
   }
 

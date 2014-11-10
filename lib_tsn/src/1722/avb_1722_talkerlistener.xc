@@ -13,7 +13,7 @@
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          chanend c_mac_tx,
+                          client interface ethernet_if i_eth,
                           avb_1722_talker_state_t &st,
                           int num_streams);
 
@@ -21,18 +21,17 @@ void avb_1722_talker_init(chanend c_talker_ctl,
 void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
                                 avb_1722_talker_state_t &st);
 
-void avb_1722_talker_send_packets(chanend c_mac_tx,
+void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
                                   avb_1722_talker_state_t &st,
                                   ptp_time_info_mod64 &timeInfo,
                                   timer tmr);
 
-void avb_1722_listener_init(chanend c_mac_rx,
+void avb_1722_listener_init(client interface ethernet_if i_eth,
                             chanend c_listener_ctl,
                             avb_1722_listener_state_t &st,
                             int num_streams);
 
-#pragma select handler
-void avb_1722_listener_handle_packet(chanend c_mac_rx,
+void avb_1722_listener_handle_packet(client interface ethernet_if i_eth,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
                                      ptp_time_info_mod64 &?timeInfo);
@@ -46,8 +45,7 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
 
 #pragma unsafe arrays
 void avb_1722_talkerlistener(chanend c_ptp,
-                             chanend c_mac_rx,
-                             chanend c_mac_tx,
+                             client interface ethernet_if i_eth,
                              chanend c_listener_ctl,
                              chanend c_talker_ctl,
                              chanend c_buf_ctl,
@@ -62,9 +60,9 @@ void avb_1722_talkerlistener(chanend c_ptp,
   int pending_timeinfo = 0;
 
   set_thread_fast_mode_on();
-  avb_1722_talker_init(c_talker_ctl, c_mac_tx,
+  avb_1722_talker_init(c_talker_ctl, i_eth,
                        talker_state, num_talker_streams);
-  avb_1722_listener_init(c_mac_rx, c_listener_ctl,
+  avb_1722_listener_init(i_eth, c_listener_ctl,
                          listener_state, num_listener_streams);
 
   ptp_request_time_info_mod64(c_ptp);
@@ -90,10 +88,10 @@ void avb_1722_talkerlistener(chanend c_ptp,
           pending_timeinfo = 0;
           break;
 
-        case avb_1722_listener_handle_packet(c_mac_rx,
+        case i_eth.packet_ready(): avb_1722_listener_handle_packet(i_eth,
                                              c_buf_ctl,
                                              listener_state,
-                                             timeInfo):
+                                             timeInfo);
           break;
 
 
@@ -113,7 +111,7 @@ void avb_1722_talkerlistener(chanend c_ptp,
 
           // Call the 1722 packet construction
         default:
-          avb_1722_talker_send_packets(c_mac_tx, talker_state, timeInfo, tmr);
+          avb_1722_talker_send_packets(i_eth, talker_state, timeInfo, tmr);
           break;
         }
     }

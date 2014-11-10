@@ -20,11 +20,11 @@ static int controller_state = 0;
 
 #define XMOS_VENDOR_ID 0x00229700
 
-void simple_demo_controller(int *change_stream, int *toggle_remote, chanend c_tx)
+void simple_demo_controller(int *change_stream, int *toggle_remote, client interface ethernet_if i_eth)
 {
   if (*toggle_remote != controller_state)
   {
-    avb_1722_1_controller_disconnect_all_listeners(0, c_tx);
+    avb_1722_1_controller_disconnect_all_listeners(0, i_eth);
 
     if (*toggle_remote)
     {
@@ -41,7 +41,7 @@ void simple_demo_controller(int *change_stream, int *toggle_remote, chanend c_tx
 }
 
 
-void avb_entity_on_new_entity_available(client interface avb_interface avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, chanend c_tx)
+void avb_entity_on_new_entity_available(client interface avb_interface avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_if i_eth)
 {
   // If Talker is enabled, connect to the first XMOS listener we see
   if (AVB_DEMO_ENABLE_TALKER && AVB_1722_1_CONTROLLER_ENABLED)
@@ -53,7 +53,7 @@ void avb_entity_on_new_entity_available(client interface avb_interface avb, cons
       // Ensure that the listener knows our GUID
       avb_1722_1_adp_announce();
 
-      avb_1722_1_controller_connect(my_guid, entity->guid, 0, 0, c_tx);
+      avb_1722_1_controller_connect(my_guid, entity->guid, 0, 0, i_eth);
     }
   }
 }
@@ -65,9 +65,9 @@ void avb_talker_on_listener_connect(client interface avb_interface avb, int sour
 }
 
 void avb_talker_on_listener_connect_failed(client interface avb_interface avb, const_guid_ref_t my_guid, int source_num,
-        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, chanend c_tx)
+        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_if i_eth)
 {
-  avb_talker_on_listener_connect_failed_default(avb, my_guid, source_num, listener_guid, status, c_tx);
+  avb_talker_on_listener_connect_failed_default(avb, my_guid, source_num, listener_guid, status, i_eth);
 }
 
 /* The controller has indicated to connect this listener sink to a talker stream */

@@ -15,12 +15,8 @@
  *
  */
 void audio_codec_CS42448_init(out port AUD_RESET_N,
-                        #if I2C_COMBINE_SCL_SDA
-                              port r_i2c
-                        #else
-                              struct r_i2c &r_i2c
-                        #endif
-	                          ,int mode);
+                              client interface i2c_master_if i2c,
+	                          int mode);
 
 
 

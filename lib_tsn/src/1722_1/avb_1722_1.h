@@ -14,6 +14,7 @@
 #include "avb_1722_1_callbacks.h"
 #include "otp_board_info.h"
 #include "spi.h"
+#include "ethernet.h"
 
 typedef union {
     avb_1722_1_adp_packet_t adp;
@@ -38,7 +39,7 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned int serial_num);
  *  \param  c_ptp       a chanend to the PTP server
  *  \param  i_avb       client interface of type avb_interface into avb_manager()
  */
-void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_interface i_avb);
+void avb_1722_1_periodic(client interface ethernet_if i_eth, chanend c_ptp, client interface avb_interface i_avb);
 
 /** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
   *
@@ -57,8 +58,7 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
                          client interface avb_interface i_avb,
                          client interface avb_1722_1_control_callbacks i_1722_1_entity,
                          client interface spi_interface ?i_spi,
-                         chanend c_mac_rx,
-                         chanend c_mac_tx,
+                         client interface ethernet_if i_eth,
                          chanend c_ptp);
 
 /** Process a received 1722.1 packet
@@ -75,7 +75,7 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
 void avb_1722_1_process_packet(unsigned char buf[len],
                                 unsigned len,
                                 unsigned char src_addr[6],
-                                chanend c_tx,
+                                client interface ethernet_if i_eth,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
                                 CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                 CLIENT_INTERFACE(spi_interface, ?i_spi));

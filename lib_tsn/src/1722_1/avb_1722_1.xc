@@ -58,7 +58,7 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned serial_num)
 
 void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
                                 unsigned char src_addr[6],
-                                chanend c_tx,
+                                client interface ethernet_if i_eth,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
                                 CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                 CLIENT_INTERFACE(spi_interface, ?i_spi))
@@ -72,16 +72,16 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
     case DEFAULT_1722_1_ADP_SUBTYPE:
         if (datalen == AVB_1722_1_ADP_CD_LENGTH)
         {
-          process_avb_1722_1_adp_packet(*(avb_1722_1_adp_packet_t*)pkt, c_tx);
+          process_avb_1722_1_adp_packet(*(avb_1722_1_adp_packet_t*)pkt, i_eth);
         }
         return;
     case DEFAULT_1722_1_AECP_SUBTYPE:
-        process_avb_1722_1_aecp_packet(src_addr, (avb_1722_1_aecp_packet_t*)pkt, len, c_tx, i_avb_api, i_1722_1_entity, i_spi);
+        process_avb_1722_1_aecp_packet(src_addr, (avb_1722_1_aecp_packet_t*)pkt, len, i_eth, i_avb_api, i_1722_1_entity, i_spi);
         return;
     case DEFAULT_1722_1_ACMP_SUBTYPE:
         if (datalen == AVB_1722_1_ACMP_CD_LENGTH)
         {
-          process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t*)pkt, c_tx);
+          process_avb_1722_1_acmp_packet((avb_1722_1_acmp_packet_t*)pkt, i_eth);
         }
         return;
     default:
@@ -89,20 +89,20 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
     }
 }
 
-void avb_1722_1_periodic(chanend c_tx, chanend c_ptp, client interface avb_interface i_avb)
+void avb_1722_1_periodic(client interface ethernet_if i_eth, chanend c_ptp, client interface avb_interface i_avb)
 {
-    avb_1722_1_adp_advertising_periodic(c_tx, c_ptp);
+    avb_1722_1_adp_advertising_periodic(i_eth, c_ptp);
 #if (AVB_1722_1_CONTROLLER_ENABLED)
-    avb_1722_1_adp_discovery_periodic(c_tx, i_avb);
-    avb_1722_1_acmp_controller_periodic(c_tx, i_avb);
+    avb_1722_1_adp_discovery_periodic(i_eth, i_avb);
+    avb_1722_1_acmp_controller_periodic(i_eth, i_avb);
 #endif
 #if (AVB_1722_1_TALKER_ENABLED)
-    avb_1722_1_acmp_talker_periodic(c_tx, i_avb);
+    avb_1722_1_acmp_talker_periodic(i_eth, i_avb);
 #endif
 #if (AVB_1722_1_LISTENER_ENABLED)
-    avb_1722_1_acmp_listener_periodic(c_tx, i_avb);
+    avb_1722_1_acmp_listener_periodic(i_eth, i_avb);
 #endif
-    avb_1722_1_aecp_aem_periodic(c_tx);
+    avb_1722_1_aecp_aem_periodic(i_eth);
 }
 
 
@@ -112,8 +112,7 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
                          client interface avb_interface i_avb,
                          client interface avb_1722_1_control_callbacks i_1722_1_entity,
                          client interface spi_interface ?i_spi,
-                         chanend c_mac_rx,
-                         chanend c_mac_tx,
+                         client interface ethernet_if i_eth,
                          chanend c_ptp) {
   unsigned periodic_timeout;
   timer tmr;
@@ -125,9 +124,9 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
 
   otp_board_info_get_serial(otp_ports, serial);
 
-  mac_get_macaddr(c_mac_tx, mac_addr);
-  mac_set_custom_filter(c_mac_rx, MAC_FILTER_AVB_CONTROL);
-  mac_request_status_packets(c_mac_rx);
+
+  i_eth.get_macaddr(mac_addr);
+  i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_CONTROL);
 
   avb_1722_1_init(mac_addr, serial);
   avb_1722_maap_init(mac_addr);
@@ -140,16 +139,20 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
   while (1) {
     select {
       // Receive and process any incoming AVB packets (802.1Qat, 1722_MAAP)
-      case avb_get_control_packet(c_mac_rx, buf, nbytes, port_num):
+      case i_eth.packet_ready():
       {
-        avb_process_1722_control_packet(buf, nbytes, c_mac_tx, i_avb, i_1722_1_entity, i_spi);
+        ethernet_packet_info_t packet_info;
+        i_eth.get_packet(packet_info, (char *)buf, AVB_1722_1_PACKET_SIZE_WORDS * 4);
+        unsigned stream_id = packet_info.filter_data;
+
+        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth, i_avb, i_1722_1_entity, i_spi);
         break;
       }
       // Periodic processing
       case tmr when timerafter(periodic_timeout) :> unsigned int time_now:
       {
-        avb_1722_1_periodic(c_mac_tx, c_ptp, i_avb);
-        avb_1722_maap_periodic(c_mac_tx, i_avb);
+        avb_1722_1_periodic(i_eth, c_ptp, i_avb);
+        avb_1722_maap_periodic(i_eth, i_avb);
 
         periodic_timeout += PERIODIC_POLL_TIME;
         break;
