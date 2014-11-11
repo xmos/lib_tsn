@@ -22,13 +22,14 @@
 #include "avb_srp.h"
 #include "aem_descriptor_types.h"
 #include "ethernet.h"
+#include "smi.h"
 #include "avb_mac_filter.h"
 
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
 on tile[1]: otp_ports_t otp_ports1 = OTP_PORTS_INITIALIZER;
 
-smi_ports_t smi_ports = on tile[1]: {XS1_PORT_1G, XS1_PORT_1I};
-
+port p_smi_mdio   = on tile[1]: XS1_PORT_1G;
+port p_smi_mdc    = on tile[1]: XS1_PORT_1I;
 port p_eth_rxclk  = on tile[1]: XS1_PORT_1A;
 port p_eth_rxd    = on tile[1]: XS1_PORT_4C;
 port p_eth_txd    = on tile[1]: XS1_PORT_4D;
@@ -134,6 +135,37 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
   }
 }
 
+#define ETHERNET_LINK_POLL_PERIOD_MS 1000
+[[combinable]]
+void phy_driver(client interface smi_if smi,
+                client interface ethernet_config_if eth_config) {
+  ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
+  const int ethernet_phy_reset_delay_us = 1;
+  timer tmr;
+  int t;
+  p_eth_reset <: 0;
+  delay_microseconds(ethernet_phy_reset_delay_us);
+  p_eth_reset <: 1;
+
+  tmr :> t;
+
+  smi_configure(smi, 1, 1);
+  while (1) {
+    select {
+    case tmr when timerafter(t) :> t:
+      int link_up = smi_is_link_up(smi);
+      ethernet_link_state_t new_state = link_up ? ETHERNET_LINK_UP :
+                                                  ETHERNET_LINK_DOWN;
+      if (new_state != link_state) {
+        link_state = new_state;
+        eth_config.set_link_state(0, ETHERNET_LINK_DOWN);
+      }
+      t += ETHERNET_LINK_POLL_PERIOD_MS * XS1_TIMER_MHZ * 1000;
+      break;
+    }
+  }
+}
+
 enum mac_clients {
   MAC_TO_MEDIA_CLOCK = 0,
 #if AVB_DEMO_ENABLE_TALKER
@@ -168,6 +200,7 @@ int main(void)
 {
   ethernet_if i_eth[NUM_ETH_CLIENTS];
   ethernet_config_if i_eth_config;
+  smi_if i_smi;
   ethernet_filter_callback_if i_eth_filter;
 
   // PTP channels
@@ -199,9 +232,8 @@ int main(void)
 
   par
   {
-    on tile[1].core[0]: smsc_LAN8710_driver(i_eth_config,
-                                    smi_ports, p_eth_reset,
-                                    ETH_SMI_PHY_ADDRESS);
+    on tile[1]: smi(i_smi, ETH_SMI_PHY_ADDRESS, p_smi_mdio, p_smi_mdc);
+    on tile[1]: phy_driver(i_smi, i_eth_config);
 
     on tile[1]:
     {
