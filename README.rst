@@ -1,42 +1,38 @@
-AVB Software Stack
-..................
+Time Sensitive Networking Library
+=================================
 
-:Latest release: 6.3.1beta0
-:Maintainer: XMOS
-:Description: AVB software stack
+.. rheader::
 
+   TSN |version|
 
-Key Features
-============
+Summary
+-------
 
-* 1722 Talker and Listener (simultaneous) support
-* 1722 MAAP support for Talkers
+This library provides components for creating time sensitive
+networking and media transport applications.
+In particular, it supports the various standards for
+Ethernet AVB (Audio Video Bridging).
+
+Features
+........
+
+* IEEE 1722 AVB audio transport support (talker and listener)
+* IEEE 1722 MAAP support for Talkers
 * 802.1Q MRP, MVRP, SRP protocols
 * gPTP server and protocol
-* Audio interface for I2S and TDM
-* Media clock recovery and interface to PLL clock source
 * Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
 
-Firmware Overview
-=================
+Software version and dependencies
+.................................
 
-This firmware is a reference endpoint implementation of Audio Video Bridging protocols for XMOS silicon. It includes a PTP time
-server to provide a stable wallclock reference and clock recovery to synchronise listener audio to talker audio
-codecs. The Stream Reservation Protocol is used to reserve bandwidth through 802.1 network infrastructure.
+This document pertains to version |version| of the TSN library. It is
+intended to be used with version 14.x of the xTIMEcomposer studio tools.
 
-Known Issues
-============
+TODO: LIBRARY DEPENDENCIES
 
-Support
-=======
+Related application notes
+.........................
 
-The HEAD of this repository is a work in progress. It may or may not compile from time to time, and modules, code and features may be incomplete. For a stable, supported release please see the reference designs section at www.xmos.com.
+The following application notes use this library:
 
-Required software (dependencies)
-================================
-
-  * sc_util (git@github.com:xcore/sc_util)
-  * sc_slicekit_support (git@github.com:xcore/sc_slicekit_support)
-  * sc_otp (https://github.com/xcore/sc_otp.git)
-  * sc_ethernet (https://github.com/xcore/sc_ethernet.git)
-
+  * TODO
