@@ -23,7 +23,6 @@
 #include "aem_descriptor_types.h"
 #include "ethernet.h"
 #include "smi.h"
-#include "avb_mac_filter.h"
 
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
 on tile[1]: otp_ports_t otp_ports1 = OTP_PORTS_INITIALIZER;
@@ -138,7 +137,7 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
 #define ETHERNET_LINK_POLL_PERIOD_MS 1000
 [[combinable]]
 void phy_driver(client interface smi_if smi,
-                client interface ethernet_config_if eth_config) {
+                client interface ethernet_if eth) {
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
   const int ethernet_phy_reset_delay_us = 1;
   timer tmr;
@@ -158,7 +157,7 @@ void phy_driver(client interface smi_if smi,
                                                   ETHERNET_LINK_DOWN;
       if (new_state != link_state) {
         link_state = new_state;
-        eth_config.set_link_state(0, ETHERNET_LINK_DOWN);
+        eth.set_link_state(0, ETHERNET_LINK_DOWN);
       }
       t += ETHERNET_LINK_POLL_PERIOD_MS * XS1_TIMER_MHZ * 1000;
       break;
@@ -177,6 +176,7 @@ enum mac_clients {
   MAC_TO_SRP,
   MAC_TO_1722_1,
   MAC_TO_AVB_MANAGER,
+  MAC_TO_PHY_DRIVER,
   NUM_ETH_CLIENTS
 };
 
@@ -199,9 +199,7 @@ enum ptp_chans {
 int main(void)
 {
   ethernet_if i_eth[NUM_ETH_CLIENTS];
-  ethernet_config_if i_eth_config;
   smi_if i_smi;
-  ethernet_filter_callback_if i_eth_filter;
 
   // PTP channels
   chan c_ptp[NUM_PTP_CHANS];
@@ -233,26 +231,19 @@ int main(void)
   par
   {
     on tile[1]: smi(i_smi, ETH_SMI_PHY_ADDRESS, p_smi_mdio, p_smi_mdc);
-    on tile[1]: phy_driver(i_smi, i_eth_config);
+    on tile[1]: phy_driver(i_smi, i_eth[MAC_TO_PHY_DRIVER]);
 
     on tile[1]:
-    {
-      char mac_address[6];
-      otp_board_info_get_mac(otp_ports1, 0, mac_address);
-      mii_ethernet_rt(i_eth_filter, i_eth_config,
-                     i_eth, NUM_ETH_CLIENTS,
-                     mac_address,
-                     p_eth_rxclk, p_eth_rxerr, p_eth_rxd, p_eth_rxdv,
-                     p_eth_txclk, p_eth_txen, p_eth_txd,
-                     eth_rxclk, eth_txclk,
-                     (MII_RX_BUFSIZE_LOW_PRIORITY + 3) / 4,
-                     (MII_TX_BUFSIZE_LOW_PRIORITY + 3) / 4,
-                     (MII_RX_BUFSIZE_HIGH_PRIORITY + 3 ) / 4,
-                     (MII_TX_BUFSIZE_HIGH_PRIORITY + 3) / 4,
-                     ETHERNET_ENABLE_SHAPER);
-    }
+      mii_ethernet_rt(i_eth, NUM_ETH_CLIENTS,
+                      p_eth_rxclk, p_eth_rxerr, p_eth_rxd, p_eth_rxdv,
+                      p_eth_txclk, p_eth_txen, p_eth_txd,
+                      eth_rxclk, eth_txclk,
+                      (MII_RX_BUFSIZE_LOW_PRIORITY + 3) / 4,
+                      (MII_TX_BUFSIZE_LOW_PRIORITY + 3) / 4,
+                      (MII_RX_BUFSIZE_HIGH_PRIORITY + 3 ) / 4,
+                      (MII_TX_BUFSIZE_HIGH_PRIORITY + 3) / 4,
+                      ETHERNET_ENABLE_SHAPER);
 
-    on tile[1]: avb_eth_filter(i_eth_filter);
 
     on tile[0]: media_clock_server(i_media_clock_ctl,
                                    null,
@@ -304,18 +295,24 @@ int main(void)
                                   AVB_NUM_SINKS);
 #endif
 
-    on tile[1]: [[combine]] par {
-      avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
-                  i_srp,
-                  c_media_ctl,
-                  c_listener_ctl,
-                  c_talker_ctl,
-                  i_eth[MAC_TO_AVB_MANAGER],
-                  i_media_clock_ctl,
-                  c_ptp[PTP_TO_AVB_MANAGER]);
-      avb_srp_task(i_avb[AVB_MANAGER_TO_SRP],
-                   i_srp,
-                   i_eth[MAC_TO_SRP]);
+    on tile[1]: {
+       char mac_address[6];
+       otp_board_info_get_mac(otp_ports1, 0, mac_address);
+       i_eth[MAC_TO_AVB_MANAGER].set_macaddr(0, mac_address);
+       [[combine]]
+       par {
+         avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
+                     i_srp,
+                     c_media_ctl,
+                     c_listener_ctl,
+                     c_talker_ctl,
+                     i_eth[MAC_TO_AVB_MANAGER],
+                     i_media_clock_ctl,
+                     c_ptp[PTP_TO_AVB_MANAGER]);
+         avb_srp_task(i_avb[AVB_MANAGER_TO_SRP],
+                      i_srp,
+                      i_eth[MAC_TO_SRP]);
+       }
     }
 
     on tile[1]: application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);

@@ -12,7 +12,6 @@
 #include "avb_1722_listener.h"
 #include "media_fifo.h"
 #include "ethernet.h"
-#include "avb_mac_filter.h"
 #include "avb_srp.h"
 #include "avb_unit.h"
 #include "avb_conf.h"
@@ -109,7 +108,8 @@ void avb_1722_listener_init(client interface ethernet_if i_eth,
     st.listener_streams[i].state = 0;
   }
 
-  i_eth.set_receive_filter_mask(ROUTER_LINK(st.router_link));
+  //TODO: setup listener to receive correct multicast packets
+  //i_eth.set_receive_filter_mask(ROUTER_LINK(st.router_link));
 }
 
 void avb_1722_listener_handle_packet(client interface ethernet_if i_eth,

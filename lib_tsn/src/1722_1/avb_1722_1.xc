@@ -10,7 +10,6 @@
 #include "avb_1722_1_aecp.h"
 #include "avb_1722_maap.h"
 #include "ethernet.h"
-#include "avb_mac_filter.h"
 #include "spi.h"
 #include "avb_1722_1_protocol.h"
 
@@ -125,8 +124,10 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
   otp_board_info_get_serial(otp_ports, serial);
 
 
-  i_eth.get_macaddr(mac_addr);
-  i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_CONTROL);
+  i_eth.get_macaddr(0, mac_addr);
+
+  // TODO: configure filters to receive correct packets
+  //i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_CONTROL);
 
   avb_1722_1_init(mac_addr, serial);
   avb_1722_maap_init(mac_addr);

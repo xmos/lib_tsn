@@ -127,7 +127,7 @@ void avb_1722_talker_init(chanend c_talker_ctl,
   avb_register_talker_streams(c_talker_ctl, num_streams);
 
   // Initialise local data structure.
-  i_eth.get_macaddr(st.mac_addr);
+  i_eth.get_macaddr(0, st.mac_addr);
 
   for (int i = 0; i < AVB_MAX_STREAMS_PER_TALKER_UNIT; i++)
     st.talker_streams[i].active = 0;

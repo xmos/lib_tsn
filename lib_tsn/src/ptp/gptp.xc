@@ -1392,7 +1392,7 @@ void ptp_init(client interface ethernet_if i_eth, enum ptp_server_type stype)
     ptp_priority1 = PTP_DEFAULT_NON_GM_CAPABLE_PRIORITY1;
   }
 
-  i_eth.get_macaddr(src_mac_addr);
+  i_eth.get_macaddr(0, src_mac_addr);
 
   for (int i=0; i < 3; i ++) {
     my_port_id.data[i] = src_mac_addr[i];

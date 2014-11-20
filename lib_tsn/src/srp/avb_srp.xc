@@ -6,7 +6,6 @@
 #include "avb_mvrp.h"
 #include "ethernet.h"
 #include "avb_1722_router.h"
-#include "avb_mac_filter.h"
 #include "avb_srp_interface.h"
 
 #define PERIODIC_POLL_TIME 5000
@@ -23,14 +22,15 @@ void avb_srp_task(client interface avb_interface i_avb,
   srp_store_ethernet_interface(i_eth);
   mrp_store_ethernet_interface(i_eth);
 
-  i_eth.get_macaddr(mac_addr);
+  i_eth.get_macaddr(0, mac_addr);
   mrp_init(mac_addr);
   srp_domain_init();
   avb_mvrp_init();
 
   // mac_initialize_routing_table(c_mac_tx);
 
-  i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_SRP);
+  // TODO:configure client to receive correct packets
+  //i_eth.set_receive_filter_mask(1 << MAC_FILTER_AVB_SRP);
 
   i_avb.initialise();
 
@@ -42,7 +42,7 @@ void avb_srp_task(client interface avb_interface i_avb,
       {
         ethernet_packet_info_t packet_info;
         i_eth.get_packet(packet_info, (char *)buf, MAX_AVB_CONTROL_PACKET_SIZE);
-        avb_process_srp_control_packet(i_avb, buf, packet_info.len, packet_info.type, i_eth, packet_info.src_port);
+        avb_process_srp_control_packet(i_avb, buf, packet_info.len, packet_info.type, i_eth, packet_info.src_ifnum);
         break;
       }
       // Periodic processing

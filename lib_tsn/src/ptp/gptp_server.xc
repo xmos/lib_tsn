@@ -3,7 +3,6 @@
 #include "gptp_cmd.h"
 #include "gptp_config.h"
 #include "ethernet.h"
-#include "avb_mac_filter.h"
 #include "debug_print.h"
 
 /* These functions are the workhorse functions for the actual protocol.
@@ -38,7 +37,8 @@ void ptp_server_init(client interface ethernet_if i_eth,
                      int &ptp_timeout)
 {
 
-  i_eth.set_receive_filter_mask(1 << MAC_FILTER_PTP);
+  //TODO: Set up client to receive correct ethernet packets
+  //i_eth.set_receive_filter_mask(1 << MAC_FILTER_PTP);
 
   ptp_timer :> ptp_timeout;
 
@@ -56,11 +56,11 @@ void ptp_recv_and_process_packet(client interface ethernet_if i_eth)
 
   if (packet_info.type == ETH_IF_STATUS) {
     if (buf[1] == ETHERNET_LINK_UP) {
-      ptp_reset(packet_info.src_port);
+      ptp_reset(packet_info.src_ifnum);
     }
   }
   else if (packet_info.type == ETH_DATA) {
-    ptp_recv(i_eth, buf, packet_info.timestamp, packet_info.src_port, packet_info.len);
+    ptp_recv(i_eth, buf, packet_info.timestamp, packet_info.src_ifnum, packet_info.len);
   }
 }
 

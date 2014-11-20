@@ -156,7 +156,7 @@ void avb_init(chanend c_media_ctl[],
               client interface ethernet_if i_eth)
 {
   unsigned char mac_addr[6];
-  i_eth.get_macaddr(mac_addr);
+  i_eth.get_macaddr(0, mac_addr);
   register_talkers(c_talker_ctl, mac_addr);
   register_listeners(c_listener_ctl);
 }
