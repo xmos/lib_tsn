@@ -1,3 +1,4 @@
+#include <xs1.h>
 #include <platform.h>
 #include <print.h>
 #include <xccompat.h>
@@ -137,7 +138,7 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
 #define ETHERNET_LINK_POLL_PERIOD_MS 1000
 [[combinable]]
 void phy_driver(client interface smi_if smi,
-                client interface ethernet_if eth) {
+                client interface ethernet_cfg_if eth) {
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
   const int ethernet_phy_reset_delay_us = 1;
   timer tmr;
@@ -156,8 +157,9 @@ void phy_driver(client interface smi_if smi,
       ethernet_link_state_t new_state = link_up ? ETHERNET_LINK_UP :
                                                   ETHERNET_LINK_DOWN;
       if (new_state != link_state) {
+        debug_printf("link state: %d\n", new_state);
         link_state = new_state;
-        eth.set_link_state(0, ETHERNET_LINK_DOWN);
+        eth.set_link_state(0, new_state);
       }
       t += ETHERNET_LINK_POLL_PERIOD_MS * XS1_TIMER_MHZ * 1000;
       break;
@@ -165,19 +167,28 @@ void phy_driver(client interface smi_if smi,
   }
 }
 
-enum mac_clients {
-  MAC_TO_MEDIA_CLOCK = 0,
-#if AVB_DEMO_ENABLE_TALKER
-  MAC_TO_TALKER,
-#endif
-#if AVB_DEMO_ENABLE_LISTENER
-  MAC_TO_LISTENER,
-#endif
+enum mac_rx_lp_clients {
+  MAC_TO_MEDIA_CLOCK_PTP = 0,
   MAC_TO_SRP,
   MAC_TO_1722_1,
-  MAC_TO_AVB_MANAGER,
-  MAC_TO_PHY_DRIVER,
-  NUM_ETH_CLIENTS
+  NUM_ETH_TX_LP_CLIENTS
+};
+
+enum mac_tx_lp_clients {
+  MEDIA_CLOCK_PTP_TO_MAC = 0,
+  SRP_TO_MAC,
+  AVB1722_1_TO_MAC,
+  NUM_ETH_RX_LP_CLIENTS
+};
+
+enum mac_cfg_clients {
+  MAC_CFG_TO_AVB_MANAGER,
+  MAC_CFG_TO_PHY_DRIVER,
+  MAC_CFG_TO_MEDIA_CLOCK_PTP,
+  MAC_CFG_TO_1722_1,
+  MAC_CFG_TO_SRP,
+  MAC_CFG_TO_TALKER,
+  NUM_ETH_CFG_CLIENTS
 };
 
 enum avb_manager_chans {
@@ -198,7 +209,11 @@ enum ptp_chans {
 
 int main(void)
 {
-  ethernet_if i_eth[NUM_ETH_CLIENTS];
+  ethernet_cfg_if i_eth_cfg[NUM_ETH_CFG_CLIENTS];
+  ethernet_rx_if i_eth_rx_lp[NUM_ETH_RX_LP_CLIENTS];
+  ethernet_tx_if i_eth_tx_lp[NUM_ETH_TX_LP_CLIENTS];
+  streaming chan c_eth_rx_hp;
+  streaming chan c_eth_tx_hp;
   smi_if i_smi;
 
   // PTP channels
@@ -230,29 +245,41 @@ int main(void)
 
   par
   {
-    on tile[1]: smi(i_smi, ETH_SMI_PHY_ADDRESS, p_smi_mdio, p_smi_mdc);
-    on tile[1]: phy_driver(i_smi, i_eth[MAC_TO_PHY_DRIVER]);
 
-    on tile[1]:
-      mii_ethernet_rt(i_eth, NUM_ETH_CLIENTS,
-                      p_eth_rxclk, p_eth_rxerr, p_eth_rxd, p_eth_rxdv,
-                      p_eth_txclk, p_eth_txen, p_eth_txd,
-                      eth_rxclk, eth_txclk,
-                      (MII_RX_BUFSIZE_LOW_PRIORITY + 3) / 4,
-                      (MII_TX_BUFSIZE_LOW_PRIORITY + 3) / 4,
-                      (MII_RX_BUFSIZE_HIGH_PRIORITY + 3 ) / 4,
-                      (MII_TX_BUFSIZE_HIGH_PRIORITY + 3) / 4,
-                      ETHERNET_ENABLE_SHAPER);
+    on tile[1]: mii_ethernet_rt_mac(i_eth_cfg, NUM_ETH_CFG_CLIENTS,
+                                    i_eth_rx_lp, NUM_ETH_RX_LP_CLIENTS,
+                                    i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
+                                    c_eth_rx_hp, c_eth_tx_hp,
+                                    p_eth_rxclk, p_eth_rxerr, p_eth_rxd, p_eth_rxdv,
+                                    p_eth_txclk, p_eth_txen, p_eth_txd,
+                                    eth_rxclk, eth_txclk,
+                                    2000, 2000, 1);
 
-
-    on tile[0]: media_clock_server(i_media_clock_ctl,
+    on tile[0]: {
+      char mac_address[6];
+      otp_board_info_get_mac(otp_ports0, 0, mac_address);
+      i_eth_cfg[MAC_CFG_TO_MEDIA_CLOCK_PTP].set_macaddr(0, mac_address);
+      par {
+        media_clock_server(i_media_clock_ctl,
                                    null,
                                    c_buf_ctl,
                                    AVB_NUM_LISTENER_UNITS,
                                    p_fs,
-                                   i_eth[MAC_TO_MEDIA_CLOCK],
+                                   i_eth_rx_lp[MAC_TO_MEDIA_CLOCK_PTP],
+                                   i_eth_tx_lp[MEDIA_CLOCK_PTP_TO_MAC],
+                                   i_eth_cfg[MAC_CFG_TO_MEDIA_CLOCK_PTP],
                                    c_ptp, NUM_PTP_CHANS,
                                    PTP_GRANDMASTER_CAPABLE);
+        avb_1722_1_maap_task(otp_ports0,
+                                    i_avb[AVB_MANAGER_TO_1722_1],
+                                    i_1722_1_entity,
+                                    null,
+                                    i_eth_rx_lp[MAC_TO_1722_1],
+                                    i_eth_tx_lp[AVB1722_1_TO_MAC],
+                                    i_eth_cfg[MAC_CFG_TO_1722_1],
+                                    c_ptp[PTP_TO_1722_1]);
+      }
+    }
 
     on tile[AVB_I2C_TILE]: [[distribute]] i2c_master(i2c, 1, p_i2c_scl, p_i2c_sda, 100);
     on tile[AVB_I2C_TILE]: [[distribute]] audio_hardware_setup(i2c[0]);
@@ -281,14 +308,15 @@ int main(void)
 #if AVB_DEMO_ENABLE_TALKER
     // AVB Talker - must be on the same tile as the audio interface
     on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
-                                i_eth[MAC_TO_TALKER],
+                                i_eth_cfg[MAC_CFG_TO_TALKER],
+                                c_eth_tx_hp,
                                 c_talker_ctl[0],
                                 AVB_NUM_SOURCES);
 #endif
 
 #if AVB_DEMO_ENABLE_LISTENER
     // AVB Listener
-    on tile[0]: avb_1722_listener(i_eth[MAC_TO_LISTENER],
+    on tile[0]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],
@@ -296,33 +324,27 @@ int main(void)
 #endif
 
     on tile[1]: {
-       char mac_address[6];
-       otp_board_info_get_mac(otp_ports1, 0, mac_address);
-       i_eth[MAC_TO_AVB_MANAGER].set_macaddr(0, mac_address);
        [[combine]]
        par {
+         smi(i_smi, ETH_SMI_PHY_ADDRESS, p_smi_mdio, p_smi_mdc);
+         phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
          avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
                      i_srp,
                      c_media_ctl,
                      c_listener_ctl,
                      c_talker_ctl,
-                     i_eth[MAC_TO_AVB_MANAGER],
+                     i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
                      i_media_clock_ctl,
                      c_ptp[PTP_TO_AVB_MANAGER]);
          avb_srp_task(i_avb[AVB_MANAGER_TO_SRP],
                       i_srp,
-                      i_eth[MAC_TO_SRP]);
+                      i_eth_rx_lp[MAC_TO_SRP],
+                      i_eth_tx_lp[SRP_TO_MAC],
+                      i_eth_cfg[MAC_CFG_TO_SRP]);
        }
     }
 
     on tile[1]: application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
-
-    on tile[0]: avb_1722_1_maap_task(otp_ports0,
-                                    i_avb[AVB_MANAGER_TO_1722_1],
-                                    i_1722_1_entity,
-                                    null,
-                                    i_eth[MAC_TO_1722_1],
-                                    c_ptp[PTP_TO_1722_1]);
   }
 
     return 0;

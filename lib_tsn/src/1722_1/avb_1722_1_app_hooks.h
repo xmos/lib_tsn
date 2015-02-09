@@ -18,9 +18,9 @@
  * \param c_tx      A transmit channel end to the Ethernet server
  **/
 void avb_entity_on_new_entity_available(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity,
-                                        client interface ethernet_if i_eth);
+                                        client interface ethernet_tx_if i_eth);
 
-void avb_entity_on_new_entity_available_default(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_if i_eth);
+void avb_entity_on_new_entity_available_default(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_tx_if i_eth);
 
 /** A Controller has indicated that a Listener is connecting to this Talker stream source
  *
@@ -56,10 +56,10 @@ void avb_talker_on_listener_disconnect_default(client interface avb_interface i_
  * \param c_tx              A transmit channel end to the Ethernet server
  **/
 void avb_talker_on_listener_connect_failed(client interface avb_interface i_avb, const_guid_ref_t my_guid, int source_num,
-        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_if i_eth);
+        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_tx_if i_eth);
 
 void avb_talker_on_listener_connect_failed_default(client interface avb_interface i_avb, const_guid_ref_t my_guid, int source_num,
-        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_if i_eth);
+        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_tx_if i_eth);
 
 /** A Controller has indicated to connect this Listener sink to a Talker stream
  *

@@ -20,7 +20,7 @@ extern "C" {
 void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     avb_1722_1_aecp_packet_t *pkt,
                                     int num_packet_bytes,
-                                    CLIENT_INTERFACE(ethernet_if, i_eth),
+                                    CLIENT_INTERFACE(ethernet_tx_if, i_eth),
                                     CLIENT_INTERFACE(avb_interface, i_avb_api),
                                     CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
 #ifdef __XC__
@@ -31,7 +31,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
 #ifdef __XC__
 }
 #endif
-void avb_1722_1_aecp_aem_periodic(CLIENT_INTERFACE(ethernet_if, i_eth));
+void avb_1722_1_aecp_aem_periodic(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
 int avb_erase_upgrade_image(CLIENT_INTERFACE(spi_interface, i_spi));
 

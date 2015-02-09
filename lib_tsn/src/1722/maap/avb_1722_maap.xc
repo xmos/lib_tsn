@@ -28,7 +28,7 @@ typedef struct {
 } maap_address_range;
 
 static unsigned char my_mac_addr[6];
-static unsigned char maap_dest_addr[6] = MAAP_PROTOCOL_DEST_ADDR;
+unsigned char maap_dest_addr[6] = MAAP_PROTOCOL_DEST_ADDR;
 
 static random_generator_t random_gen;
 
@@ -171,7 +171,7 @@ int avb_1722_maap_get_base_address(unsigned char addr[6])
   return 0;
 }
 
-void avb_1722_maap_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
+void avb_1722_maap_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb)
 {
   int nbytes;
 
@@ -369,7 +369,7 @@ static int maap_conflict(unsigned char remote_addr[6], int remote_count, unsigne
   return 1;
 }
 
-void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes, unsigned char src_addr[6], client interface ethernet_if i_eth)
+void avb_1722_maap_process_packet(unsigned char buf[nbytes], unsigned int nbytes, unsigned char src_addr[6], client interface ethernet_tx_if i_eth)
 {
   struct maap_packet_t *maap_pkt = (struct maap_packet_t *) &buf[0];
   int msg_type;

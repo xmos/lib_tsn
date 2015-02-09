@@ -53,7 +53,7 @@ extern void acmp_zero_listener_stream_info(int unique_id);
 extern unsigned int avb_1722_1_buf[AVB_1722_1_PACKET_SIZE_WORDS];
 
 
-void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp * alias command, int retry, int inflight_idx, client interface ethernet_if i_eth)
+void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp * alias command, int retry, int inflight_idx, client interface ethernet_tx_if i_eth)
 {
     /* We need to save the sequence_id of the Listener command that generated this Talker command for the response */
     unsigned short original_sequence_id = command->sequence_id;
@@ -78,13 +78,13 @@ void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_re
     }
 }
 
-void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, client interface ethernet_if i_eth)
+void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, client interface ethernet_tx_if i_eth)
 {
     avb_1722_1_create_acmp_packet(response, message_type, status);
     i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ACMP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
 }
 
-void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, client interface ethernet_if i_eth)
+void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, client interface ethernet_tx_if i_eth)
 {
     acmp_controller_cmd_resp.controller_guid = my_guid;
     acmp_controller_cmd_resp.talker_guid.l = talker_guid.l;
@@ -128,7 +128,7 @@ static unsigned acmp_listener_is_connected(int connected_to, client interface av
 }
 
 
-void avb_1722_1_acmp_controller_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
+void avb_1722_1_acmp_controller_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_controller_state)
     {
@@ -223,7 +223,7 @@ void avb_1722_1_acmp_controller_periodic(client interface ethernet_if i_eth, cli
     }
 }
 
-void avb_1722_1_acmp_talker_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
+void avb_1722_1_acmp_talker_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_talker_state)
     {
@@ -308,7 +308,7 @@ void avb_1722_1_acmp_talker_periodic(client interface ethernet_if i_eth, client 
     }
 }
 
-void avb_1722_1_acmp_listener_periodic(client interface ethernet_if i_eth, client interface avb_interface avb)
+void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb)
 {
     switch (acmp_listener_state)
     {

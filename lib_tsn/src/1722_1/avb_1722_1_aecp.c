@@ -364,7 +364,7 @@ static unsigned short avb_1722_1_create_acquire_response_packet(unsigned char st
   return sizeof(avb_1722_1_aem_acquire_entity_command_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
 }
 
-static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, unsigned char *status, unsigned char src_addr[6], CLIENT_INTERFACE(ethernet_if, i_eth))
+static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, unsigned char *status, unsigned char src_addr[6], CLIENT_INTERFACE(ethernet_tx_if, i_eth))
 {
   unsigned short descriptor_index = ntoh_16(pkt->data.aem.command.acquire_entity_cmd.descriptor_id);
   unsigned short descriptor_type = ntoh_16(pkt->data.aem.command.acquire_entity_cmd.descriptor_type);
@@ -561,7 +561,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
                                             int message_type,
                                             int num_pkt_bytes,
-                                            CLIENT_INTERFACE(ethernet_if, i_eth),
+                                            CLIENT_INTERFACE(ethernet_tx_if, i_eth),
                                             CLIENT_INTERFACE(avb_interface, i_avb_api),
                                             CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                             CLIENT_INTERFACE(spi_interface, i_spi))
@@ -803,7 +803,7 @@ static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t 
 void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     avb_1722_1_aecp_packet_t *pkt,
                                     int num_pkt_bytes,
-                                    CLIENT_INTERFACE(ethernet_if, i_eth),
+                                    CLIENT_INTERFACE(ethernet_tx_if, i_eth),
                                     CLIENT_INTERFACE(avb_interface, i_avb),
                                     CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                     CLIENT_INTERFACE(spi_interface, i_spi))
@@ -845,7 +845,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
   }
 }
 
-void avb_1722_1_aecp_aem_periodic(CLIENT_INTERFACE(ethernet_if, i_eth))
+void avb_1722_1_aecp_aem_periodic(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
 {
   char available_timeouts[5] = {12, 1, 11, 12, 2};
   if (avb_timer_expired(&aecp_aem_controller_available_timer))

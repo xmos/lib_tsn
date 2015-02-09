@@ -12,7 +12,7 @@
 #include "avb_1722_1_app_hooks.h"
 
 /*** ADP ***/
-void avb_entity_on_new_entity_available_default(client interface avb_interface avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_if i_eth)
+void avb_entity_on_new_entity_available_default(client interface avb_interface avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_tx_if i_eth)
 {
   // Do nothing in the core stack
 }
@@ -49,7 +49,7 @@ void avb_talker_on_listener_connect_default(client interface avb_interface avb, 
 
 /* The controller has indicated that a listener has returned an error on connection attempt */
 void avb_talker_on_listener_connect_failed_default(client interface avb_interface avb, const_guid_ref_t my_guid, int source_num,
-        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_if i_eth)
+        const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_tx_if i_eth)
 {
 }
 

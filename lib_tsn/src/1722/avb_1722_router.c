@@ -55,7 +55,7 @@ static void keys_from_stream_id(unsigned int stream_id[2], int *key0, int *key1)
         (s[6] << 24);
 }
 
-void avb_1722_enable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
+void avb_1722_enable_stream_forwarding(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                       unsigned int stream_id[2]) {
   int key0, key1;
   keys_from_stream_id(stream_id, &key0, &key1);
@@ -67,7 +67,7 @@ void avb_1722_enable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
   // mac_1722_router_enable_forwarding(i_eth, key0, key1);
 }
 
-void avb_1722_disable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
+void avb_1722_disable_stream_forwarding(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                        unsigned int stream_id[2]) {
   int key0, key1;
   keys_from_stream_id(stream_id, &key0, &key1);
@@ -79,7 +79,7 @@ void avb_1722_disable_stream_forwarding(CLIENT_INTERFACE(ethernet_if, i_eth),
   // mac_1722_router_disable_forwarding(i_eth, key0, key1);
 }
 
-void avb_1722_add_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
+void avb_1722_add_stream_mapping(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                 unsigned int stream_id[2],
                                 int link_num,
                                 int avb_hash) {
@@ -97,7 +97,7 @@ void avb_1722_add_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
 }
 
 
-void avb_1722_remove_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
+void avb_1722_remove_stream_mapping(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                     unsigned int stream_id[2])
 {
   int key0, key1;
@@ -111,7 +111,7 @@ void avb_1722_remove_stream_mapping(CLIENT_INTERFACE(ethernet_if, i_eth),
 
 }
 
-void avb_1722_remove_stream_from_table(CLIENT_INTERFACE(ethernet_if, i_eth),
+void avb_1722_remove_stream_from_table(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                         unsigned int stream_id[2])
 {
   int key0, key1;

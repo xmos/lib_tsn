@@ -7,10 +7,10 @@
 
 /* These functions are the workhorse functions for the actual protocol.
    They are implemented in gptp.c  */
-void ptp_init(client interface ethernet_if, enum ptp_server_type stype);
+void ptp_init(client interface ethernet_cfg_if, client interface ethernet_rx_if, enum ptp_server_type stype, chanend c);
 void ptp_reset(int port_num);
-void ptp_recv(client interface ethernet_if, unsigned char buf[], unsigned ts, unsigned src_port, unsigned len);
-void ptp_periodic(client interface ethernet_if, unsigned);
+void ptp_recv(client interface ethernet_tx_if, unsigned char buf[], unsigned ts, unsigned src_port, unsigned len);
+void ptp_periodic(client interface ethernet_tx_if, unsigned);
 void ptp_get_reference_ptp_ts_mod_64(unsigned &hi, unsigned &lo);
 void ptp_current_grandmaster(char grandmaster[8]);
 ptp_port_role_t ptp_current_state(void);
@@ -31,28 +31,26 @@ extern ptp_timestamp ptp_reference_ptp_ts;
 extern signed int g_ptp_adjust;
 extern signed int g_inv_ptp_adjust;
 
-void ptp_server_init(client interface ethernet_if i_eth,
+void ptp_server_init(client interface ethernet_cfg_if i_eth_cfg,
+                     client interface ethernet_rx_if i_eth_rx,
+                     chanend c,
                      enum ptp_server_type server_type,
                      timer ptp_timer,
                      int &ptp_timeout)
 {
-
-  //TODO: Set up client to receive correct ethernet packets
-  //i_eth.set_receive_filter_mask(1 << MAC_FILTER_PTP);
-
   ptp_timer :> ptp_timeout;
 
-  ptp_init(i_eth, server_type);
+  ptp_init(i_eth_cfg, i_eth_rx, server_type, c);
 
 }
 
-void ptp_recv_and_process_packet(client interface ethernet_if i_eth)
+void ptp_recv_and_process_packet(client interface ethernet_rx_if i_eth_rx,
+                                 client interface ethernet_tx_if i_eth_tx)
 {
   unsigned char buf[MAX_PTP_MESG_LENGTH];
 
   ethernet_packet_info_t packet_info;
-  i_eth.get_packet(packet_info, buf, MAX_PTP_MESG_LENGTH);
-
+  i_eth_rx.get_packet(packet_info, buf, MAX_PTP_MESG_LENGTH);
 
   if (packet_info.type == ETH_IF_STATUS) {
     if (buf[1] == ETHERNET_LINK_UP) {
@@ -60,7 +58,7 @@ void ptp_recv_and_process_packet(client interface ethernet_if i_eth)
     }
   }
   else if (packet_info.type == ETH_DATA) {
-    ptp_recv(i_eth, buf, packet_info.timestamp, packet_info.src_ifnum, packet_info.len);
+    ptp_recv(i_eth_tx, buf, packet_info.timestamp, packet_info.src_ifnum, packet_info.len);
   }
 }
 
@@ -152,18 +150,20 @@ void ptp_process_client_request(chanend c, timer ptp_timer)
 }
 
 
-void ptp_server(client interface ethernet_if i_eth,
+void ptp_server(client interface ethernet_rx_if i_eth_rx,
+                client interface ethernet_tx_if i_eth_tx,
+                client interface ethernet_cfg_if i_eth_cfg,
                 chanend ptp_clients[], int num_clients,
                 enum ptp_server_type server_type)
 {
   timer ptp_timer;
   int ptp_timeout;
-  ptp_server_init(i_eth, server_type, ptp_timer, ptp_timeout);
+  ptp_server_init(i_eth_cfg, i_eth_rx, ptp_clients[0], server_type, ptp_timer, ptp_timeout);
 
   while (1) {
     select
       {
-        do_ptp_server(i_eth, ptp_clients, num_clients, ptp_timer, ptp_timeout);
+        do_ptp_server(i_eth_rx, i_eth_tx, ptp_clients, num_clients, ptp_timer, ptp_timeout);
       }
   }
 }

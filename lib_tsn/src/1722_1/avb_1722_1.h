@@ -39,7 +39,7 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned int serial_num);
  *  \param  c_ptp       a chanend to the PTP server
  *  \param  i_avb       client interface of type avb_interface into avb_manager()
  */
-void avb_1722_1_periodic(client interface ethernet_if i_eth, chanend c_ptp, client interface avb_interface i_avb);
+void avb_1722_1_periodic(client interface ethernet_tx_if i_eth, chanend c_ptp, client interface avb_interface i_avb);
 
 /** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
   *
@@ -58,7 +58,9 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
                          client interface avb_interface i_avb,
                          client interface avb_1722_1_control_callbacks i_1722_1_entity,
                          client interface spi_interface ?i_spi,
-                         client interface ethernet_if i_eth,
+                         client interface ethernet_rx_if i_eth_rx,
+                         client interface ethernet_tx_if i_eth_tx,
+                         client interface ethernet_cfg_if i_eth_cfg,
                          chanend c_ptp);
 
 /** Process a received 1722.1 packet
@@ -75,7 +77,7 @@ void avb_1722_1_maap_task(otp_ports_t &otp_ports,
 void avb_1722_1_process_packet(unsigned char buf[len],
                                 unsigned len,
                                 unsigned char src_addr[6],
-                                client interface ethernet_if i_eth,
+                                client interface ethernet_tx_if i_eth,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
                                 CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
                                 CLIENT_INTERFACE(spi_interface, ?i_spi));

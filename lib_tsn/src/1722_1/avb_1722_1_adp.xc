@@ -32,7 +32,7 @@ extern guid_t my_guid;
 // The GUID whose information we are currently trying to discover
 static guid_t discover_guid;
 
-static unsigned char avb_1722_1_adp_dest_addr[6] = AVB_1722_1_ADP_DEST_MAC;
+unsigned char avb_1722_1_adp_dest_addr[6] = AVB_1722_1_ADP_DEST_MAC;
 
 // The ADP available index counter
 static unsigned long avb_1722_1_available_index = 0;
@@ -234,7 +234,7 @@ static unsigned avb_1722_1_entity_database_check_timeout()
     return 0;
 }
 
-void process_avb_1722_1_adp_packet(avb_1722_1_adp_packet_t &pkt, client interface ethernet_if i_eth)
+void process_avb_1722_1_adp_packet(avb_1722_1_adp_packet_t &pkt, client interface ethernet_tx_if i_eth)
 {
     unsigned message_type = GET_1722_1_MSG_TYPE(((avb_1722_1_packet_header_t*)&pkt));
     guid_t zero_guid = { 0 };
@@ -302,7 +302,7 @@ static void avb_1722_1_create_adp_packet(int message_type, guid_t guid)
     }
 }
 
-void avb_1722_1_adp_discovery_periodic(client interface ethernet_if i_eth, client interface avb_interface avb_api)
+void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb_api)
 {
     switch (adp_discovery_state)
     {
@@ -346,7 +346,7 @@ void avb_1722_1_adp_discovery_periodic(client interface ethernet_if i_eth, clien
     }
 }
 
-void avb_1722_1_adp_advertising_periodic(client interface ethernet_if i_eth, chanend ptp)
+void avb_1722_1_adp_advertising_periodic(client interface ethernet_tx_if i_eth, chanend ptp)
 {
     guid_t ptp_current;
 

@@ -1,11 +1,11 @@
 /** \file avb_1722_talker.xc
  *  \brief IEC 61883-6/AVB1722 Audio over 1722 AVB Transport.
  */
-
-#include <platform.h>
 #include <xs1.h>
+#include <platform.h>
 #include <xclib.h>
 #include <print.h>
+#include <xscope.h>
 
 #include "avb_1722_def.h"
 #include "avb_1722.h"
@@ -19,6 +19,8 @@
 #include "debug_print.h"
 
 #if AVB_NUM_SOURCES != 0
+
+extern void local_sout_char_array(streaming chanend c, const char src[size], unsigned size);
 
 static transaction configure_stream(chanend avb1722_tx_config,
                avb1722_Talker_StreamConfig_t &stream,
@@ -112,7 +114,7 @@ static void stop_stream(avb1722_Talker_StreamConfig_t &stream) {
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          client interface ethernet_if i_eth,
+                          client interface ethernet_cfg_if i_eth_cfg,
                           avb_1722_talker_state_t &st,
                           int num_streams)
  {
@@ -127,7 +129,7 @@ void avb_1722_talker_init(chanend c_talker_ctl,
   avb_register_talker_streams(c_talker_ctl, num_streams);
 
   // Initialise local data structure.
-  i_eth.get_macaddr(0, st.mac_addr);
+  i_eth_cfg.get_macaddr(0, st.mac_addr);
 
   for (int i = 0; i < AVB_MAX_STREAMS_PER_TALKER_UNIT; i++)
     st.talker_streams[i].active = 0;
@@ -205,7 +207,7 @@ void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
 }
 
 
-void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
+void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
                                   avb_1722_talker_state_t &st,
                                   ptp_time_info_mod64 &timeInfo,
                                   timer tmr)
@@ -225,9 +227,9 @@ void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
                             t);
     if (packet_size) {
       if (packet_size < 60) packet_size = 60;
-      i_eth.send_packet((st.TxBuf, unsigned char[]), packet_size, st.talker_streams[st.cur_avb_stream].txport);
+      c_eth_tx_hp <: packet_size;
+      local_sout_char_array(c_eth_tx_hp, &(st.TxBuf, unsigned char[])[2], packet_size);
       st.talker_streams[st.cur_avb_stream].last_transmit_time = t;
-
     }
     if (packet_size || st.talker_streams[st.cur_avb_stream].initial)
     {
@@ -254,8 +256,11 @@ void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
  *  2. Convert the local timer value to global PTP timestamp.
  *  3. AVB payload generation and transmit to Ethernet.
  */
-void avb_1722_talker(chanend c_ptp, client interface ethernet_if i_eth,
-                     chanend c_talker_ctl, int num_streams) {
+void avb_1722_talker(chanend c_ptp,
+                     client interface ethernet_cfg_if i_eth_cfg,
+                     streaming chanend c_eth_tx_hp,
+                     chanend c_talker_ctl,
+                     int num_streams) {
   avb_1722_talker_state_t st;
   ptp_time_info_mod64 timeInfo;
   timer tmr;
@@ -263,7 +268,7 @@ void avb_1722_talker(chanend c_ptp, client interface ethernet_if i_eth,
   int pending_timeinfo = 0;
 
   set_thread_fast_mode_on();
-  avb_1722_talker_init(c_talker_ctl, i_eth, st, num_streams);
+  avb_1722_talker_init(c_talker_ctl, i_eth_cfg, st, num_streams);
 
   ptp_request_time_info_mod64(c_ptp);
   ptp_get_requested_time_info_mod64_use_timer(c_ptp, timeInfo, tmr);
@@ -296,7 +301,7 @@ void avb_1722_talker(chanend c_ptp, client interface ethernet_if i_eth,
 
         // Call the 1722 packet construction
       default:
-        avb_1722_talker_send_packets(i_eth, st, timeInfo, tmr);
+        avb_1722_talker_send_packets(c_eth_tx_hp, st, timeInfo, tmr);
         break;
     }
   }
