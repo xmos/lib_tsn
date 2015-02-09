@@ -37,7 +37,9 @@ typedef struct avb_stream_entry
 [[combinable]]
 void avb_srp_task(client interface avb_interface i_avb,
                   server interface srp_interface i_srp,
-                  client interface ethernet_if i_eth);
+                  client interface ethernet_rx_if i_eth_rx,
+                  client interface ethernet_tx_if i_eth_tx,
+                  client interface ethernet_cfg_if i_eth_cfg);
 #endif
 
 
@@ -122,7 +124,7 @@ void avb_srp_domain_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribut
 void srp_domain_init(void);
 void srp_domain_join(void);
 
-void srp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i));
+void srp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_tx_if, i));
 
 
 #endif // _avb_srp_h_

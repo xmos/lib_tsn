@@ -92,15 +92,17 @@ typedef struct ptp_port_info_t {
 /** This function runs the PTP server. It takes one thread and runs
     indefinitely
 
-    \param mac_rx       chanend connected to the ethernet server (receive)
-    \param mac_tx       chanend connected to the ethernet server (transmit)
+    \param i_eth_rx  interface connected to the ethernet server (receive)
+    \param i_eth_tx  interface connected to the ethernet server (transmit)
     \param client       an array of chanends to connect to clients
                         of the ptp server
     \param num_clients  The number of clients attached
     \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
                        or ``PTP_SLAVE_ONLY``)
  **/
-void ptp_server(CLIENT_INTERFACE(ethernet_if, i_eth),
+void ptp_server(CLIENT_INTERFACE(ethernet_rx_if, i_eth_rx),
+                CLIENT_INTERFACE(ethernet_tx_if, i_eth_tx),
+                CLIENT_INTERFACE(ethernet_cfg_if, i_eth_cfg),
                 chanend ptp_clients[], int num_clients,
                 enum ptp_server_type server_type);
 
@@ -277,8 +279,8 @@ void ptp_get_current_grandmaster(chanend ptp_server, unsigned char grandmaster[8
 
 /** Initialize the inline ptp server.
  *
- *  \param mac_rx       chanend connected to the ethernet server (receive)
- *  \param mac_tx       chanend connected to the ethernet server (transmit)
+ *  \param i_eth_rx       interface connected to the ethernet server (receive)
+ *  \param i_eth_tx       interface connected to the ethernet server (transmit)
  *  \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
  *                     or ``PTP_SLAVE_ONLY``)
  *
@@ -299,34 +301,36 @@ void ptp_get_current_grandmaster(chanend ptp_server, unsigned char grandmaster[8
  *
  *  \sa do_ptp_server
  **/
-void ptp_server_init(CLIENT_INTERFACE(ethernet_if, i_eth),
+void ptp_server_init(CLIENT_INTERFACE(ethernet_cfg_if, i_eth_cfg),
+                     CLIENT_INTERFACE(ethernet_rx_if, i_eth_rx),
+                     chanend c,
                      enum ptp_server_type server_type,
                      timer ptp_timer,
                      REFERENCE_PARAM(int, ptp_timeout));
 
 
 #ifdef __XC__
-void ptp_recv_and_process_packet(client interface ethernet_if i_eth);
+void ptp_recv_and_process_packet(client interface ethernet_rx_if i_eth_rx, client interface ethernet_tx_if i_eth_tx);
 #endif
 #ifdef __XC__
 #pragma select handler
 #endif
 void ptp_process_client_request(chanend c, timer ptp_timer);
-void ptp_periodic(CLIENT_INTERFACE(ethernet_if, i_eth), unsigned);
+void ptp_periodic(CLIENT_INTERFACE(ethernet_tx_if, i_eth), unsigned);
 #define PTP_PERIODIC_TIME (10000)  // 0.tfp1 milliseconds
 
 
 
 
 
-#define do_ptp_server(i_eth, client, num_clients, ptp_timer, ptp_timeout)      \
-  case i_eth.packet_ready(): \
-       ptp_recv_and_process_packet(i_eth); \
+#define do_ptp_server(i_eth_rx, i_eth_tx, client, num_clients, ptp_timer, ptp_timeout)      \
+  case i_eth_rx.packet_ready(): \
+       ptp_recv_and_process_packet(i_eth_rx, i_eth_tx); \
        break;                     \
  case (int i=0;i<num_clients;i++) ptp_process_client_request(client[i], ptp_timer): \
        break; \
   case ptp_timer when timerafter(ptp_timeout) :> void: \
-       ptp_periodic(i_eth, ptp_timeout); \
+       ptp_periodic(i_eth_tx, ptp_timeout); \
        ptp_timeout += PTP_PERIODIC_TIME; \
        break
 

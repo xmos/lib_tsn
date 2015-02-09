@@ -64,7 +64,7 @@ static int mvrp_leaveall_active[MRP_NUM_PORTS];
 
 static unsigned i_eth;
 
-void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i)) {
+void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_tx_if, i)) {
   i_eth = i;
 }
 

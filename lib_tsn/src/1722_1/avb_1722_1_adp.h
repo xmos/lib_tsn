@@ -10,10 +10,10 @@
 
 void avb_1722_1_adp_init();
 
-void process_avb_1722_1_adp_packet(REFERENCE_PARAM(avb_1722_1_adp_packet_t, pkt), CLIENT_INTERFACE(ethernet_if, i_eth));
-void avb_1722_1_adp_advertising_periodic(CLIENT_INTERFACE(ethernet_if, i_eth), chanend ptp);
+void process_avb_1722_1_adp_packet(REFERENCE_PARAM(avb_1722_1_adp_packet_t, pkt), CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+void avb_1722_1_adp_advertising_periodic(CLIENT_INTERFACE(ethernet_tx_if, i_eth), chanend ptp);
 #ifdef __XC__
-void avb_1722_1_adp_discovery_periodic(client interface ethernet_if i_eth, client interface avb_interface avb);
+void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, client interface avb_interface avb);
 #endif
 int avb_1722_1_get_latest_new_entity_idx();
 

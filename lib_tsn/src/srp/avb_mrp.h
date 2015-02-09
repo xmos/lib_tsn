@@ -194,6 +194,6 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
  */
 void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb));
 
-void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_if, i));
+void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_tx_if, i));
 
 #endif  //_avb_mrp_h_

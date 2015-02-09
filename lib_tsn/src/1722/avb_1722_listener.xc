@@ -2,11 +2,10 @@
  * \file avb_1722_listener.xc
  * \brief AVB1722 Listener
  */
-
-#include <platform.h>
 #include <xs1.h>
+#include <platform.h>
 #include <xclib.h>
-
+#include <print.h>
 #include "avb_1722_def.h"
 #include "avb_1722.h"
 #include "avb_1722_listener.h"
@@ -32,6 +31,8 @@
 #define MAX_PKT_BUF_SIZE_LISTENER (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE + TALKER_NUM_AUDIO_SAMPLES_PER_CHANNEL_PER_AVB1722_PKT * AVB_MAX_CHANNELS_PER_LISTENER_STREAM * 4 + 4)
 #endif
 
+#pragma select handler
+void local_sin_char_array(streaming chanend c, char dst[size], unsigned size);
 
 static transaction configure_stream(chanend c,
                              avb_1722_stream_info_t &s)
@@ -93,8 +94,7 @@ static void disable_stream(avb_1722_stream_info_t &s)
 	s.state = 0;
 }
 
-void avb_1722_listener_init(client interface ethernet_if i_eth,
-                            chanend c_listener_ctl,
+void avb_1722_listener_init(chanend c_listener_ctl,
                             avb_1722_listener_state_t &st,
                             int num_streams)
 {
@@ -107,32 +107,28 @@ void avb_1722_listener_init(client interface ethernet_if i_eth,
     st.listener_streams[i].active = 0;
     st.listener_streams[i].state = 0;
   }
-
-  //TODO: setup listener to receive correct multicast packets
-  //i_eth.set_receive_filter_mask(ROUTER_LINK(st.router_link));
 }
 
-void avb_1722_listener_handle_packet(client interface ethernet_if i_eth,
+void avb_1722_listener_handle_packet(streaming chanend c_eth_rx_hp,
+                                     ethernet_packet_info_t &packet_info,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
                                      ptp_time_info_mod64 &?timeInfo)
 {
-  unsigned char rxbuf[MAX_PKT_BUF_SIZE_LISTENER];
-  ethernet_packet_info_t packet_info;
-  i_eth.get_packet(packet_info, rxbuf, ETHERNET_MAX_PACKET_SIZE);
+  unsigned int rxbuf[(MAX_PKT_BUF_SIZE_LISTENER+3)/4];
+  mii_receive_hp_packet(c_eth_rx_hp, &(rxbuf, unsigned char[])[2], packet_info);
   unsigned stream_id = packet_info.filter_data;
 
   if (packet_info.type != ETH_DATA) {
     return;
   }
-  // pktByteCnt -= 4;
 
   // process the audio packet if enabled.
   if (stream_id < MAX_AVB_STREAMS_PER_LISTENER &&
       st.listener_streams[stream_id].active) {
     // process the current packet
     avb_1722_listener_process_packet(c_buf_ctl,
-                                     rxbuf,
+                                     &(rxbuf, unsigned char[])[2],
                                      packet_info.len,
                                      st.listener_streams[stream_id],
                                      timeInfo,
@@ -185,7 +181,7 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
 
 
 #pragma unsafe arrays
-void avb_1722_listener(client interface ethernet_if i_eth,
+void avb_1722_listener(streaming chanend c_eth_rx_hp,
                        chanend? c_buf_ctl,
                        chanend? c_ptp,
                        chanend c_listener_ctl,
@@ -193,6 +189,7 @@ void avb_1722_listener(client interface ethernet_if i_eth,
 {
   avb_1722_listener_state_t st;
   timer tmr;
+  ethernet_packet_info_t packet_info;
 
 #if defined(AVB_1722_FORMAT_61883_4)
   // Conditional due to compiler bug 11998.
@@ -201,7 +198,7 @@ void avb_1722_listener(client interface ethernet_if i_eth,
   ptp_time_info_mod64 timeInfo;
 #endif
   set_thread_fast_mode_on();
-  avb_1722_listener_init(i_eth, c_listener_ctl, st, num_streams);
+  avb_1722_listener_init(c_listener_ctl, st, num_streams);
 
 #if defined(AVB_1722_FORMAT_61883_4)
   // Conditional due to compiler bug 11998.
@@ -232,15 +229,17 @@ void avb_1722_listener(client interface ethernet_if i_eth,
         break;
 #endif
 
-      case i_eth.packet_ready(): avb_1722_listener_handle_packet(i_eth,
-                                           c_buf_ctl,
-                                           st,
-                                           #ifdef AVB_1722_FORMAT_61883_4
-                                           timeInfo
-                                           #else
-                                           null
-                                           #endif
-                                           );
+      case local_sin_char_array(c_eth_rx_hp, (char *)&packet_info, sizeof(packet_info)):
+        avb_1722_listener_handle_packet(c_eth_rx_hp,
+                                        packet_info,
+                                        c_buf_ctl,
+                                        st,
+                                        #ifdef AVB_1722_FORMAT_61883_4
+                                        timeInfo
+                                        #else
+                                        null
+                                        #endif
+                                        );
         break;
 
 

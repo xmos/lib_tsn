@@ -22,7 +22,8 @@
  *  \param num_streams      the number of streams the unit controls
  **/
 void avb_1722_talker(chanend c_ptp,
-                     client interface ethernet_if i_eth,
+                     client interface ethernet_cfg_if i_eth_cfg,
+                     streaming chanend c_eth_tx_hp,
                      chanend c_talker_ctl,
                      int num_streams);
 
@@ -41,14 +42,14 @@ void avb_1722_talker(chanend c_ptp,
  *                          to avb_init())
  *  \param num_streams      the number of streams the unit will handle
  */
-void avb_1722_listener(client interface ethernet_if i_eth,
+void avb_1722_listener(streaming chanend c_eth_rx_hp,
                        chanend? c_buf_ctl,
                        chanend? c_ptp_ctl,
                        chanend c_listener_ctl,
                        int num_streams);
 
 
-
+/*
 void avb_1722_talkerlistener(chanend c_ptp,
                              client interface ethernet_if i_eth,
                              chanend c_listener_ctl,
@@ -56,6 +57,7 @@ void avb_1722_talkerlistener(chanend c_ptp,
                              chanend c_buf_ctl,
                              int num_listener_streams,
                              int num_talker_streams);
+*/
 
 
 #endif

@@ -13,7 +13,7 @@
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          client interface ethernet_if i_eth,
+                          client interface ethernet_cfg_if i_eth_cfg,
                           avb_1722_talker_state_t &st,
                           int num_streams);
 
@@ -21,17 +21,17 @@ void avb_1722_talker_init(chanend c_talker_ctl,
 void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
                                 avb_1722_talker_state_t &st);
 
-void avb_1722_talker_send_packets(client interface ethernet_if i_eth,
+void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
                                   avb_1722_talker_state_t &st,
                                   ptp_time_info_mod64 &timeInfo,
                                   timer tmr);
 
-void avb_1722_listener_init(client interface ethernet_if i_eth,
-                            chanend c_listener_ctl,
+void avb_1722_listener_init(chanend c_listener_ctl,
                             avb_1722_listener_state_t &st,
                             int num_streams);
 
-void avb_1722_listener_handle_packet(client interface ethernet_if i_eth,
+void avb_1722_listener_handle_packet(streaming chanend c_rx_hp,
+                                     ethernet_packet_info_t &packet_info,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
                                      ptp_time_info_mod64 &?timeInfo);
@@ -43,6 +43,7 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
 
 #define TIMEINFO_UPDATE_INTERVAL 50000000
 
+#if 0
 #pragma unsafe arrays
 void avb_1722_talkerlistener(chanend c_ptp,
                              client interface ethernet_if i_eth,
@@ -116,6 +117,6 @@ void avb_1722_talkerlistener(chanend c_ptp,
         }
     }
 }
-
+#endif
 
 #endif // AVB_NUM_SOURCES != 0

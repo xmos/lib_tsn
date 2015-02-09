@@ -669,7 +669,7 @@ static int clock_id_equal(n64_t *a, n64_t *b)
 }
 
 
-static void ptp_tx(client interface ethernet_if i_eth,
+static void ptp_tx(client interface ethernet_tx_if i_eth,
                    unsigned int *buf,
                    int len,
                    int port_num)
@@ -679,7 +679,7 @@ static void ptp_tx(client interface ethernet_if i_eth,
   return;
 }
 
-static void ptp_tx_timed(client interface ethernet_if i_eth,
+static void ptp_tx_timed(client interface ethernet_tx_if i_eth,
                          unsigned int buf[],
                          int len,
                          unsigned &ts,
@@ -743,7 +743,7 @@ static void create_my_announce_msg(AnnounceMessage *pAnnounceMesg)
      pAnnounceMesg->pathSequence[0].data[i] = my_port_id.data[i];
 }
 
-static void send_ptp_announce_msg(client interface ethernet_if i_eth, int port_num)
+static void send_ptp_announce_msg(client interface ethernet_tx_if i_eth, int port_num)
 {
 #define ANNOUNCE_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(AnnounceMessage))
   unsigned int buf0[(ANNOUNCE_PACKET_SIZE+3)/4];
@@ -843,7 +843,7 @@ static void send_ptp_announce_msg(client interface ethernet_if i_eth, int port_n
 
 static u16_t sync_seq_id = 0;
 
-static void send_ptp_sync_msg(client interface ethernet_if i_eth, int port_num)
+static void send_ptp_sync_msg(client interface ethernet_tx_if i_eth, int port_num)
 {
  #define SYNC_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(SyncMessage))
  #define FOLLOWUP_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(FollowUpMessage))
@@ -941,7 +941,7 @@ static u16_t pdelay_req_seq_id[PTP_NUM_PORTS];
 static unsigned pdelay_request_sent[PTP_NUM_PORTS];
 static unsigned pdelay_request_sent_ts[PTP_NUM_PORTS];
 
-static void send_ptp_pdelay_req_msg(client interface ethernet_if i_eth, int port_num)
+static void send_ptp_pdelay_req_msg(client interface ethernet_tx_if i_eth, int port_num)
 {
 #define PDELAY_REQ_PACKET_SIZE (sizeof(ethernet_hdr_t) + sizeof(ComMessageHdr) + sizeof(PdelayReqMessage))
   unsigned int buf0[(PDELAY_REQ_PACKET_SIZE+3)/4];
@@ -1026,7 +1026,7 @@ void local_to_epoch_ts(unsigned local_ts, ptp_timestamp *epoch_ts)
 
 }
 
-static void send_ptp_pdelay_resp_msg(client interface ethernet_if i_eth,
+static void send_ptp_pdelay_resp_msg(client interface ethernet_tx_if i_eth,
                               char *pdelay_req_msg,
                               unsigned req_ingress_ts,
                               int port_num)
@@ -1183,7 +1183,7 @@ static void pdelay_req_reset(int src_port) {
   }
 }
 
-void ptp_recv(client interface ethernet_if i_eth,
+void ptp_recv(client interface ethernet_tx_if i_eth,
               unsigned char buf[],
               unsigned local_ingress_ts,
               unsigned src_port,
@@ -1378,12 +1378,32 @@ void ptp_reset(int port_num) {
   reset_ascapable(port_num);
 }
 
-void ptp_init(client interface ethernet_if i_eth, enum ptp_server_type stype)
+static inline unsigned int get_tile_id_from_chanend(chanend c) {
+  unsigned int ci;
+  asm("shr %0, %1, 16":"=r"(ci):"r"(c));
+  return ci;
+}
+
+void ptp_init(client interface ethernet_cfg_if i_eth_cfg,
+              client interface ethernet_rx_if i_eth_rx,
+              enum ptp_server_type stype,
+              chanend c)
 {
-  unsigned t;
-  // TODO: FIXME
-  // mac_get_tile_timer_offset(c_rx, tile_timer_offset);
-  t = get_local_time();
+  unsigned server_tile_id;
+  unsigned other_tile_now;
+  unsigned this_tile_now;
+
+  i_eth_cfg.get_tile_id_and_timer_value(server_tile_id, other_tile_now);
+  this_tile_now = get_local_time();
+
+  if (server_tile_id != get_tile_id_from_chanend(c))
+  {
+    tile_timer_offset = other_tile_now-this_tile_now-3; // 3 is an estimate of the channel + instruction latency
+  }
+  else
+  {
+    tile_timer_offset = 0;
+  }
 
   if (stype == PTP_GRANDMASTER_CAPABLE) {
     ptp_priority1 = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
@@ -1392,7 +1412,13 @@ void ptp_init(client interface ethernet_if i_eth, enum ptp_server_type stype)
     ptp_priority1 = PTP_DEFAULT_NON_GM_CAPABLE_PRIORITY1;
   }
 
-  i_eth.get_macaddr(0, src_mac_addr);
+  size_t eth_index = i_eth_rx.get_index();
+  ethernet_macaddr_filter_t gptp_filter;
+  gptp_filter.appdata = 0;
+  memcpy(gptp_filter.addr, dest_mac_addr, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, gptp_filter);
+  i_eth_cfg.add_ethertype_filter(eth_index, PTP_ETHERTYPE);
+  i_eth_cfg.get_macaddr(0, src_mac_addr);
 
   for (int i=0; i < 3; i ++) {
     my_port_id.data[i] = src_mac_addr[i];
@@ -1408,10 +1434,10 @@ void ptp_init(client interface ethernet_if i_eth, enum ptp_server_type stype)
     ptp_reset(i);
   }
 
-  pdelay_epoch_timer = t;
+  pdelay_epoch_timer = this_tile_now;
 }
 
-void ptp_periodic(client interface ethernet_if i_eth, unsigned t)
+void ptp_periodic(client interface ethernet_tx_if i_eth, unsigned t)
 {
   for (int i=0; i < PTP_NUM_PORTS; i++)
   {

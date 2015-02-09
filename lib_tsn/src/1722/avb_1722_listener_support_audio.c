@@ -21,7 +21,7 @@ static unsigned char prev_seq_num = 0;
 #endif
 
 int avb_1722_listener_process_packet(chanend buf_ctl,
-                                     unsigned char Buf0[],
+                                     unsigned char Buf[],
                                      int numBytes,
                                      avb_1722_stream_info_t *stream_info,
                                      ptp_time_info_mod64* timeInfo,
@@ -31,7 +31,6 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   int pktDataLength, dbc_value;
   AVB_DataHeader_t *pAVBHdr;
   AVB_AVB1722_CIP_Header_t *pAVB1722Hdr;
-  unsigned char *Buf = &Buf0[2];
   int avb_ethernet_hdr_size = (Buf[12]==0x81) ? 18 : 14;
   int num_samples_in_payload, num_channels_in_payload;
   pAVBHdr = (AVB_DataHeader_t *) &(Buf[avb_ethernet_hdr_size]);
@@ -70,7 +69,7 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
 #if AVB_1722_RECORD_ERRORS
   unsigned char seq_num = AVBTP_SEQUENCE_NUMBER(pAVBHdr);
   if ((unsigned char)((unsigned char)seq_num - (unsigned char)prev_seq_num) != 1) {
-    xscope_char(LISTENER_1722_SEQ_NUM_MISMATCH, seq_num - prev_seq_num);
+    debug_printf("DROP %d %d %x\n", seq_num, prev_seq_num, AVBTP_TIMESTAMP(pAVBHdr));
   }
   prev_seq_num = seq_num;
 #endif

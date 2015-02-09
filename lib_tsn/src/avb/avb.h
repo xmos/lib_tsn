@@ -34,7 +34,7 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
                  chanend c_media_ctl[],
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
-                 client interface ethernet_if i_eth,
+                 client interface ethernet_cfg_if i_eth_cfg,
                  client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp);
 #endif
@@ -58,7 +58,7 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
 void avb_process_1722_control_packet(unsigned int buf[],
                                     unsigned nbytes,
                                     eth_packet_type_t packet_type,
-                                    client interface ethernet_if i_eth,
+                                    client interface ethernet_tx_if i_eth,
                                     client interface avb_interface i_avb,
                                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
                                     client interface spi_interface ?i_spi);
@@ -80,7 +80,7 @@ void avb_process_1722_control_packet(unsigned int buf[],
 void avb_process_srp_control_packet(client interface avb_interface i_avb,
                                unsigned int buf[], unsigned len,
                                eth_packet_type_t packet_type,
-                               client interface ethernet_if i_eth,
+                               client interface ethernet_tx_if i_eth,
                                unsigned int port_num);
 #endif
 

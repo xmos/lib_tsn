@@ -58,8 +58,8 @@ interface media_clock_if {
  *                          requiring buffer management
  *  \param num_buf_ctl      size of the buf_ctl array
  *  \param p_fs             output port to drive PLL reference clock
- *  \param c_rx             chanend connected to the ethernet server (receive)
- *  \param c_tx             chanend connected to the ethernet server (transmit)
+ *  \param i_eth_rx_lp      interface connected to the ethernet server (receive)
+ *  \param i_eth_tx_lp      interface connected to the ethernet server (transmit)
  *  \param c_ptp[]          an array of chanends to connect to clients of the ptp server
  *  \param num_ptp          The number of PTP clients attached
  *  \param server_type      The type of the PTP server (``PTP_GRANDMASTER_CAPABLE``
@@ -71,7 +71,9 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
                         chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                         out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-                        ,client interface ethernet_if i_eth,
+                        ,client interface ethernet_rx_if i_eth_rx,
+                        client interface ethernet_tx_if i_eth_tx,
+                        client interface ethernet_cfg_if i_eth_cfg,
                         chanend c_ptp[num_ptp],
                         unsigned num_ptp,
                         enum ptp_server_type server_type

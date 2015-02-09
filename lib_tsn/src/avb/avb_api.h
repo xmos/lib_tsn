@@ -1,5 +1,6 @@
 #ifndef _api_h_
 #define _api_h_
+#include <xs1.h>
 #include <xccompat.h>
 #include "debug_print.h"
 #include "xc2compat.h"
