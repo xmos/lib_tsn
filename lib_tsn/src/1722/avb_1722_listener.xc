@@ -31,9 +31,6 @@
 #define MAX_PKT_BUF_SIZE_LISTENER (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE + TALKER_NUM_AUDIO_SAMPLES_PER_CHANNEL_PER_AVB1722_PKT * AVB_MAX_CHANNELS_PER_LISTENER_STREAM * 4 + 4)
 #endif
 
-#pragma select handler
-void local_sin_char_array(streaming chanend c, char dst[size], unsigned size);
-
 static transaction configure_stream(chanend c,
                              avb_1722_stream_info_t &s)
 {
@@ -116,7 +113,7 @@ void avb_1722_listener_handle_packet(streaming chanend c_eth_rx_hp,
                                      ptp_time_info_mod64 &?timeInfo)
 {
   unsigned int rxbuf[(MAX_PKT_BUF_SIZE_LISTENER+3)/4];
-  mii_receive_hp_packet(c_eth_rx_hp, &(rxbuf, unsigned char[])[2], packet_info);
+  ethernet_receive_hp_packet(c_eth_rx_hp, &(rxbuf, unsigned char[])[2], packet_info);
   unsigned stream_id = packet_info.filter_data;
 
   if (packet_info.type != ETH_DATA) {
@@ -229,7 +226,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
         break;
 #endif
 
-      case local_sin_char_array(c_eth_rx_hp, (char *)&packet_info, sizeof(packet_info)):
+      case sin_char_array(c_eth_rx_hp, (char *)&packet_info, sizeof(packet_info)):
         avb_1722_listener_handle_packet(c_eth_rx_hp,
                                         packet_info,
                                         c_buf_ctl,

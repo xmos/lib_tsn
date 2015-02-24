@@ -109,7 +109,7 @@ void avb_1722_1_periodic(client interface ethernet_tx_if i_eth, chanend c_ptp, c
 
 
 [[combinable]]
-void avb_1722_1_maap_task(otp_ports_t &otp_ports,
+void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                          client interface avb_interface i_avb,
                          client interface avb_1722_1_control_callbacks i_1722_1_entity,
                          client interface spi_interface ?i_spi,
