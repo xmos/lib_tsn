@@ -20,8 +20,6 @@
 
 #if AVB_NUM_SOURCES != 0
 
-extern void local_sout_char_array(streaming chanend c, const char src[size], unsigned size);
-
 static transaction configure_stream(chanend avb1722_tx_config,
                avb1722_Talker_StreamConfig_t &stream,
                unsigned char mac_addr[MAC_ADRS_BYTE_COUNT]) {
@@ -228,7 +226,7 @@ void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
     if (packet_size) {
       if (packet_size < 60) packet_size = 60;
       c_eth_tx_hp <: packet_size;
-      local_sout_char_array(c_eth_tx_hp, &(st.TxBuf, unsigned char[])[2], packet_size);
+      sout_char_array(c_eth_tx_hp, &(st.TxBuf, unsigned char[])[2], packet_size);
       st.talker_streams[st.cur_avb_stream].last_transmit_time = t;
     }
     if (packet_size || st.talker_streams[st.cur_avb_stream].initial)
