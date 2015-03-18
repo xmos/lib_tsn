@@ -30,7 +30,7 @@ void avb_1722_listener_init(chanend c_listener_ctl,
                             avb_1722_listener_state_t &st,
                             int num_streams);
 
-void avb_1722_listener_handle_packet(streaming chanend c_rx_hp,
+void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      ethernet_packet_info_t &packet_info,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
