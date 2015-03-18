@@ -27,7 +27,7 @@ typedef unsigned random_generator_t;
  */
 random_generator_t random_create_generator_from_seed(unsigned seed);
 
-#if (defined(__XS1_L__) && RANDOM_ENABLE_HW_SEED) || defined(__DOXYGEN__)
+#if ((defined(__XS1_L__) || defined(__XS2A__)) && RANDOM_ENABLE_HW_SEED) || defined(__DOXYGEN__)
 /** Function that attempts to create a random number generator from
  *  a true random value into the seed, using
  *  an asynchronous timer. To use this function you must enable the
