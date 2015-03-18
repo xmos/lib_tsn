@@ -106,14 +106,12 @@ void avb_1722_listener_init(chanend c_listener_ctl,
   }
 }
 
-void avb_1722_listener_handle_packet(streaming chanend c_eth_rx_hp,
+void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      ethernet_packet_info_t &packet_info,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
                                      ptp_time_info_mod64 &?timeInfo)
 {
-  unsigned int rxbuf[(MAX_PKT_BUF_SIZE_LISTENER+3)/4];
-  ethernet_receive_hp_packet(c_eth_rx_hp, &(rxbuf, unsigned char[])[2], packet_info);
   unsigned stream_id = packet_info.filter_data;
 
   if (packet_info.type != ETH_DATA) {
@@ -187,6 +185,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
   avb_1722_listener_state_t st;
   timer tmr;
   ethernet_packet_info_t packet_info;
+  unsigned int rxbuf[(MAX_PKT_BUF_SIZE_LISTENER+3)/4];
 
 #if defined(AVB_1722_FORMAT_61883_4)
   // Conditional due to compiler bug 11998.
@@ -226,8 +225,8 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
         break;
 #endif
 
-      case sin_char_array(c_eth_rx_hp, (char *)&packet_info, sizeof(packet_info)):
-        avb_1722_listener_handle_packet(c_eth_rx_hp,
+      case ethernet_receive_hp_packet(c_eth_rx_hp, &(rxbuf, unsigned char[])[2], packet_info):
+        avb_1722_listener_handle_packet(rxbuf,
                                         packet_info,
                                         c_buf_ctl,
                                         st,

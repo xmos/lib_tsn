@@ -225,8 +225,7 @@ void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
                             t);
     if (packet_size) {
       if (packet_size < 60) packet_size = 60;
-      c_eth_tx_hp <: packet_size;
-      sout_char_array(c_eth_tx_hp, &(st.TxBuf, unsigned char[])[2], packet_size);
+      ethernet_send_hp_packet(c_eth_tx_hp, &(st.TxBuf, unsigned char[])[2], packet_size, ETHERNET_ALL_INTERFACES);
       st.talker_streams[st.cur_avb_stream].last_transmit_time = t;
     }
     if (packet_size || st.talker_streams[st.cur_avb_stream].initial)
