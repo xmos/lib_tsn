@@ -53,7 +53,7 @@ void ptp_recv_and_process_packet(client interface ethernet_rx_if i_eth_rx,
   i_eth_rx.get_packet(packet_info, buf, MAX_PTP_MESG_LENGTH);
 
   if (packet_info.type == ETH_IF_STATUS) {
-    if (buf[1] == ETHERNET_LINK_UP) {
+    if (buf[0] == ETHERNET_LINK_UP) {
       ptp_reset(packet_info.src_ifnum);
     }
   }

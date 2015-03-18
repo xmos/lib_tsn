@@ -541,7 +541,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
                                      client interface spi_interface ?i_spi) {
 
   if (packet_type == ETH_IF_STATUS) {
-    if (((unsigned char *)buf0)[1] == ETHERNET_LINK_UP) {
+    if (((unsigned char *)buf0)[0] == ETHERNET_LINK_UP) {
 #if NUM_ETHERNET_PORTS == 1
       unsigned char base_addr[6];
       if (!avb_1722_maap_get_base_address(base_addr)) {
