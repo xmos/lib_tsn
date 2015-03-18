@@ -16,8 +16,7 @@ extern unsigned char mvrp_dest_mac[6];
 void avb_process_srp_control_packet(client interface avb_interface avb, unsigned int buf0[], unsigned nbytes, eth_packet_type_t packet_type, client interface ethernet_tx_if i_eth, unsigned int port_num)
 {
   if (packet_type == ETH_IF_STATUS) {
-    debug_printf("LINK UP\n");
-    if (((unsigned char *)buf0)[1] == ETHERNET_LINK_UP) {
+    if (((unsigned char *)buf0)[0] == ETHERNET_LINK_UP) {
       srp_domain_join();
     }
   }
