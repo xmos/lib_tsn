@@ -6,8 +6,12 @@
 void notify_buf_ctl_of_info(chanend buf_ctl, int fifo)
 {
   outuchar(buf_ctl, BUF_CTL_GOT_INFO);
+#if defined(__XS2A__)
+  outuint(buf_ctl, fifo);
+#else
   outuchar(buf_ctl,fifo>>8);
   outuchar(buf_ctl,fifo&0xff);
+#endif
   outct(buf_ctl, XS1_CT_END);
 }
 
@@ -15,8 +19,12 @@ void notify_buf_ctl_of_new_stream(chanend buf_ctl,
                                   int fifo)
 {
   outuchar(buf_ctl, BUF_CTL_NEW_STREAM);
+#if defined(__XS2A__)
+  outuint(buf_ctl, fifo);
+#else
   outuchar(buf_ctl,fifo>>8);
   outuchar(buf_ctl,fifo&0xff);
+#endif
   outct(buf_ctl, XS1_CT_END);
 }
 
