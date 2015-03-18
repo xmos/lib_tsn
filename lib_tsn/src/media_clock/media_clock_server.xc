@@ -406,11 +406,15 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
         {
           int fifo, buf_index;
           unsigned x;
+#if defined(__XS2A__)
+          fifo = inuint(buf_ctl[i]);
+#else
           x = inuchar(buf_ctl[i]);
           fifo = x<<8;
           x = inuchar(buf_ctl[i]);
           fifo = fifo + x;
           fifo |= 0x10000;
+#endif
           (void) inct(buf_ctl[i]);
           buf_index = get_buf_info(fifo);
           switch (buf_ctl_cmd)
