@@ -135,33 +135,44 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
   }
 }
 
-#define ETHERNET_LINK_POLL_PERIOD_MS 1000
 [[combinable]]
-void phy_driver(client interface smi_if smi,
+void lan8710a_phy_driver(client interface smi_if smi,
                 client interface ethernet_cfg_if eth) {
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
-  const int ethernet_phy_reset_delay_us = 1;
+  ethernet_speed_t link_speed = LINK_100_MBPS_FULL_DUPLEX;
+  const int link_poll_period_ms = 1000;
+  const int phy_address = 0x0;
+  const int phy_reset_delay_ms = 1;
   timer tmr;
   int t;
+  tmr :> t;
   p_eth_reset <: 0;
-  delay_microseconds(ethernet_phy_reset_delay_us);
+  delay_milliseconds(phy_reset_delay_ms);
   p_eth_reset <: 1;
 
-  tmr :> t;
+  eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 480);
+  eth.set_egress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 480);
 
-  smi_configure(smi, 1, 1);
+  while (smi_phy_is_powered_down(smi, phy_address));
+  smi_configure(smi, phy_address, LINK_100_MBPS_FULL_DUPLEX, SMI_ENABLE_AUTONEG);
+
   while (1) {
     select {
     case tmr when timerafter(t) :> t:
-      int link_up = smi_is_link_up(smi);
-      ethernet_link_state_t new_state = link_up ? ETHERNET_LINK_UP :
-                                                  ETHERNET_LINK_DOWN;
-      if (new_state != link_state) {
-        debug_printf("link state: %d\n", new_state);
-        link_state = new_state;
-        eth.set_link_state(0, new_state);
+      ethernet_link_state_t new_state = smi_get_link_state(smi, phy_address);
+      // Read LAN8710A status register bit 2 to get the current link speed
+      if ((new_state == ETHERNET_LINK_UP) &&
+         ((smi.read_reg(phy_address, 0x1F) >> 2) & 1)) {
+        link_speed = LINK_10_MBPS_FULL_DUPLEX;
       }
-      t += ETHERNET_LINK_POLL_PERIOD_MS * XS1_TIMER_MHZ * 1000;
+      else {
+        link_speed = LINK_100_MBPS_FULL_DUPLEX;
+      }
+      if (new_state != link_state) {
+        link_state = new_state;
+        eth.set_link_state(0, new_state, link_speed);
+      }
+      t += link_poll_period_ms * XS1_TIMER_KHZ;
       break;
     }
   }
@@ -187,7 +198,6 @@ enum mac_cfg_clients {
   MAC_CFG_TO_MEDIA_CLOCK_PTP,
   MAC_CFG_TO_1722_1,
   MAC_CFG_TO_SRP,
-  MAC_CFG_TO_TALKER,
   NUM_ETH_CFG_CLIENTS
 };
 
@@ -308,7 +318,6 @@ int main(void)
 #if AVB_DEMO_ENABLE_TALKER
     // AVB Talker - must be on the same tile as the audio interface
     on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
-                                i_eth_cfg[MAC_CFG_TO_TALKER],
                                 c_eth_tx_hp,
                                 c_talker_ctl[0],
                                 AVB_NUM_SOURCES);
@@ -326,8 +335,8 @@ int main(void)
     on tile[1]: {
        [[combine]]
        par {
-         smi(i_smi, ETH_SMI_PHY_ADDRESS, p_smi_mdio, p_smi_mdc);
-         phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
+         smi(i_smi, p_smi_mdio, p_smi_mdc);
+         lan8710a_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
          avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
                      i_srp,
                      c_media_ctl,
