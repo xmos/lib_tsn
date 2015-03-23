@@ -98,7 +98,7 @@ void debug_print_registrar_state_change(mrp_attribute_state *st, mrp_event event
   }
 }
 
-void debug_print_tx_event(mrp_attribute_state *st, mrp_event event)
+void debug_print_tx_event(mrp_attribute_state *st, mrp_attribute_event event)
 {
   if ((st)->attribute_type == MSRP_TALKER_ADVERTISE || (st)->attribute_type == MSRP_LISTENER) {
     avb_sink_info_t *sink_info = (avb_sink_info_t *) st->attribute_info;

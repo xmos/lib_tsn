@@ -66,7 +66,7 @@
 
 void debug_print_applicant_state_change(mrp_attribute_state *st, mrp_event event, int new);
 void debug_print_registrar_state_change(mrp_attribute_state *st, mrp_event event, int new);
-void debug_print_tx_event(mrp_attribute_state *st, mrp_event event);
+void debug_print_tx_event(mrp_attribute_state *st, mrp_attribute_event event);
 
 #define FIRST_VALUE_LENGTHS \
   { sizeof(srp_talker_first_value),             \

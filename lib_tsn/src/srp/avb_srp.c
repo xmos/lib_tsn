@@ -84,7 +84,6 @@ static void srp_decrease_port_bandwidth(int max_frame_size, int extra_byte, int 
   int stream_bandwidth_bps = srp_calculate_stream_bandwidth(max_frame_size, extra_byte);
   port_bandwidth[port] -= stream_bandwidth_bps;
    debug_printf("Decreasing port %d shaper bandwidth to %d bps\n", port, port_bandwidth[port]);
-  if (port_bandwidth[port] < 0) __builtin_trap();
   // mac_set_qav_bandwidth(i_eth, port, port_bandwidth[port]);
 }
 

@@ -153,7 +153,7 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     // which data block (sample) the timestamp refers to using the formula:
     //   index = (SYT_INTERVAL - dbc % SYT_INTERVAL) % SYT_INTERVAL
 
-    unsigned syt_interval, sample_num;
+    unsigned syt_interval = 0, sample_num = 0;
 
     switch (stream_info->rate)
     {
@@ -166,7 +166,7 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     case 96000:  syt_interval = 16; break;
     case 176400: syt_interval = 32; break;
     case 192000: syt_interval = 32; break;
-    default: break;
+    default: return 0; break;
     }
     sample_num = (syt_interval - (dbc_value & (syt_interval-1))) & (syt_interval-1);
 #endif

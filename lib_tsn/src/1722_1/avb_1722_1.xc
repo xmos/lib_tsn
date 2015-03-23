@@ -119,9 +119,7 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                          chanend c_ptp) {
   unsigned periodic_timeout;
   timer tmr;
-  unsigned int nbytes;
   unsigned int buf[AVB_1722_1_PACKET_SIZE_WORDS];
-  unsigned int port_num;
   unsigned char mac_addr[6];
   unsigned int serial = 0x12345678;
 

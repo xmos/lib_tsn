@@ -181,7 +181,7 @@ static int acmp_get_inflight_from_sequence_id(int entity_type, unsigned short id
 static void acmp_update_inflight_timeout(int entity_type, avb_1722_1_acmp_inflight_command *inflight, unsigned int message_type)
 {
     // Must check the message type is a valid value before doing the timeout array access
-    if ((message_type % 2 == 0) && (message_type >= 0) && (message_type <= 12))
+    if ((message_type % 2 == 0) && (message_type <= 12))
     {
         inflight->timeout = acmp_centisecond_counter[entity_type] + avb_1722_1_acmp_inflight_timeouts[message_type/2];
     }
