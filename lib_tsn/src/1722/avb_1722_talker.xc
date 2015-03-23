@@ -112,7 +112,6 @@ static void stop_stream(avb1722_Talker_StreamConfig_t &stream) {
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          client interface ethernet_cfg_if i_eth_cfg,
                           avb_1722_talker_state_t &st,
                           int num_streams)
  {
@@ -124,10 +123,7 @@ void avb_1722_talker_init(chanend c_talker_ctl,
     st.TxBuf[n] = 0;
 
   // register how many streams this talker unit has
-  avb_register_talker_streams(c_talker_ctl, num_streams);
-
-  // Initialise local data structure.
-  i_eth_cfg.get_macaddr(0, st.mac_addr);
+  avb_register_talker_streams(c_talker_ctl, num_streams, st.mac_addr);
 
   for (int i = 0; i < AVB_MAX_STREAMS_PER_TALKER_UNIT; i++)
     st.talker_streams[i].active = 0;
@@ -254,7 +250,6 @@ void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
  *  3. AVB payload generation and transmit to Ethernet.
  */
 void avb_1722_talker(chanend c_ptp,
-                     client interface ethernet_cfg_if i_eth_cfg,
                      streaming chanend c_eth_tx_hp,
                      chanend c_talker_ctl,
                      int num_streams) {
@@ -265,7 +260,7 @@ void avb_1722_talker(chanend c_ptp,
   int pending_timeinfo = 0;
 
   set_thread_fast_mode_on();
-  avb_1722_talker_init(c_talker_ctl, i_eth_cfg, st, num_streams);
+  avb_1722_talker_init(c_talker_ctl, st, num_streams);
 
   ptp_request_time_info_mod64(c_ptp);
   ptp_get_requested_time_info_mod64_use_timer(c_ptp, timeInfo, tmr);

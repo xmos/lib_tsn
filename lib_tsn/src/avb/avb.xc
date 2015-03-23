@@ -48,6 +48,9 @@ static void register_talkers(chanend (&?c_talker_ctl)[], unsigned char mac_addr[
       int tile_id, num_streams;
       c_talker_ctl[i] :> tile_id;
       c_talker_ctl[i] :> num_streams;
+      for (int k=0; k < 6; k++) {
+        c_talker_ctl[i] <: mac_addr[k];
+      }
       for (int j=0;j<num_streams;j++) {
         avb_source_info_t *unsafe source = &sources[max_talker_stream_id];
         source->stream.state = AVB_SOURCE_STATE_DISABLED;
@@ -650,10 +653,14 @@ int avb_register_listener_streams(chanend listener_ctl,
 }
 
 void avb_register_talker_streams(chanend talker_ctl,
-                                 int num_streams)
+                                 int num_streams,
+                                 unsigned char mac_addr[6])
 {
   int tile_id;
   tile_id = get_local_tile_id();
   talker_ctl <: tile_id;
   talker_ctl <: num_streams;
+  for (int i=0; i < 6; i++) {
+    talker_ctl :> mac_addr[i];
+  }
 }

@@ -123,9 +123,11 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
   unsigned int buf[AVB_1722_1_PACKET_SIZE_WORDS];
   unsigned int port_num;
   unsigned char mac_addr[6];
-  unsigned int serial;
+  unsigned int serial = 0x12345678;
 
-  otp_board_info_get_serial(otp_ports, serial);
+  if (!isnull(otp_ports)) {
+    otp_board_info_get_serial(otp_ports, serial);
+  }
 
 
   i_eth_cfg.get_macaddr(0, mac_addr);

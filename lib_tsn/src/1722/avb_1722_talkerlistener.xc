@@ -13,7 +13,6 @@
 
 
 void avb_1722_talker_init(chanend c_talker_ctl,
-                          client interface ethernet_cfg_if i_eth_cfg,
                           avb_1722_talker_state_t &st,
                           int num_streams);
 
