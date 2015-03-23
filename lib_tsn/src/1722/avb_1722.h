@@ -22,7 +22,6 @@
  *  \param num_streams      the number of streams the unit controls
  **/
 void avb_1722_talker(chanend c_ptp,
-                     client interface ethernet_cfg_if i_eth_cfg,
                      streaming chanend c_eth_tx_hp,
                      chanend c_talker_ctl,
                      int num_streams);
