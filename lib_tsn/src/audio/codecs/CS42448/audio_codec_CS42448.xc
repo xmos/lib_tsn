@@ -49,7 +49,7 @@ void audio_codec_CS42448_init(out port p_reset,
 {
    timer t;
    unsigned int time;
-   i2c_res_t res = I2C_SUCCEEDED;
+   i2c_regop_res_t res = I2C_REGOP_SUCCESS;
 
    // Reset the codec
    p_reset <: 0;
