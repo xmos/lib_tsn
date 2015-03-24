@@ -103,7 +103,7 @@
 #endif
 
 #ifndef AVB_1722_1_MAX_ENTITIES
-#define AVB_1722_1_MAX_ENTITIES 1
+#define AVB_1722_1_MAX_ENTITIES 4
 #endif
 
 #ifndef AVB_1722_1_MAX_LISTENERS
