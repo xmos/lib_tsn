@@ -155,7 +155,6 @@ void avb_init(chanend c_media_ctl[],
               chanend (&?c_listener_ctl)[],
               chanend (&?c_talker_ctl)[],
               client interface media_clock_if ?i_media_clock_ctl,
-              chanend c_ptp,
               client interface ethernet_cfg_if i_eth_cfg)
 {
   unsigned char mac_addr[6];
@@ -189,7 +188,7 @@ static void update_sink_state(unsigned sink_num,
                               enum avb_sink_state_t state,
                               client interface ethernet_cfg_if i_eth_cfg,
                               client interface media_clock_if ?i_media_clock_ctl,
-                              client interface srp_interface i_srp) {
+                              client interface srp_interface ?i_srp) {
   unsafe {
     avb_sink_info_t *sink = &sinks[sink_num];
     chanend *unsafe c = sink->listener_ctl;
@@ -233,7 +232,13 @@ static void update_sink_state(unsigned sink_num,
       memcpy(stream_mutlicast_filter.addr, sink->reservation.dest_mac_addr, 6);
       i_eth_cfg.add_macaddr_filter(0, 1, stream_mutlicast_filter);
 
-      sink->reservation.vlan_id = i_srp.register_attach_request(sink->reservation.stream_id, sink->reservation.vlan_id);
+      if (isnull(i_srp)) {
+        debug_printf("MSRP: Register attach request %x:%x\n", sink->reservation.stream_id[0], sink->reservation.stream_id[1]);
+        sink->reservation.vlan_id  = avb_srp_join_listener_attrs(sink->reservation.stream_id,  sink->reservation.vlan_id);
+      }
+      else {
+        sink->reservation.vlan_id = i_srp.register_attach_request(sink->reservation.stream_id, sink->reservation.vlan_id);
+      }
 
     }
     else if (prev != AVB_SINK_STATE_DISABLED &&
@@ -249,7 +254,13 @@ static void update_sink_state(unsigned sink_num,
       memcpy(stream_mutlicast_filter.addr, sink->reservation.dest_mac_addr, 6);
       i_eth_cfg.del_macaddr_filter(0, 1, stream_mutlicast_filter);
 
-      i_srp.deregister_attach_request(sink->reservation.stream_id);
+      if (isnull(i_srp)) {
+        debug_printf("MSRP: Deregister attach request %x:%x\n", sink->reservation.stream_id[0], sink->reservation.stream_id[1]);
+        avb_srp_leave_listener_attrs(sink->reservation.stream_id);
+      }
+      else {
+        i_srp.deregister_attach_request(sink->reservation.stream_id);
+      }
 
 #if MRP_NUM_PORTS == 1
       int vid = sink->reservation.vlan_id;
@@ -277,7 +288,7 @@ static void update_source_state(unsigned source_num,
                                 enum avb_source_state_t state,
                                 client interface ethernet_cfg_if i_eth,
                                 client interface media_clock_if ?i_media_clock_ctl,
-                                client interface srp_interface i_srp) {
+                                client interface srp_interface ?i_srp) {
   unsafe {
     char stream_string[] = "Talker stream";
     avb_source_info_t *source = &sources[source_num];
@@ -340,7 +351,13 @@ static void update_source_state(unsigned source_num,
         }
 
         source->reservation.tspec_max_frame_size = avb_srp_calculate_max_framesize(source);
-        source->reservation.vlan_id = i_srp.register_stream_request(source->reservation);
+        if (isnull(i_srp)) {
+          debug_printf("MSRP: Register stream request %x:%x\n", source->reservation.stream_id[0], source->reservation.stream_id[1]);
+          source->reservation.vlan_id = avb_srp_create_and_join_talker_advertise_attrs(&source->reservation);
+        }
+        else {
+          source->reservation.vlan_id = i_srp.register_stream_request(source->reservation);
+        }
 
         master {
           *c <: AVB1722_SET_VLAN;
@@ -407,7 +424,13 @@ static void update_source_state(unsigned source_num,
       }
 #endif
 
-      i_srp.deregister_stream_request(source->reservation.stream_id);
+      if (isnull(i_srp)) {
+        debug_printf("MSRP: Deregister stream request %x:%x\n", source->reservation.stream_id[0], source->reservation.stream_id[1]);
+        avb_srp_leave_talker_attrs(source->reservation.stream_id);
+      }
+      else {
+        i_srp.deregister_stream_request(source->reservation.stream_id);
+      }
 
     }
   }
@@ -444,23 +467,23 @@ int avb_set_sink_vlan(client interface avb_interface avb, unsigned sink_num, int
 
 [[combinable]]
 void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned num_avb_clients,
-                 client interface srp_interface i_srp,
+                 client interface srp_interface ?i_srp,
                  chanend c_media_ctl[],
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
                  client interface ethernet_cfg_if i_eth_cfg,
-                 client interface media_clock_if ?i_media_clock_ctl,
-                 chanend c_ptp) {
+                 client interface media_clock_if ?i_media_clock_ctl) {
 
   register_media(c_media_ctl);
   init_media_clock_server(i_media_clock_ctl);
 
+  unsafe {
+    avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, i_media_clock_ctl, i_eth_cfg);
+  }
+
   while (1) {
     select {
     case avb[int i].initialise(void):
-      unsafe {
-        avb_init(c_media_ctl, c_listener_ctl, c_talker_ctl, i_media_clock_ctl, c_ptp, i_eth_cfg);
-      }
       break;
     case avb[int i]._get_source_info(unsigned source_num) -> avb_source_info_t info:
       info = sources[source_num];
