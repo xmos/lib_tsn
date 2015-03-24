@@ -303,15 +303,15 @@ int main(void)
 #if AVB_DEMO_ENABLE_LISTENER
       init_media_output_fifos(ofifos, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
 #endif
+      media_ctl_register(c_media_ctl[0], ififos, AVB_NUM_MEDIA_INPUTS,
+                         ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
 
       i2s_master(i2s_ports,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS,
                  p_aud_dout, AVB_NUM_MEDIA_OUTPUTS,
                  MASTER_TO_WORDCLOCK_RATIO,
                  ififos,
-                 ofifos,
-                 c_media_ctl[0],
-                 0);
+                 ofifos);
     }
 
 #if AVB_DEMO_ENABLE_TALKER
