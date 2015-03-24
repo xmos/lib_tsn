@@ -6,30 +6,9 @@
 /* Some of the configuration depends on the app_config.h file included above */
 
 /******** ETHERNET MAC CONFIGURATION PARAMETERS *************************************************/
-#define ETHERNET_DEFAULT_IMPLEMENTATION full
-
-#define MAX_ETHERNET_PACKET_SIZE (1518)
-#define NUM_MII_RX_BUF 6
-#define NUM_MII_TX_BUF 3
-#define ETHERNET_RX_HP_QUEUE 1
-#define ETHERNET_TX_HP_QUEUE 1
-#define MAX_ETHERNET_CLIENTS   4
-
-#define ETHERNET_MAX_TX_HP_PACKET_SIZE (100 + AVB_DEMO_NUM_CHANNELS * 24)
-#define ETHERNET_MAX_TX_LP_PACKET_SIZE (600)
-
-#define MII_RX_BUFSIZE_HIGH_PRIORITY (1100 + (3*(ETHERNET_MAX_TX_HP_PACKET_SIZE)))
-#define MII_RX_BUFSIZE_LOW_PRIORITY (2000)
-
-#define MII_TX_BUFSIZE_HIGH_PRIORITY (1100 + (3*(ETHERNET_MAX_TX_HP_PACKET_SIZE)))
-#define MII_TX_BUFSIZE_LOW_PRIORITY (2000)
-
-#define ETHERNET_SUPPORT_HP_QUEUES 1
 
 #define NUM_ETHERNET_PORTS 1
 #define NUM_ETHERNET_MASTER_PORTS 1
-
-#define ETHERNET_RX_ENABLE_TIMER_OFFSET_REQ 1
 
 /******** ENDPOINT AUDIO AND CLOCKING PARAMETERS ************************************************/
 
