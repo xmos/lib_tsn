@@ -12,7 +12,10 @@
 #include "ethernet.h"
 #include "spi.h"
 #include "avb_1722_1_protocol.h"
-
+#include "avb_srp_interface.h"
+#include "avb_mrp.h"
+#include "avb_srp.h"
+#include "avb_mvrp.h"
 
 #define PERIODIC_POLL_TIME 5000
 
@@ -106,20 +109,104 @@ void avb_1722_1_periodic(client interface ethernet_tx_if i_eth, chanend c_ptp, c
     avb_1722_1_aecp_aem_periodic(i_eth);
 }
 
+// avb_mrp.c:
+extern unsigned char srp_dest_mac[6];
+extern unsigned char mvrp_dest_mac[6];
 
+[[combinable]]
+void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
+                              client interface avb_interface i_avb,
+                              client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                              client interface spi_interface ?i_spi,
+                              client interface ethernet_rx_if i_eth_rx,
+                              client interface ethernet_tx_if i_eth_tx,
+                              client interface ethernet_cfg_if i_eth_cfg,
+                              chanend c_ptp) {
+  unsigned periodic_timeout;
+  timer tmr;
+  unsigned int buf[(ETHERNET_MAX_PACKET_SIZE+3)>>2];
+  unsigned char mac_addr[6];
+  unsigned int serial = 0x12345678;
+
+  if (!isnull(otp_ports)) {
+    otp_board_info_get_serial(otp_ports, serial);
+  }
+
+  i_avb.initialise();
+  srp_store_ethernet_interface(i_eth_tx);
+  mrp_store_ethernet_interface(i_eth_tx);
+
+  i_eth_cfg.get_macaddr(0, mac_addr);
+
+  mrp_init(mac_addr);
+  srp_domain_init();
+  avb_mvrp_init();
+
+  size_t eth_index = i_eth_rx.get_index();
+  ethernet_macaddr_filter_t avdecc_maap_filter;
+  avdecc_maap_filter.appdata = 0;
+  memcpy(avdecc_maap_filter.addr, mac_addr, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, avdecc_maap_filter);
+  memcpy(avdecc_maap_filter.addr, maap_dest_addr, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, avdecc_maap_filter);
+  memcpy(avdecc_maap_filter.addr, avb_1722_1_adp_dest_addr, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, avdecc_maap_filter);
+  i_eth_cfg.add_ethertype_filter(eth_index, AVB_1722_ETHERTYPE);
+
+  ethernet_macaddr_filter_t msrp_mvrp_filter;
+  msrp_mvrp_filter.appdata = 0;
+  memcpy(msrp_mvrp_filter.addr, srp_dest_mac, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, msrp_mvrp_filter);
+  memcpy(msrp_mvrp_filter.addr, mvrp_dest_mac, 6);
+  i_eth_cfg.add_macaddr_filter(eth_index, 0, msrp_mvrp_filter);
+  i_eth_cfg.add_ethertype_filter(eth_index, AVB_SRP_ETHERTYPE);
+  i_eth_cfg.add_ethertype_filter(eth_index, AVB_MVRP_ETHERTYPE);
+
+  avb_1722_1_init(mac_addr, serial);
+  avb_1722_maap_init(mac_addr);
+#if NUM_ETHERNET_PORTS > 1
+  avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
+#endif
+
+  tmr :> periodic_timeout;
+
+  while (1) {
+    select {
+      // Receive and process any incoming AVB packets (802.1Qat, 1722_MAAP)
+      case i_eth_rx.packet_ready():
+      {
+        ethernet_packet_info_t packet_info;
+        i_eth_rx.get_packet(packet_info, (char *)buf, ETHERNET_MAX_PACKET_SIZE);
+        avb_process_srp_control_packet(i_avb, buf, packet_info.len, packet_info.type, i_eth_tx, packet_info.src_ifnum);
+        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth_tx, i_avb, i_1722_1_entity, i_spi);
+        break;
+      }
+      // Periodic processing
+      case tmr when timerafter(periodic_timeout) :> unsigned int time_now:
+      {
+        avb_1722_1_periodic(i_eth_tx, c_ptp, i_avb);
+        avb_1722_maap_periodic(i_eth_tx, i_avb);
+        mrp_periodic(i_avb);
+
+        periodic_timeout += PERIODIC_POLL_TIME;
+        break;
+      }
+    }
+  }
+}
 
 [[combinable]]
 void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
-                         client interface avb_interface i_avb,
-                         client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                         client interface spi_interface ?i_spi,
-                         client interface ethernet_rx_if i_eth_rx,
-                         client interface ethernet_tx_if i_eth_tx,
-                         client interface ethernet_cfg_if i_eth_cfg,
-                         chanend c_ptp) {
+                              client interface avb_interface i_avb,
+                              client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                              client interface spi_interface ?i_spi,
+                              client interface ethernet_rx_if i_eth_rx,
+                              client interface ethernet_tx_if i_eth_tx,
+                              client interface ethernet_cfg_if i_eth_cfg,
+                              chanend c_ptp) {
   unsigned periodic_timeout;
   timer tmr;
-  unsigned int buf[AVB_1722_1_PACKET_SIZE_WORDS];
+  unsigned int buf[(ETHERNET_MAX_PACKET_SIZE+3)>>2];
   unsigned char mac_addr[6];
   unsigned int serial = 0x12345678;
 

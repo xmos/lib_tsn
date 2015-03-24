@@ -15,6 +15,7 @@
 #include "otp_board_info.h"
 #include "spi.h"
 #include "ethernet.h"
+#include "avb_srp_interface.h"
 
 typedef union {
     avb_1722_1_adp_packet_t adp;
@@ -62,6 +63,28 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                          client interface ethernet_tx_if i_eth_tx,
                          client interface ethernet_cfg_if i_eth_cfg,
                          chanend c_ptp);
+
+/** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
+  *
+  *  Can be combined with other combinable tasks.
+  *
+  *  \param  otp_ports    reference to an OTP ports structure of type otp_ports_t
+  *  \param  i_avb   client interface of type avb_interface into avb_manager()
+  *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
+  *  \param  i_spi  client interface of type spi_interface into avb_srp_task()
+  *  \param  c_mac_rx chanend into the Ethernet RX server
+  *  \param  c_mac_tx chanend into the Ethernet TX server
+  *  \param  c_ptp chanend into the PTP server
+  */
+[[combinable]]
+void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
+                              client interface avb_interface i_avb,
+                              client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                              client interface spi_interface ?i_spi,
+                              client interface ethernet_rx_if i_eth_rx,
+                              client interface ethernet_tx_if i_eth_tx,
+                              client interface ethernet_cfg_if i_eth_cfg,
+                              chanend c_ptp);
 
 /** Process a received 1722.1 packet
  *

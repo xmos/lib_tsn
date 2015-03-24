@@ -209,7 +209,6 @@ enum avb_manager_chans {
 };
 
 enum ptp_chans {
-  PTP_TO_AVB_MANAGER = 0,
 #if AVB_DEMO_ENABLE_TALKER
   PTP_TO_TALKER,
 #endif
@@ -343,8 +342,7 @@ int main(void)
                      c_listener_ctl,
                      c_talker_ctl,
                      i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
-                     i_media_clock_ctl,
-                     c_ptp[PTP_TO_AVB_MANAGER]);
+                     i_media_clock_ctl);
          avb_srp_task(i_avb[AVB_MANAGER_TO_SRP],
                       i_srp,
                       i_eth_rx_lp[MAC_TO_SRP],

@@ -30,13 +30,12 @@
  */
 [[combinable]]
 void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned num_avb_clients,
-                 client interface srp_interface i_srp,
+                 client interface srp_interface ?i_srp,
                  chanend c_media_ctl[],
                  chanend (&?c_listener_ctl)[],
                  chanend (&?c_talker_ctl)[],
                  client interface ethernet_cfg_if i_eth_cfg,
-                 client interface media_clock_if ?i_media_clock_ctl,
-                 chanend c_ptp);
+                 client interface media_clock_if ?i_media_clock_ctl);
 #endif
 
 
