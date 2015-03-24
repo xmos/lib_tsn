@@ -136,10 +136,12 @@ static void avb_1722_1_create_aecp_aem_response(unsigned char src_addr[6], unsig
   memcpy(aem, cmd_pkt->data.payload, command_data_len + 2);
 }
 
-static void generate_object_name(char *object_name, int number) {
-  char num_string[2];
-  num_string[0] = (char)(number + 0x30);
-  num_string[1] = '\0';
+static void generate_object_name(char *object_name, int base, int n) {
+  char num_string[5];
+  int count = avb_itoa(base*n+1, num_string, 10, 1);
+  num_string[count] = '-';
+  count += avb_itoa((base * n) + n, &num_string[count+1], 10, 0);
+  num_string[count+1] = '\0';
   strcat(object_name, num_string);
 }
 
@@ -208,13 +210,13 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
       else {
         strcpy((char *)cluster->object_name, "Output ");
       }
-      generate_object_name((char *)cluster->object_name, id);
+      generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
     }
     else if (read_type == AEM_STREAM_INPUT_TYPE)
     {
       memset(cluster->object_name, 0, 64);
       strcpy((char *)cluster->object_name, "Input ");
-      generate_object_name((char *)cluster->object_name, (int)id_num);
+      generate_object_name((char *)cluster->object_name, (int)id_num, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS);
     }
 
     if (read_type == AEM_STREAM_PORT_OUTPUT_TYPE) {
