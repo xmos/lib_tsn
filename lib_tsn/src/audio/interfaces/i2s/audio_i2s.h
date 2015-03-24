@@ -423,15 +423,8 @@ static inline void i2s_master(i2s_ports_t &ports,
                               int num_out,
                               int master_to_word_clock_ratio,
                               media_input_fifo_t (&?input_fifos)[],
-                              media_output_fifo_t (&?output_fifos)[],
-                              chanend media_ctl,
-                              int clk_ctl_index)
+                              media_output_fifo_t (&?output_fifos)[])
 {
-  media_ctl_register(media_ctl,
-                     input_fifos, num_in,
-                     output_fifos, num_out,
-                     clk_ctl_index);
-
   i2s_master_configure_ports(ports,
                              p_dout,
                              num_out>>1,
