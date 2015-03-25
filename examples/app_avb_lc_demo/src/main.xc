@@ -4,7 +4,7 @@
 #include <xccompat.h>
 #include <string.h>
 #include <xscope.h>
-#include "audio_i2s.h"
+#include "i2s.h"
 #include "spi.h"
 #include "i2c.h"
 #include "avb.h"
@@ -74,14 +74,14 @@ on tile[AVB_I2C_TILE]: port p_i2c_sda = PORT_I2C_SDA;
 
 //***** AVB audio ports ****
 on tile[0]: out buffered port:32 p_fs[1] = { PORT_SYNC_OUT };
-on tile[0]: i2s_ports_t i2s_ports =
-{
-  XS1_CLKBLK_3,
-  XS1_CLKBLK_4,
-  PORT_MCLK,
-  PORT_SCLK,
-  PORT_LRCLK
-};
+
+
+out buffered port:32 p_i2s_lrclk = PORT_LRCLK;
+out buffered port:32 p_i2s_bclk = PORT_SCLK;
+in port p_i2s_mclk = PORT_MCLK;
+
+clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_3;
+clock clk_i2s_mclk = on tile[0]: XS1_CLKBLK_4;
 
 #if AVB_DEMO_ENABLE_LISTENER
 on tile[0]: out buffered port:32 p_aud_dout[AVB_DEMO_NUM_CHANNELS/2] = PORT_SDATA_OUT;
@@ -99,41 +99,9 @@ on tile[0]: in buffered port:32 p_aud_din[AVB_DEMO_NUM_CHANNELS/2] = PORT_SDATA_
 on tile[0]: out port p_audio_shared = PORT_AUDIO_SHARED;
 #endif
 
-#if AVB_DEMO_ENABLE_LISTENER
-media_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
-media_output_fifo_t ofifos[AVB_NUM_MEDIA_OUTPUTS];
-#else
-  #define ofifos null
-#endif
-
-#if AVB_DEMO_ENABLE_TALKER
-media_input_fifo_data_t ififo_data[AVB_NUM_MEDIA_INPUTS];
-media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
-#else
-  #define ififos null
-#endif
 
 [[combinable]] void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity);
 
-[[distributable]] void audio_hardware_setup(client interface i2c_master_if i2c)
-{
-#if PLL_TYPE_CS2100
-  audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
-#elif PLL_TYPE_CS2300
-  audio_clock_CS2300CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
-#endif
-#if AVB_XA_SK_AUDIO_PLL_SLICE
-  const int codec1_addr = 0x48;
-  const int codec2_addr = 0x49;
-  audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, i2c);
-  audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
-#endif
-
-  while (1) {
-    select {
-    }
-  }
-}
 
 [[combinable]]
 void lan8710a_phy_driver(client interface smi_if smi,
@@ -173,6 +141,109 @@ void lan8710a_phy_driver(client interface smi_if smi,
         eth.set_link_state(0, new_state, link_speed);
       }
       t += link_poll_period_ms * XS1_TIMER_KHZ;
+      break;
+    }
+  }
+}
+
+
+#define I2S_SINE_TABLE_SIZE 100
+
+extern unsigned int i2s_sine[I2S_SINE_TABLE_SIZE];
+
+#pragma unsafe arrays
+[[distributable]]
+void avb_to_i2s(server i2s_callback_if i2s,
+                chanend c_media_ctl,
+                client i2c_master_if i2c)
+{
+#ifdef I2S_SYNTH_FROM
+  int sine_count[8] = {0};
+  int sine_inc[8] = {0x080, 0x100, 0x180, 0x200, 0x100, 0x100, 0x100, 0x100};
+#endif
+
+#if AVB_DEMO_ENABLE_LISTENER
+  media_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
+  media_output_fifo_t ofifos[AVB_NUM_MEDIA_OUTPUTS];
+#else
+  #define ofifos null
+#endif
+
+#if AVB_DEMO_ENABLE_TALKER
+  media_input_fifo_data_t ififo_data[AVB_NUM_MEDIA_INPUTS];
+  media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
+#else
+  #define ififos null
+#endif
+
+#if AVB_DEMO_ENABLE_TALKER
+  init_media_input_fifos(ififos, ififo_data, AVB_NUM_MEDIA_INPUTS);
+#endif
+
+#if AVB_DEMO_ENABLE_LISTENER
+  init_media_output_fifos(ofifos, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
+#endif
+  media_ctl_register(c_media_ctl, ififos, AVB_NUM_MEDIA_INPUTS,
+                     ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
+
+#ifdef I2S_SYNTH_FROM
+    for (int k=I2S_SYNTH_FROM;k<AVB_NUM_MEDIA_INPUTS;k++) {
+      sine_count[k] += sine_inc[k];
+      if (sine_count[k] >= I2S_SINE_TABLE_SIZE * 256)
+        sine_count[k] -= I2S_SINE_TABLE_SIZE * 256;
+    }
+#endif
+  unsigned int active_fifos;
+  unsigned timestamp;
+  while (1) {
+    select {
+    case i2s.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
+      i2s_config.mode = I2S_MODE_I2S;
+      i2s_config.mclk_bclk_ratio = MASTER_TO_WORDCLOCK_RATIO/64;
+#if PLL_TYPE_CS2100
+      audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+#elif PLL_TYPE_CS2300
+      audio_clock_CS2300CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+#endif
+#if AVB_XA_SK_AUDIO_PLL_SLICE
+      const int codec1_addr = 0x48;
+      const int codec2_addr = 0x49;
+      audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, i2c);
+      audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
+#endif
+      media_input_fifo_update_enable_ind_state(active_fifos, 0xFFFFFFFF);
+      break;
+
+    case i2s.frame_start(unsigned ts, unsigned &restart):
+      timestamp = ts;
+      active_fifos = media_input_fifo_enable_req_state();
+      break;
+
+    case i2s.receive(size_t index, int32_t sample):
+      unsigned sample24 = ((unsigned) sample) >> 8;
+
+#ifdef I2S_SYNTH_FROM
+      if (index/2 >= I2S_SYNTH_FROM) {
+        sample24 = i2s_sine[sine_count[index/2]>>8];
+
+        if (index%2 == 1) {
+          sine_count[index/2] += sine_inc[index/2];
+          if (sine_count[index/2] >= I2S_SINE_TABLE_SIZE * 256)
+            sine_count[index/2] -= I2S_SINE_TABLE_SIZE * 256;
+        }
+      }
+#endif
+
+      if (active_fifos & (1 << index)) {
+        media_input_fifo_push_sample(ififos[index], sample24, timestamp);
+      } else {
+        media_input_fifo_flush(ififos[index]);
+      }
+      break;
+
+    case i2s.send(size_t index) -> int32_t sample:
+      unsigned sample24 = media_output_fifo_pull_sample(ofifos[index], timestamp);
+      sample = sample24 << 8;
       break;
     }
   }
@@ -251,6 +322,7 @@ int main(void)
   interface srp_interface i_srp;
   interface avb_1722_1_control_callbacks i_1722_1_entity;
   i2c_master_if i2c[1];
+  i2s_callback_if i_i2s;
 
   par
   {
@@ -290,28 +362,20 @@ int main(void)
       }
     }
 
-    on tile[AVB_I2C_TILE]: [[distribute]] i2c_master(i2c, 1, p_i2c_scl, p_i2c_sda, 100);
-    on tile[AVB_I2C_TILE]: [[distribute]] audio_hardware_setup(i2c[0]);
+    on tile[AVB_I2C_TILE]: i2c_master(i2c, 1, p_i2c_scl, p_i2c_sda, 100);
 
-    // AVB - Audio
-    on tile[0]:
-    {
-#if AVB_DEMO_ENABLE_TALKER
-      init_media_input_fifos(ififos, ififo_data, AVB_NUM_MEDIA_INPUTS);
-#endif
+    on tile[0]: [[distribute]] avb_to_i2s(i_i2s, c_media_ctl[0], i2c[0]);
 
-#if AVB_DEMO_ENABLE_LISTENER
-      init_media_output_fifos(ofifos, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
-#endif
-      media_ctl_register(c_media_ctl[0], ififos, AVB_NUM_MEDIA_INPUTS,
-                         ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
-
-      i2s_master(i2s_ports,
-                 p_aud_din, AVB_NUM_MEDIA_INPUTS,
-                 p_aud_dout, AVB_NUM_MEDIA_OUTPUTS,
-                 MASTER_TO_WORDCLOCK_RATIO,
-                 ififos,
-                 ofifos);
+    on tile[0]: {
+      configure_clock_src(clk_i2s_mclk, p_i2s_mclk);
+      start_clock(clk_i2s_mclk);
+      i2s_master(i_i2s,
+                 p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
+                 p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
+                 p_i2s_bclk,
+                 p_i2s_lrclk,
+                 clk_i2s_bclk,
+                 clk_i2s_mclk);
     }
 
 #if AVB_DEMO_ENABLE_TALKER

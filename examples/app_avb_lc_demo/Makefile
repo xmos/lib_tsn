@@ -34,7 +34,7 @@ XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline
 
 # The USED_MODULES variable lists other module used by the application. 
 
-USED_MODULES = lib_ethernet lib_otpinfo lib_i2c lib_tsn
+USED_MODULES = lib_ethernet lib_otpinfo lib_i2c lib_tsn lib_i2s
 
 ifeq ($(TARGET),SLICEKIT-L2)
     USED_MODULES += lib_slicekit_support
