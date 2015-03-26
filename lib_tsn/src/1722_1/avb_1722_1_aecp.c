@@ -138,10 +138,17 @@ static void avb_1722_1_create_aecp_aem_response(unsigned char src_addr[6], unsig
 
 static void generate_object_name(char *object_name, int base, int n) {
   char num_string[5];
-  int count = avb_itoa(base*n+1, num_string, 10, 1);
-  num_string[count] = '-';
-  count += avb_itoa((base * n) + n, &num_string[count+1], 10, 0);
-  num_string[count+1] = '\0';
+  int count;
+  if (n) {
+    count = avb_itoa(base*n+1, num_string, 10, 1);
+    num_string[count] = '-';
+    count++; // Add a char for the '-'
+    count += avb_itoa((base * n) + n, &num_string[count], 10, 0);
+  }
+  else {
+    count = avb_itoa(base+1, num_string, 10, 1);
+  }
+  num_string[count] = '\0';
   strcat(object_name, num_string);
 }
 
@@ -206,11 +213,12 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
       memset(cluster->object_name, 0, 64);
       if (read_type == AEM_AUDIO_CLUSTER_TYPE) {
         strcpy((char *)cluster->object_name, "Channel ");
+        generate_object_name((char *)cluster->object_name, id, 0);
       }
       else {
         strcpy((char *)cluster->object_name, "Output ");
+        generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
       }
-      generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
     }
     else if (read_type == AEM_STREAM_INPUT_TYPE)
     {
