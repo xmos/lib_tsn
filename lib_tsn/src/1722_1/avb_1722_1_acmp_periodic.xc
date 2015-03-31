@@ -372,6 +372,8 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                                             acmp_listener_rcvd_cmd_resp.stream_dest_mac,
                                             stream_id,
                                             my_guid);
+
+                    acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
                 }
                 else
                 {
