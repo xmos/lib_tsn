@@ -1,6 +1,7 @@
 #include "avb.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_aecp.h"
+#include "avb_1722_1_adp.h"
 #include "misc_timer.h"
 #include "avb_srp_pdu.h"
 #include <string.h>
@@ -755,7 +756,12 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
       }
       default:
       {
-        // AECP_AEM_STATUS_NOT_IMPLEMENTED
+        unsigned num_tx_bytes = num_pkt_bytes + sizeof(ethernet_hdr_t);
+        if (num_tx_bytes < 64) num_tx_bytes = 64;
+        status = AECP_AEM_STATUS_NOT_IMPLEMENTED;
+        avb_1722_1_aecp_aem_msg_t *aem = (avb_1722_1_aecp_aem_msg_t*)avb_1722_1_create_aecp_response_header(src_addr, status, AECP_CMD_AEM_COMMAND, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        memcpy(aem, pkt->data.payload, num_pkt_bytes - AVB_1722_1_AECP_PAYLOAD_OFFSET);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
         return;
       }
     }
