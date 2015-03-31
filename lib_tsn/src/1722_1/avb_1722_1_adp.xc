@@ -346,6 +346,12 @@ void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, cl
     }
 }
 
+void avb_1722_1_adp_depart_immediately(client interface ethernet_tx_if i_eth)
+{
+    avb_1722_1_create_adp_packet(ENTITY_DEPARTING, my_guid);
+    i_eth.send_packet((avb_1722_1_buf, unsigned char[]), AVB_1722_1_ADP_PACKET_SIZE, ETHERNET_ALL_INTERFACES);
+}
+
 void avb_1722_1_adp_advertising_periodic(client interface ethernet_tx_if i_eth, chanend ptp)
 {
     guid_t ptp_current;

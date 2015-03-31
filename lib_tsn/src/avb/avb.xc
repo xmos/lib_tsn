@@ -563,8 +563,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
                                      eth_packet_type_t packet_type,
                                      client interface ethernet_tx_if i_eth,
                                      client interface avb_interface i_avb,
-                                     client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                                     client interface spi_interface ?i_spi) {
+                                     client interface avb_1722_1_control_callbacks i_1722_1_entity) {
 
   if (packet_type == ETH_IF_STATUS) {
     if (((unsigned char *)buf0)[0] == ETHERNET_LINK_UP) {
@@ -599,7 +598,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 
     switch (etype) {
       case AVB_1722_ETHERTYPE:
-        avb_1722_1_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth, i_avb, i_1722_1_entity, i_spi);
+        avb_1722_1_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth, i_avb, i_1722_1_entity);
         avb_1722_maap_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth);
         break;
     }

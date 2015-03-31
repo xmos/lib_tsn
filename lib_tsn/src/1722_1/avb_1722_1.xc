@@ -64,8 +64,7 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
                                 unsigned char src_addr[6],
                                 client interface ethernet_tx_if i_eth,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
-                                CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                CLIENT_INTERFACE(spi_interface, ?i_spi))
+                                CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
 {
     avb_1722_1_packet_header_t *pkt = (avb_1722_1_packet_header_t *) &buf[0];
     unsigned subtype = GET_1722_1_SUBTYPE(pkt);
@@ -80,7 +79,7 @@ void avb_1722_1_process_packet(unsigned char buf[len], unsigned len,
         }
         return;
     case DEFAULT_1722_1_AECP_SUBTYPE:
-        process_avb_1722_1_aecp_packet(src_addr, (avb_1722_1_aecp_packet_t*)pkt, len, i_eth, i_avb_api, i_1722_1_entity, i_spi);
+        process_avb_1722_1_aecp_packet(src_addr, (avb_1722_1_aecp_packet_t*)pkt, len, i_eth, i_avb_api, i_1722_1_entity);
         return;
     case DEFAULT_1722_1_ACMP_SUBTYPE:
         if (datalen == AVB_1722_1_ACMP_CD_LENGTH)
@@ -117,7 +116,7 @@ extern unsigned char mvrp_dest_mac[6];
 void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
                               client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                              client interface spi_interface ?i_spi,
+                              fl_QSPIPorts &qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
@@ -130,6 +129,11 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
 
   if (!isnull(otp_ports)) {
     otp_board_info_get_serial(otp_ports, serial);
+  }
+
+  if (fl_connect(qspi_ports)) {
+    // Problem connecting to QSPI flash
+    __builtin_trap();
   }
 
   i_avb.initialise();
@@ -178,7 +182,7 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
         ethernet_packet_info_t packet_info;
         i_eth_rx.get_packet(packet_info, (char *)buf, ETHERNET_MAX_PACKET_SIZE);
         avb_process_srp_control_packet(i_avb, buf, packet_info.len, packet_info.type, i_eth_tx, packet_info.src_ifnum);
-        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth_tx, i_avb, i_1722_1_entity, i_spi);
+        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth_tx, i_avb, i_1722_1_entity);
         break;
       }
       // Periodic processing
@@ -188,7 +192,7 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
         avb_1722_maap_periodic(i_eth_tx, i_avb);
         mrp_periodic(i_avb);
 
-        periodic_timeout += PERIODIC_POLL_TIME;
+        periodic_timeout = time_now + PERIODIC_POLL_TIME;
         break;
       }
     }
@@ -199,7 +203,7 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
 void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                               client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                              client interface spi_interface ?i_spi,
+                              fl_QSPIPorts &qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
@@ -214,6 +218,10 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
+  if (fl_connect(qspi_ports)) {
+    // Problem connecting to QSPI flash
+    __builtin_trap();
+  }
 
   i_eth_cfg.get_macaddr(0, mac_addr);
 
@@ -243,7 +251,7 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
         ethernet_packet_info_t packet_info;
         i_eth_rx.get_packet(packet_info, (char *)buf, AVB_1722_1_PACKET_SIZE_WORDS * 4);
 
-        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth_tx, i_avb, i_1722_1_entity, i_spi);
+        avb_process_1722_control_packet(buf, packet_info.len, packet_info.type, i_eth_tx, i_avb, i_1722_1_entity);
         break;
       }
       // Periodic processing
