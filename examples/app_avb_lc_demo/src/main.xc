@@ -151,16 +151,18 @@ void lan8710a_phy_driver(client interface smi_if smi,
 
 extern unsigned int i2s_sine[I2S_SINE_TABLE_SIZE];
 
+#ifndef I2S_SYNTH_FROM
+#define I2S_SYNTH_FROM 8
+#endif
+
 #pragma unsafe arrays
 [[distributable]]
 void avb_to_i2s(server i2s_callback_if i2s,
                 chanend c_media_ctl,
                 client i2c_master_if i2c)
 {
-#ifdef I2S_SYNTH_FROM
   int sine_count[8] = {0};
-  int sine_inc[8] = {0x080, 0x100, 0x180, 0x200, 0x100, 0x100, 0x100, 0x100};
-#endif
+  int sine_inc[8] = {0x080, 0x080, 0x100, 0x100, 0x180, 0x180, 0x200, 0x200};
 
 #if AVB_DEMO_ENABLE_LISTENER
   media_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
@@ -186,64 +188,58 @@ void avb_to_i2s(server i2s_callback_if i2s,
   media_ctl_register(c_media_ctl, ififos, AVB_NUM_MEDIA_INPUTS,
                      ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
 
-#ifdef I2S_SYNTH_FROM
-    for (int k=I2S_SYNTH_FROM;k<AVB_NUM_MEDIA_INPUTS;k++) {
-      sine_count[k] += sine_inc[k];
-      if (sine_count[k] >= I2S_SINE_TABLE_SIZE * 256)
-        sine_count[k] -= I2S_SINE_TABLE_SIZE * 256;
-    }
-#endif
-  unsigned int active_fifos;
+  unsigned int active_fifos = 0;
   unsigned timestamp;
+  timer tmr;
   while (1) {
     select {
     case i2s.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
       i2s_config.mode = I2S_MODE_I2S;
       i2s_config.mclk_bclk_ratio = MASTER_TO_WORDCLOCK_RATIO/64;
-#if PLL_TYPE_CS2100
-      audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
-#elif PLL_TYPE_CS2300
-      audio_clock_CS2300CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
-#endif
-#if AVB_XA_SK_AUDIO_PLL_SLICE
-      const int codec1_addr = 0x48;
-      const int codec2_addr = 0x49;
-      audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, i2c);
-      audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
-#endif
-      media_input_fifo_update_enable_ind_state(active_fifos, 0xFFFFFFFF);
+
+      #if PLL_TYPE_CS2100
+        audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+      #elif PLL_TYPE_CS2300
+        audio_clock_CS2300CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+      #endif
+
+      #if AVB_XA_SK_AUDIO_PLL_SLICE
+        const int codec1_addr = 0x48;
+        const int codec2_addr = 0x49;
+        audio_codec_CS4270_init(p_audio_shared, 0xff, codec1_addr, i2c);
+        audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
+      #endif
+
       break;
 
-    case i2s.frame_start(unsigned ts, unsigned &restart):
-      timestamp = ts;
-      active_fifos = media_input_fifo_enable_req_state();
+    case i2s.restart_check() -> i2s_restart_t restart:
+      restart = I2S_NO_RESTART;
       break;
 
     case i2s.receive(size_t index, int32_t sample):
-      unsigned sample24 = ((unsigned) sample) >> 8;
-
-#ifdef I2S_SYNTH_FROM
-      if (index/2 >= I2S_SYNTH_FROM) {
-        sample24 = i2s_sine[sine_count[index/2]>>8];
-
-        if (index%2 == 1) {
-          sine_count[index/2] += sine_inc[index/2];
-          if (sine_count[index/2] >= I2S_SINE_TABLE_SIZE * 256)
-            sine_count[index/2] -= I2S_SINE_TABLE_SIZE * 256;
-        }
+      if (index >= I2S_SYNTH_FROM) {
+        sample = i2s_sine[sine_count[index]>>8];
+        sine_count[index] += sine_inc[index];
+        if (sine_count[index] >= I2S_SINE_TABLE_SIZE * 256)
+          sine_count[index] -= I2S_SINE_TABLE_SIZE * 256;
       }
-#endif
 
       if (active_fifos & (1 << index)) {
-        media_input_fifo_push_sample(ififos[index], sample24, timestamp);
+        media_input_fifo_push_sample(ififos[index], sample, timestamp);
       } else {
         media_input_fifo_flush(ififos[index]);
+      }
+      if (index == AVB_DEMO_NUM_CHANNELS - 1) {
+        media_input_fifo_update_enable_ind_state(active_fifos, 0xfffffff);
+        active_fifos = media_input_fifo_enable_req_state();
       }
       break;
 
     case i2s.send(size_t index) -> int32_t sample:
-      unsigned sample24 = media_output_fifo_pull_sample(ofifos[index], timestamp);
-      sample = sample24 << 8;
+      if (index == 0) {
+        tmr :> timestamp;
+      }
+      sample = media_output_fifo_pull_sample(ofifos[index], timestamp);
       break;
     }
   }

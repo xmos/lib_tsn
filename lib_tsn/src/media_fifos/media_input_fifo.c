@@ -215,7 +215,8 @@ init_media_input_fifos(media_input_fifo_t ififos[],
 {
 	enable_lock = hwlock_alloc();
 	for(int i=0;i<n;i++) {
-		ififos[i] = (unsigned int) &ififo_data[i];
+          ififos[i] = (unsigned int) &ififo_data[i];
+          media_input_fifo_flush(ififos[i]);
 	}
 }
 

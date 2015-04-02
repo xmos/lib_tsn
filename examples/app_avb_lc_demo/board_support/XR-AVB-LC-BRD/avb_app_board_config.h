@@ -20,5 +20,5 @@
 #define AVB_I2C_TILE            1
 #define AVB_GPIO_TILE           1
 
-/** Add sine wave synthesis from channels ``I2S_SYNTH_FROM*2`` upwards in the I2S component */
-#define I2S_SYNTH_FROM 1
+/** Add sine wave synthesis from channels ``I2S_SYNTH_FROM`` upwards in the I2S component */
+#define I2S_SYNTH_FROM 2

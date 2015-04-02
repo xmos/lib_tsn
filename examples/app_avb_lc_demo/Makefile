@@ -14,7 +14,7 @@ APP_NAME =
 # In this application the extra include files may be found in a target
 # specific directory for XMOS development boards
 
-INCLUDE_DIRS = src board_support/$(TARGET)
+INCLUDE_DIRS = src/* board_support/$(TARGET)
 
 # This header file is marked as optional since it is only included for
 # a known XMOS development board

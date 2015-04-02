@@ -116,9 +116,9 @@ static void sample_copy_strided(int *src, unsigned int *dest, int stride, int n)
     int i;
     for (i = 0; i < n; i++) {
 #ifdef AVB_1722_FORMAT_SAF
-        unsigned sample = *src << 8;
+        unsigned sample = *src;
 #else
-        unsigned sample = (*src & 0xffffff) | AVB1722_audioSampleType;
+        unsigned sample = (*src >> 8) | AVB1722_audioSampleType;
 #endif
         sample = __builtin_bswap32(sample);
         *dest = sample;
@@ -148,7 +148,6 @@ int avb1722_create_packet(unsigned char Buf0[],
     // align packet 2 chars into the buffer so that samples are
     // word align for fast copying.
     unsigned char *Buf = &Buf0[2];
-
 #ifdef AVB_1722_FORMAT_SAF
     unsigned int *dest = (unsigned int *) &Buf[(AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE)];
 #else
