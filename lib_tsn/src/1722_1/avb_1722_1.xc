@@ -43,7 +43,6 @@ void avb_1722_1_init(unsigned char macaddr[6], unsigned serial_num)
     my_guid.c[7] = macaddr[0];
 
     avb_1722_1_adp_init();
-    avb_1722_1_adp_announce();
 #if (AVB_1722_1_AEM_ENABLED)
     avb_1722_1_aecp_aem_init(serial_num);
 #endif
@@ -116,7 +115,7 @@ extern unsigned char mvrp_dest_mac[6];
 void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
                               client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                              fl_QSPIPorts &qspi_ports,
+                              fl_QSPIPorts &?qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
@@ -203,7 +202,7 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
 void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                               client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                              fl_QSPIPorts &qspi_ports,
+                              fl_QSPIPorts &?qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
@@ -218,9 +217,11 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
-  if (fl_connect(qspi_ports)) {
-    // Problem connecting to QSPI flash
-    __builtin_trap();
+  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+    if (!isnull(qspi_ports) && fl_connect(qspi_ports)) {
+      // Problem connecting to QSPI flash
+      __builtin_trap();
+    }
   }
 
   i_eth_cfg.get_macaddr(0, mac_addr);

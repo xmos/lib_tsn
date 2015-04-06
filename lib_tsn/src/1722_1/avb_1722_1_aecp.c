@@ -74,13 +74,15 @@ static enum {
 // Called on startup to initialise certain static descriptor fields
 void avb_1722_1_aem_descriptors_init(unsigned int serial_num)
 {
-  fl_BootImageInfo image;
+  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+    fl_BootImageInfo image;
 
-  if (fl_getFactoryImage(&image) == 0) {
-    if (fl_getNextBootImage(&image) == 0) {
-      unsigned n = byterev(image.size);
-      // Update length field of the memory object descriptor
-      memcpy(&desc_upgrade_image_memory_object_0[96], &n, 4);
+    if (fl_getFactoryImage(&image) == 0) {
+      if (fl_getNextBootImage(&image) == 0) {
+        unsigned n = byterev(image.size);
+        // Update length field of the memory object descriptor
+        memcpy(&desc_upgrade_image_memory_object_0[96], &n, 4);
+      }
     }
   }
   // entity_guid in Entity Descriptor

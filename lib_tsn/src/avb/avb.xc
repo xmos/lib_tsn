@@ -15,6 +15,7 @@
 #include "avb_1722_router.h"
 #include "avb_api.h"
 #include "avb_srp_interface.h"
+#include "avb_1722_1_acmp.h"
 
 #if AVB_ENABLE_1722_1
 #include "avb_1722_1.h"
@@ -567,15 +568,19 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 
   if (packet_type == ETH_IF_STATUS) {
     if (((unsigned char *)buf0)[0] == ETHERNET_LINK_UP) {
-#if NUM_ETHERNET_PORTS == 1
-      unsigned char base_addr[6];
-      if (!avb_1722_maap_get_base_address(base_addr)) {
-        avb_1722_maap_request_addresses(AVB_NUM_SOURCES, base_addr);
+      if (NUM_ETHERNET_PORTS == 1) {
+        unsigned char base_addr[6];
+        if (!avb_1722_maap_get_base_address(base_addr)) {
+          avb_1722_maap_request_addresses(AVB_NUM_SOURCES, base_addr);
+        }
+        else {
+          avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
+        }
+
+        if (AVB_1722_1_FAST_CONNECT_ENABLED) {
+          acmp_start_fast_connect(i_eth);
+        }
       }
-      else {
-        avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
-      }
-#endif
     }
   }
   else if (packet_type == ETH_DATA) {

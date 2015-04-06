@@ -275,9 +275,7 @@ static void avb_1722_1_create_adp_packet(int message_type, guid_t guid)
     ethernet_hdr_t *hdr = (ethernet_hdr_t*) &avb_1722_1_buf[0];
     avb_1722_1_adp_packet_t *pkt = (avb_1722_1_adp_packet_t*) (hdr + AVB_1722_1_PACKET_BODY_POINTER_OFFSET);
 
-    unsafe {
-        memset((avb_1722_1_adp_packet_t *unsafe)pkt, 0, sizeof(avb_1722_1_adp_packet_t));
-    }
+    memset((avb_1722_1_adp_packet_t *)pkt, 0, sizeof(avb_1722_1_adp_packet_t));
     avb_1722_1_create_1722_1_header(avb_1722_1_adp_dest_addr, DEFAULT_1722_1_ADP_SUBTYPE, message_type,
           (message_type==ENTITY_AVAILABLE)?AVB_1722_1_ADP_VALID_TIME:0, AVB_1722_1_ADP_CD_LENGTH, hdr);
 
@@ -320,7 +318,7 @@ void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, cl
             }
             if (lost > 0)
             {
-                /* 5.2 TODO: Generate AVB_1722_1_ENTITY_REMOVED */
+                // Do nothing
             }
             break;
         }
@@ -340,7 +338,6 @@ void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, cl
         case ADP_DISCOVERY_REMOVED:
         {
             adp_discovery_state = ADP_DISCOVERY_WAITING;
-            /* 5.2 TODO: Generate VB_1722_1_ENTITY_REMOVED */
             break;
         }
     }
