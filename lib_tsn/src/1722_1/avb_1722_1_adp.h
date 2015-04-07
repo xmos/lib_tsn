@@ -29,6 +29,7 @@ void avb_1722_1_adp_announce(void);
  */
 void avb_1722_1_adp_depart(void);
 
+void avb_1722_1_adp_depart_immediately(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
 /**
  *

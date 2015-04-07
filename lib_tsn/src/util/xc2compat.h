@@ -7,4 +7,10 @@
 #define unsafe
 #endif
 
+#ifdef __XC__
+#define alias alias
+#else
+#define alias
+#endif
+
 #endif

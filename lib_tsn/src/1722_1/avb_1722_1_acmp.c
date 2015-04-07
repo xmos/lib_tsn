@@ -1,12 +1,10 @@
 #include <string.h>
 #include <print.h>
+#include "quadflashlib.h"
 #include "avb_1722_common.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_acmp.h"
 #include "debug_print.h"
-#ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-#include "avb_1722_1_acmp_debug.h"
-#endif
 #include "avb_api.h"
 #include "misc_timer.h"
 #ifdef AVB_1722_1_ENABLE_ASSERTIONS
@@ -346,6 +344,102 @@ static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp
     memcpy(store->stream_dest_mac, pkt->dest_mac, 6);
     store->message_type = GET_1722_1_MSG_TYPE(&(pkt->header));
     store->status = GET_1722_1_VALID_TIME(&(pkt->header));
+}
+
+void acmp_listener_store_fast_connect_info(int unique_id, guid_t *controller_guid, guid_t *talker_guid, unsigned short talker_unique_id)
+{
+    if (fl_readDataPage(0, (unsigned char *)avb_1722_1_buf) == 0)
+    {
+        avb_1722_1_acmp_fast_connect_persist_state *info = (avb_1722_1_acmp_fast_connect_persist_state*) &avb_1722_1_buf[0];
+        unsigned int bitfield_temp = info->info_present_bitfield;
+
+        if (bitfield_temp == 0xFFFFFFFF)
+        {
+            debug_printf("First word empty\n");
+            bitfield_temp = 0;
+        }
+        else
+        {
+            fl_eraseDataSector(0);
+        }
+
+        bitfield_temp |= 1 << unique_id;
+        info->info_present_bitfield = bitfield_temp;
+        memcpy(&info->talkers[unique_id].controller_guid, controller_guid, sizeof(guid_t));
+        memcpy(&info->talkers[unique_id].talker_guid, talker_guid, sizeof(guid_t));
+        info->talkers[unique_id].talker_unique_id = talker_unique_id;
+
+        fl_writeDataPage(0, (unsigned char *)avb_1722_1_buf);
+
+        debug_printf("\nWrote fast connect for %d\n", unique_id);
+    }
+    else {
+        debug_printf("Couldn't read from data partition page 0\n");
+    }
+}
+
+void acmp_listener_erase_fast_connect_info(int unique_id)
+{
+    if (fl_readDataPage(0, (unsigned char *)avb_1722_1_buf) == 0)
+    {
+        avb_1722_1_acmp_fast_connect_persist_state *info = (avb_1722_1_acmp_fast_connect_persist_state*) &avb_1722_1_buf[0];
+        unsigned int bitfield_temp = info->info_present_bitfield;
+
+        if (bitfield_temp != 0xFFFFFFFF)
+        {
+            fl_eraseDataSector(0);
+
+            bitfield_temp &= ~(1 << unique_id);
+            info->info_present_bitfield = bitfield_temp;
+            memset(&info->talkers[unique_id], 0xFF, sizeof(avb_1722_1_acmp_fast_connect_talker_info));
+
+            fl_writeDataPage(0, (unsigned char *)avb_1722_1_buf);
+
+            debug_printf("Erased fast connect for %d\n", unique_id);
+        }
+    }
+}
+
+static int acmp_listener_read_fast_connect_info(unsigned char buffer[256])
+{
+    if (fl_readDataPage(0, buffer) == 0)
+    {
+        return 0;
+    }
+    else {
+        return 1;
+    }
+}
+
+void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
+{
+    unsigned char flash_buf[256];
+
+    if (acmp_listener_read_fast_connect_info(flash_buf) == 0)
+    {
+        avb_1722_1_acmp_fast_connect_persist_state *info = (avb_1722_1_acmp_fast_connect_persist_state*) &flash_buf[0];
+
+        if (flash_buf[3] == 0xFF) {
+            debug_printf("no data in flash\n");
+            return;
+        }
+
+        for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++)
+        {
+            if ((info->info_present_bitfield >> i) & 1)
+            {
+                memcpy(&acmp_listener_rcvd_cmd_resp.controller_guid, &info->talkers[i].controller_guid, sizeof(guid_t));
+                memcpy(&acmp_listener_rcvd_cmd_resp.talker_guid, &info->talkers[i].talker_guid, sizeof(guid_t));
+                memcpy(&acmp_listener_rcvd_cmd_resp.listener_guid, &my_guid, sizeof(guid_t));
+                acmp_listener_rcvd_cmd_resp.talker_unique_id = info->talkers[i].talker_unique_id;
+                acmp_listener_rcvd_cmd_resp.listener_unique_id = i;
+                acmp_listener_rcvd_cmd_resp.flags = AVB_1722_1_ACMP_FLAGS_FAST_CONNECT;
+
+                debug_printf("Issuing fast connect for %d\n", i);
+                acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
+            }
+        }
+    }
 }
 
 /**

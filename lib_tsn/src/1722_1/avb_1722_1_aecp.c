@@ -1,6 +1,7 @@
 #include "avb.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_aecp.h"
+#include "avb_1722_1_adp.h"
 #include "misc_timer.h"
 #include "avb_srp_pdu.h"
 #include <string.h>
@@ -27,6 +28,12 @@
 extern unsigned int avb_1722_1_buf[AVB_1722_1_PACKET_SIZE_WORDS];
 extern guid_t my_guid;
 extern unsigned char my_mac_addr[6];
+
+static unsigned char aecp_flash_page_buf[FLASH_PAGE_SIZE];
+static unsigned int aecp_aa_bytes_copied;
+static unsigned int aecp_aa_flash_write_addr;
+static unsigned int aecp_aa_next_write_address;
+static int operation_id = 1234;
 
 static avb_timer aecp_aem_lock_timer;
 
@@ -67,6 +74,17 @@ static enum {
 // Called on startup to initialise certain static descriptor fields
 void avb_1722_1_aem_descriptors_init(unsigned int serial_num)
 {
+  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+    fl_BootImageInfo image;
+
+    if (fl_getFactoryImage(&image) == 0) {
+      if (fl_getNextBootImage(&image) == 0) {
+        unsigned n = byterev(image.size);
+        // Update length field of the memory object descriptor
+        memcpy(&desc_upgrade_image_memory_object_0[96], &n, 4);
+      }
+    }
+  }
   // entity_guid in Entity Descriptor
   for (int i=0; i < 8; i++)
   {
@@ -138,10 +156,17 @@ static void avb_1722_1_create_aecp_aem_response(unsigned char src_addr[6], unsig
 
 static void generate_object_name(char *object_name, int base, int n) {
   char num_string[5];
-  int count = avb_itoa(base*n+1, num_string, 10, 1);
-  num_string[count] = '-';
-  count += avb_itoa((base * n) + n, &num_string[count+1], 10, 0);
-  num_string[count+1] = '\0';
+  int count;
+  if (n) {
+    count = avb_itoa(base*n+1, num_string, 10, 1);
+    num_string[count] = '-';
+    count++; // Add a char for the '-'
+    count += avb_itoa((base * n) + n, &num_string[count], 10, 0);
+  }
+  else {
+    count = avb_itoa(base+1, num_string, 10, 1);
+  }
+  num_string[count] = '\0';
   strcat(object_name, num_string);
 }
 
@@ -206,11 +231,12 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
       memset(cluster->object_name, 0, 64);
       if (read_type == AEM_AUDIO_CLUSTER_TYPE) {
         strcpy((char *)cluster->object_name, "Channel ");
+        generate_object_name((char *)cluster->object_name, id, 0);
       }
       else {
         strcpy((char *)cluster->object_name, "Output ");
+        generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
       }
-      generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
     }
     else if (read_type == AEM_STREAM_INPUT_TYPE)
     {
@@ -485,16 +511,15 @@ static unsigned short process_aem_cmd_acquire(avb_1722_1_aecp_packet_t *pkt, uns
   }
 
 
-  return GET_1722_1_DATALENGTH(&pkt->header);
+  return GET_1722_1_DATALENGTH(&pkt->header) - AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
 }
 
-#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
 static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
                                                 unsigned char src_addr[6],
                                                 unsigned char *status,
                                                 unsigned short command_type,
-                                                CLIENT_INTERFACE(spi_interface, i_spi),
-                                                chanend c_tx)
+                                                CLIENT_INTERFACE(ethernet_tx_if, i_eth),
+                                                int *reboot)
 {
   avb_1722_1_aem_start_operation_t *cmd = (avb_1722_1_aem_start_operation_t *)(pkt->data.aem.command.payload);
   unsigned short desc_type = ntoh_16(cmd->descriptor_type);
@@ -505,40 +530,82 @@ static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
       desc_type == AEM_MEMORY_OBJECT_TYPE &&
       desc_id == 0) // descriptor ID of the AEM_MEMORY_OBJECT_TYPE descriptor
   {
+    int num_tx_bytes = sizeof(avb_1722_1_aem_start_operation_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
+    if (num_tx_bytes < 64) num_tx_bytes = 64;
     switch (operation_type)
     {
+      case AEM_MEMORY_OBJECT_OPERATION_UPLOAD:
       case AEM_MEMORY_OBJECT_OPERATION_ERASE:
       {
-        const int erase_operation_id = 1234;
-        hton_16(cmd->operation_id, erase_operation_id);
-        // Form response and send immediately
+        fl_BootImageInfo image;
+        int flashstatus = fl_getFactoryImage(&image);
+
+        if (flashstatus != 0) {
+          debug_printf("No factory image!\n");
+          *status = AECP_AEM_STATUS_ENTITY_MISBEHAVING;
+          return 0;
+        } else {
+          flashstatus = fl_getNextBootImage(&image);
+          if (flashstatus != 0) {
+            // No upgrade image exists in flash
+            debug_printf("No upgrade\n");
+          }
+
+          int result;
+          int t = get_local_time();
+          const unsigned in_progress_msg_interval_ms = 120 * XS1_TIMER_KHZ;
+          do
+          {
+            if (flashstatus != 0) {
+              result = fl_startImageAddAsync(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE, 0);
+            }
+            else {
+              result = fl_startImageReplaceAsync(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE);
+            }
+            if ((result > 0) && (get_local_time() - t >= in_progress_msg_interval_ms)) {
+              t = get_local_time();
+              avb_1722_1_create_aecp_aem_response(src_addr, AECP_AEM_STATUS_IN_PROGRESS, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+              eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
+            }
+          } while (result > 0);
+
+          if (result < 0) {
+            debug_printf("Failed to start image upgrade\n");
+            *status = AECP_AEM_STATUS_ENTITY_MISBEHAVING;
+          }
+          else {
+            begin_write_upgrade_image();
+          }
+        }
+
+        avb_1722_1_create_aecp_aem_response(src_addr, *status, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
+
+        return 0;
+        break;
+      }
+      case AEM_MEMORY_OBJECT_OPERATION_STORE:
+      case AEM_MEMORY_OBJECT_OPERATION_STORE_AND_REBOOT:
+      {
+        hton_16(cmd->operation_id, operation_id++);
+
         avb_1722_1_create_aecp_aem_response(src_addr, AECP_AEM_STATUS_SUCCESS, GET_1722_1_DATALENGTH(&pkt->header), pkt);
-        int num_tx_bytes = sizeof(avb_1722_1_aem_start_operation_t) + AVB_1722_1_AECP_PAYLOAD_OFFSET;
-        if (num_tx_bytes < 64) num_tx_bytes = 64;
-        mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
 
         avb_1722_1_aecp_aem_msg_t *aem_msg = &(pkt->data.aem);
         AEM_MSG_SET_U_FLAG(aem_msg, 1);
         AEM_MSG_SET_COMMAND_TYPE(aem_msg, AECP_AEM_CMD_OPERATION_STATUS);
         avb_1722_1_aem_operation_status_t *resp = (avb_1722_1_aem_operation_status_t *)(pkt->data.aem.command.payload);
 
-        hton_16(resp->operation_id, erase_operation_id);
+        hton_16(resp->percent_complete, 1000);
+        avb_1722_1_create_aecp_aem_response(src_addr, AECP_AEM_STATUS_SUCCESS, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
 
-        if (!avb_erase_upgrade_image(i_spi))
-        {
-          hton_16(resp->percent_complete, 1000);
+        if (operation_type == AEM_MEMORY_OBJECT_OPERATION_STORE_AND_REBOOT) {
+          *reboot = 1;
         }
-        else
-        {
-          // Failed
-          hton_16(resp->percent_complete, 0);
-          *status = AECP_AEM_STATUS_ENTITY_MISBEHAVING;
-        }
-        avb_1722_1_create_aecp_aem_response(src_addr, *status, GET_1722_1_DATALENGTH(&pkt->header), pkt);
-        mac_tx(c_tx, avb_1722_1_buf, num_tx_bytes, -1);
 
         return 0;
-        break;
       }
       default:
       {
@@ -549,15 +616,16 @@ static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
   }
   else if (command_type == AECP_AEM_CMD_ABORT_OPERATION)
   {
-    *status = AECP_AEM_STATUS_NOT_IMPLEMENTED;
+    aecp_aa_bytes_copied = 0;
+    aecp_aa_flash_write_addr = 0;
+    aecp_aa_next_write_address = 0;
   }
   else
   {
     *status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
   }
-  return GET_1722_1_DATALENGTH(&pkt->header);
+  return GET_1722_1_DATALENGTH(&pkt->header) - AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
 }
-#endif
 
 static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
@@ -565,13 +633,13 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
                                             int num_pkt_bytes,
                                             CLIENT_INTERFACE(ethernet_tx_if, i_eth),
                                             CLIENT_INTERFACE(avb_interface, i_avb_api),
-                                            CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                            CLIENT_INTERFACE(spi_interface, i_spi))
+                                            CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
 {
   avb_1722_1_aecp_aem_msg_t *aem_msg = &(pkt->data.aem);
   unsigned short command_type = AEM_MSG_GET_COMMAND_TYPE(aem_msg);
   unsigned char status = AECP_AEM_STATUS_SUCCESS;
   int cd_len = 0;
+  int reboot = 0;
 
   if (message_type == AECP_CMD_AEM_COMMAND)
   {
@@ -597,6 +665,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
       {
         // Reply before reboot, do the reboot after sending the packet
         cd_len = AVB_1722_1_AECP_PAYLOAD_OFFSET;
+        reboot = 1;
         break;
       }
       case AECP_AEM_CMD_READ_DESCRIPTOR:
@@ -679,17 +748,22 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         cd_len = sizeof(avb_1722_1_aem_get_counters_t);
         break;
       }
-#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
       case AECP_AEM_CMD_START_OPERATION:
       case AECP_AEM_CMD_ABORT_OPERATION:
       {
-        cd_len = process_aem_cmd_start_abort_operation(pkt, src_addr, &status, command_type, i_spi, c_tx);
+        if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+          cd_len = process_aem_cmd_start_abort_operation(pkt, src_addr, &status, command_type, i_eth, &reboot);
+        }
         break;
       }
-#endif
       default:
       {
-        // AECP_AEM_STATUS_NOT_IMPLEMENTED
+        unsigned num_tx_bytes = num_pkt_bytes + sizeof(ethernet_hdr_t);
+        if (num_tx_bytes < 64) num_tx_bytes = 64;
+        status = AECP_AEM_STATUS_NOT_IMPLEMENTED;
+        avb_1722_1_aecp_aem_msg_t *aem = (avb_1722_1_aecp_aem_msg_t*)avb_1722_1_create_aecp_response_header(src_addr, status, AECP_CMD_AEM_COMMAND, GET_1722_1_DATALENGTH(&pkt->header), pkt);
+        memcpy(aem, pkt->data.payload, num_pkt_bytes - AVB_1722_1_AECP_PAYLOAD_OFFSET);
+        eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
         return;
       }
     }
@@ -745,24 +819,23 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
     if (num_tx_bytes < 64) num_tx_bytes = 64;
 
     eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
-
-    if (command_type == AECP_AEM_CMD_REBOOT) {
-      waitfor(10000); // Wait for the response packet to egress
-      device_reboot();
-    }
+  }
+  if (reboot) {
+    avb_1722_1_adp_depart_immediately(i_eth);
+    waitfor(10000); // Wait for the response packet to egress
+    device_reboot();
   }
 }
 
-#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
 static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t *pkt,
                                             unsigned char src_addr[6],
                                             int message_type,
                                             int num_pkt_bytes,
-                                            CLIENT_INTERFACE(spi_interface, i_spi),
-                                            chanend c_tx)
+                                            CLIENT_INTERFACE(ethernet_tx_if, i_eth))
 {
   avb_1722_1_aecp_address_access_t *aa_cmd = &(pkt->data.address);
   int tlv_count = ntoh_16(aa_cmd->tlv_count);
+  unsigned int address = ntoh_32(&aa_cmd->address[4]);
   unsigned short status = AECP_AA_STATUS_SUCCESS;
   int mode = ADDRESS_MSG_GET_MODE(aa_cmd);
   int length = ADDRESS_MSG_GET_LENGTH(aa_cmd);
@@ -770,36 +843,67 @@ static void process_avb_1722_1_aecp_address_access_cmd(avb_1722_1_aecp_packet_t 
 
   if (compare_guid(pkt->target_guid, &my_guid)==0) return;
 
-  if (tlv_count != 1 || mode != AECP_AA_MODE_WRITE || length != 256) {
-    status = AECP_AA_STATUS_UNSUPPORTED;
+  if (tlv_count != 1 || mode != AECP_AA_MODE_WRITE) {
+    status = AECP_AA_STATUS_TLV_INVALID;
+  }
+  else if (aecp_aa_next_write_address != address) {
+    // We currently only process address writes in order and do not allow an
+    // address to be written to twice
+    status = AECP_AA_STATUS_ADDRESS_INVALID;
   }
   else {
-    long long address = ntoh_32(&aa_cmd->address[4]);
-    if (avb_write_upgrade_image_page(i_spi, address, aa_cmd->data) != 0) {
-      status = AECP_AA_STATUS_ADDRESS_INVALID;
-    }
-    cd_len = num_pkt_bytes;
+    int bytes_available = length + aecp_aa_bytes_copied;
+    unsigned int packet_index = 0;
+
+    do {
+      if (aecp_aa_bytes_copied == 0) {
+        if (packet_index == 0) {
+          avb_write_upgrade_image_page(aecp_aa_flash_write_addr, aa_cmd->data, &status);
+          packet_index += FLASH_PAGE_SIZE;
+          aecp_aa_flash_write_addr += FLASH_PAGE_SIZE;
+          bytes_available -= FLASH_PAGE_SIZE;
+        }
+        else if (packet_index + FLASH_PAGE_SIZE > length) {
+          memcpy(aecp_flash_page_buf, &aa_cmd->data[packet_index], bytes_available);
+          aecp_aa_bytes_copied += bytes_available;
+          bytes_available = 0;
+          packet_index = 0;
+        }
+        else if (packet_index + FLASH_PAGE_SIZE <= length) {
+          avb_write_upgrade_image_page(aecp_aa_flash_write_addr, (unsigned char *)&aa_cmd->data[packet_index], &status);
+          packet_index += FLASH_PAGE_SIZE;
+          aecp_aa_flash_write_addr += FLASH_PAGE_SIZE;
+          bytes_available -= FLASH_PAGE_SIZE;
+        }
+      }
+      else if (aecp_aa_bytes_copied == FLASH_PAGE_SIZE) {
+          avb_write_upgrade_image_page(aecp_aa_flash_write_addr, (unsigned char *)aecp_flash_page_buf, &status);
+          aecp_aa_flash_write_addr += FLASH_PAGE_SIZE;
+          bytes_available -= FLASH_PAGE_SIZE;
+          aecp_aa_bytes_copied = 0;
+      }
+      else {
+        int bytes_to_copy = FLASH_PAGE_SIZE - aecp_aa_bytes_copied;
+        memcpy(&aecp_flash_page_buf[aecp_aa_bytes_copied], &aa_cmd->data[packet_index], bytes_to_copy);
+        aecp_aa_bytes_copied += bytes_to_copy;
+        packet_index += bytes_to_copy;
+      }
+    } while(bytes_available > 0);
+
+    aecp_aa_next_write_address += length;
   }
 
-  // Send a response if required
-  if (cd_len > 0)
-  {
-    avb_1722_1_aecp_address_access_t *aa_pkt = (avb_1722_1_aecp_address_access_t*)avb_1722_1_create_aecp_response_header(src_addr, status, AECP_CMD_ADDRESS_ACCESS_COMMAND, 278, pkt);
+  cd_len = GET_1722_1_DATALENGTH(&pkt->header);
 
-    /* Copy payload_specific_data into the response */
-    memcpy(aa_pkt, pkt->data.payload, sizeof(avb_1722_1_aecp_address_access_t));
-  }
+  avb_1722_1_aecp_address_access_t *aa_pkt = (avb_1722_1_aecp_address_access_t*)
+      avb_1722_1_create_aecp_response_header(src_addr, status, AECP_CMD_ADDRESS_ACCESS_COMMAND, cd_len, pkt);
+  memcpy(aa_pkt, pkt->data.payload, sizeof(avb_1722_1_aecp_address_access_t));
 
-  if (cd_len > 0)
-  {
-    int num_tx_bytes = cd_len;
+  unsigned num_tx_bytes = num_pkt_bytes + sizeof(ethernet_hdr_t);
 
-    if (num_tx_bytes < 64) num_tx_bytes = 64;
-
-    mac_tx(c_tx, avb_1722_1_buf, 304, -1);
-  }
+  if (num_tx_bytes < 64) num_tx_bytes = 64;
+  eth_send_packet(i_eth, (char *)avb_1722_1_buf, num_tx_bytes, ETHERNET_ALL_INTERFACES);
 }
-#endif
 
 
 void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
@@ -807,8 +911,7 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
                                     int num_pkt_bytes,
                                     CLIENT_INTERFACE(ethernet_tx_if, i_eth),
                                     CLIENT_INTERFACE(avb_interface, i_avb),
-                                    CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                    CLIENT_INTERFACE(spi_interface, i_spi))
+                                    CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
 {
   int message_type = GET_1722_1_MSG_TYPE(((avb_1722_1_packet_header_t*)pkt));
 
@@ -817,18 +920,18 @@ void process_avb_1722_1_aecp_packet(unsigned char src_addr[6],
     case AECP_CMD_AEM_COMMAND:
     case AECP_CMD_AEM_RESPONSE:
     {
-#if AVB_1722_1_AEM_ENABLED
-      process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, i_eth, i_avb, i_1722_1_entity, i_spi);
-#endif
+      if (AVB_1722_1_AEM_ENABLED) {
+        process_avb_1722_1_aecp_aem_msg(pkt, src_addr, message_type, num_pkt_bytes, i_eth, i_avb, i_1722_1_entity);
+      }
       break;
     }
-#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
     case AECP_CMD_ADDRESS_ACCESS_COMMAND:
     {
-      process_avb_1722_1_aecp_address_access_cmd(pkt, src_addr, message_type, num_pkt_bytes, i_spi, c_tx);
+      if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+        process_avb_1722_1_aecp_address_access_cmd(pkt, src_addr, message_type, num_pkt_bytes, i_eth);
+      }
       break;
     }
-#endif
     case AECP_CMD_AVC_COMMAND:
     {
       break;
