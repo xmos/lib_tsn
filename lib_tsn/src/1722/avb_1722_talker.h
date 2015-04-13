@@ -47,15 +47,13 @@ typedef struct avb1722_Talker_StreamConfig_t
   //! an audio sample period. The data block contains all the data which make up an event
   unsigned int dbc_at_start_of_last_fifo_packet;
   //! Number of samples per packet in the audio fifo (known as the SYT_INTERVAL in 61883)
-  unsigned int samples_per_fifo_packet;
+  unsigned int ts_interval;
   //! Number of samples per 1722 packet (integer part)
   unsigned int samples_per_packet_base;
   //! Number of samples per 1722 packet (16.16)
   unsigned int samples_per_packet_fractional;
   //! An accumulator for the fractional part
   unsigned int rem;
-  //! The number of samples remaining in the fifo packet
-  unsigned int samples_left_in_fifo_packet;
   //! a flag, true when the stream has just been initialised
   unsigned int initial;
   //! the delay in ms that is added to the current PTP time

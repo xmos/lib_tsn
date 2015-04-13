@@ -1,4 +1,4 @@
-#include <print.h>
+#include "debug_print.h"
 #include "media_input_fifo.h"
 #include "hwlock.h"
 #include "avb_1722_def.h"
@@ -61,36 +61,11 @@ int media_input_fifo_enable(media_input_fifo_t media_input_fifo0,
                              int rate)
 {
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  int packetSize;
 
-  // This is the calculation of the SYT_INTERVAL
-#ifndef AVB_1722_FORMAT_SAF
-  // packetSize = (((rate+(AVB1722_PACKET_RATE-1))/AVB1722_PACKET_RATE) * 4) / 3;
-  switch (rate)
-  {
-	   case 8000: 	packetSize = 1; break;
-	   case 16000: 	packetSize = 2; break;
-	   case 32000:	packetSize = 8; break;
-	   case 44100:	packetSize = 8; break;
-	   case 48000:	packetSize = 8; break;
-	   case 88200:	packetSize = 16; break;
-	   case 96000:	packetSize = 16; break;
-	   case 176400:	packetSize = 32; break;
-	   case 192000:	packetSize = 32; break;
-	   default: __builtin_trap(); break;
-  }
-#else
-  packetSize = ((rate+(AVB1722_PACKET_RATE-1))/AVB1722_PACKET_RATE);
-#endif
   media_input_fifo->rdIndex = (int) &media_input_fifo->buf[0];
   media_input_fifo->wrIndex = (int) &media_input_fifo->buf[0];
-  media_input_fifo->startIndex = (int) &media_input_fifo->buf[0];
-  media_input_fifo->dbc = 0;
-  media_input_fifo->fifoEnd = (int) &media_input_fifo->buf[MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE-1];
-  media_input_fifo->sampleCountInPacket = 0;
-  media_input_fifo->ptr = 0;
-  media_input_fifo->packetSize = packetSize + 2; // two for the DBC and timestamp
-  return packetSize;
+  media_input_fifo->fifoEnd = (int) &media_input_fifo->buf[MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE];
+  return 0;
 }
 
 void media_input_fifo_push_sample(media_input_fifo_t media_input_fifo0,
@@ -98,65 +73,36 @@ void media_input_fifo_push_sample(media_input_fifo_t media_input_fifo0,
                                   unsigned int ts)
 {
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  int sampleCountInPacket = media_input_fifo->sampleCountInPacket;
-  const int packetSize = media_input_fifo->packetSize;
-  int* wrIndex;
+  int* wrIndex = (int *)media_input_fifo->wrIndex;
 
-  if (sampleCountInPacket == -1)
+  int spaceLeft = ((int *) media_input_fifo->rdIndex) - wrIndex;
+
+  spaceLeft &= (MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE-1);
+
+  if (spaceLeft && (spaceLeft < 2)) {
     return;
-
-  if (sampleCountInPacket == 0) {
-    // beginning of packet
-    wrIndex = (int *) media_input_fifo->startIndex;
-    int spaceLeft = ((int *) media_input_fifo->rdIndex) - wrIndex;
-
-    spaceLeft &= (MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE-1);
-
-    if (spaceLeft && (spaceLeft < packetSize)) return;
-
-    wrIndex[0] = ts;
-    wrIndex[1] = media_input_fifo->dbc;
-    wrIndex[2] = sample;
-    wrIndex += 3;
-    media_input_fifo->wrIndex = (int) wrIndex;
-
-    sampleCountInPacket = 3;
-  }
-  else {
-    wrIndex = (int *) media_input_fifo->wrIndex;
-    *wrIndex = sample;
-    wrIndex++;
-
-    sampleCountInPacket++;
   }
 
-  if (sampleCountInPacket == packetSize) {
-    // end of packet
-    if ((wrIndex + packetSize) > (int *) media_input_fifo->fifoEnd)
-    	wrIndex = (int *) &media_input_fifo->buf[0];
+  wrIndex[0] = sample;
+  wrIndex[1] = ts;
 
-    media_input_fifo->startIndex = (int) wrIndex;
-    media_input_fifo->dbc += packetSize-2;
-    sampleCountInPacket = 0;
-  }
+  wrIndex += 2;
 
-  media_input_fifo->sampleCountInPacket = sampleCountInPacket;
+  if ((wrIndex + 2) > (int *) media_input_fifo->fifoEnd)
+  	wrIndex = (int *) &media_input_fifo->buf[0];
+
   media_input_fifo->wrIndex = (int) wrIndex;
 }
 
 int media_input_fifo_fill_level(media_input_fifo_t media_input_fifo0)
 {
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  int *rdIndex = (int *) media_input_fifo->rdIndex;
-  int *wrIndex = (int *) media_input_fifo->startIndex;
-  int fill = 0;
-  while (rdIndex != wrIndex) {
-    int packetSize = media_input_fifo->packetSize;
-    rdIndex += packetSize;
-    if (rdIndex + packetSize > (int *) media_input_fifo->fifoEnd)
-      rdIndex = (int *) &media_input_fifo->buf[0];
-    fill += packetSize - 2;
-  }
+  int fill = ((int *) media_input_fifo->wrIndex) - (int *)media_input_fifo->rdIndex;
+
+  fill &= (MEDIA_INPUT_FIFO_SAMPLE_FIFO_SIZE-1);
+
+  fill = fill >> 1;
+
   return fill;
 }
 
@@ -172,40 +118,6 @@ void media_input_fifo_flush(media_input_fifo_t media_input_fifo0)
 	volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
 	media_input_fifo->rdIndex = (int) &media_input_fifo->buf[0];
 	media_input_fifo->wrIndex = (int) &media_input_fifo->buf[0];
-	media_input_fifo->startIndex = (int) &media_input_fifo->buf[0];
-	media_input_fifo->dbc = 0;
-	media_input_fifo->sampleCountInPacket = 0;
-	media_input_fifo->ptr = 0;
-}
-
-unsigned int *
-media_input_fifo_get_packet(media_input_fifo_t media_input_fifo0,
-                            unsigned int *ts,
-                            unsigned int *dbc)
-{
-  volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  int *rdIndex = (int *) media_input_fifo->rdIndex;
-
-  rdIndex = (int *) media_input_fifo->rdIndex;
-  *ts = *rdIndex;
-  *dbc = *(rdIndex+1);
-
-  return ((unsigned int *) (rdIndex+2));
-}
-
-void
-media_input_fifo_release_packet(media_input_fifo_t media_input_fifo0)
-{
-  volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  int packetSize;
-  int *rdIndex = (int *) media_input_fifo->rdIndex;
-  packetSize = media_input_fifo->packetSize;
-  rdIndex += packetSize;
-  if (rdIndex + packetSize > (int *) media_input_fifo->fifoEnd)
-    rdIndex = (int *) &media_input_fifo->buf[0];
-
-  media_input_fifo->rdIndex = (int) rdIndex;
-  return;
 }
 
 void
@@ -215,14 +127,13 @@ init_media_input_fifos(media_input_fifo_t ififos[],
 {
 	enable_lock = hwlock_alloc();
 	for(int i=0;i<n;i++) {
-          ififos[i] = (unsigned int) &ififo_data[i];
-          media_input_fifo_flush(ififos[i]);
+    ififos[i] = (unsigned int) &ififo_data[i];
+    media_input_fifo_flush(ififos[i]);
 	}
 }
 
 extern inline void
-media_input_fifo_set_ptr(media_input_fifo_t media_infput_fifo0,
-                         int *p);
+media_input_fifo_move_sample_ptr(media_input_fifo_t media_infput_fifo0);
 
 extern inline int *
-media_input_fifo_get_ptr(media_input_fifo_t media_infput_fifo0);
+media_input_fifo_get_sample_ptr(media_input_fifo_t media_infput_fifo0);

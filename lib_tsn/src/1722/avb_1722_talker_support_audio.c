@@ -2,7 +2,7 @@
  * \file avb_1722_talker_support_audio.c
  * \brief 1722 Talker support C functions
  */
- #include <print.h>
+#include "debug_print.h"
  #include <xscope.h>
 #include "avb_conf.h"
 
@@ -112,21 +112,6 @@ void AVB1722_Talker_bufInit(unsigned char Buf0[],
 
 }
 
-static void sample_copy_strided(int *src, unsigned int *dest, int stride, int n) {
-    int i;
-    for (i = 0; i < n; i++) {
-#ifdef AVB_1722_FORMAT_SAF
-        unsigned sample = *src;
-#else
-        unsigned sample = (*src >> 8) | AVB1722_audioSampleType;
-#endif
-        sample = __builtin_bswap32(sample);
-        *dest = sample;
-        src += 1;
-        dest += stride;
-    }
-}
-
 /** This receives user defined audio samples from local out stream and packetize
  *  them into specified AVB1722 transport packet.
  */
@@ -141,18 +126,13 @@ int avb1722_create_packet(unsigned char Buf0[],
     int num_channels = stream_info->num_channels;
     int stream_id0 = stream_info->streamId[0];
     media_input_fifo_t *map = stream_info->map;
-    int samples_per_fifo_packet = stream_info->samples_per_fifo_packet;
     int num_audio_samples;
     int samples_in_packet;
 
     // align packet 2 chars into the buffer so that samples are
     // word align for fast copying.
     unsigned char *Buf = &Buf0[2];
-#ifdef AVB_1722_FORMAT_SAF
-    unsigned int *dest = (unsigned int *) &Buf[(AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE)];
-#else
     unsigned int *dest = (unsigned int *) &Buf[(AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE)];
-#endif
 
     int stride = num_channels;
     unsigned ptp_ts = 0;
@@ -162,46 +142,25 @@ int avb1722_create_packet(unsigned char Buf0[],
     // Figure out the number of samples in the 1722 packet
     samples_in_packet = stream_info->samples_per_packet_base;
 
-    stream_info->rem += stream_info->samples_per_packet_fractional;
-
     if (stream_info->rem & 0xffff0000) {
         samples_in_packet += 1;
-        stream_info->rem &= 0xffff;
     }
 
-
-    // Check to see if there is something that can be transmitted.  If there is not, then we give up
-    // transmitting this packet, because there may be other streams serviced by this thread which
-    // can be serviced.  Since a packet on the wire is always shorter than a packet in the fifo,
-    // we know that having a packet in the fifo is enough to transmit one on the wire.
-    //
-    // There is a slight issue here, that because wire packets are potentially shorter than fifo
-    // packets, that we will occasionally not transmit when we could do. The period of this is
-    // 1/(ceil(rate/8000)-(rate/8000))
     for (i = 0; i < num_channels; i++) {
         // If more data is required from the media_fifo then check there are
         // enough samples present so that this thread won't wait for data
-        //
-        // The worst-case is that it will read twice from the media_input_fifo
-        if (!stream_info->initial && stream_info->samples_left_in_fifo_packet < samples_in_packet)
-        {
-            const int not_enough_data = (media_input_fifo_fill_level(map[i]) < (2 * samples_in_packet));
-            if (not_enough_data)
-                return 0;
-        }
+        const int not_enough_data = (media_input_fifo_fill_level(map[i]) < samples_in_packet);
+        if (not_enough_data)
+            return 0;
     }
 
     // If the FIFOs are not being filled then also do not process the packet
     if ((media_input_fifo_enable_ind_state() & stream_info->fifo_mask) == 0)
         return 0;
 
-    // Figure out if it is time to transmit a packet
-    if (!stream_info->initial && !stream_info->transmit_ok) {
-        int elapsed = time - stream_info->last_transmit_time;
-        if (elapsed < AVB1722_PACKET_PERIOD_TIMER_TICKS)
-            return 0;
-
-        stream_info->transmit_ok = 1;
+    stream_info->rem += stream_info->samples_per_packet_fractional;
+    if (samples_in_packet > stream_info->samples_per_packet_base) {
+        stream_info->rem &= 0xffff;
     }
 
     AVB_Frame_t *pEtherHdr = (AVB_Frame_t *) &(Buf[0]);
@@ -211,69 +170,38 @@ int avb1722_create_packet(unsigned char Buf0[],
 
     num_audio_samples = samples_in_packet * num_channels;
 
-#ifdef AVB_1722_FORMAT_SAF
-    pkt_data_length = (num_audio_samples << 2);
-#else
     pkt_data_length = AVB_CIP_HDR_SIZE + (num_audio_samples << 2);
-#endif
 
     // Find the DBC for the current stream
     dbc = stream_info->dbc_at_start_of_last_fifo_packet;
-    dbc += samples_per_fifo_packet - stream_info->samples_left_in_fifo_packet;
-
-    // Get the audio data packet information
-    // Note: see 61883-6 section 6.2 which explains that the timestamps coming out
-    // of the FIFO should refer to the data blocks which are equal to zero mod
-    // the SYT_INTERVAL.  this is implicit in our implementation, because each
-    // fifo packet is a group of data blocks, and the first sample, which carries
-    // the timestamp is index 0
-    if (stream_info->initial != 0) {
-        for (i = 0; i < num_channels; i++) {
-            int *src = (int *)media_input_fifo_get_packet(map[i],
-                    &presentationTime,
-                    &(stream_info->dbc_at_start_of_last_fifo_packet));
-
-            media_input_fifo_set_ptr(map[i], src);
-        }
-        timerValid = 1;
-        stream_info->initial = 0;
-        dbc = stream_info->dbc_at_start_of_last_fifo_packet;
-        stream_info->samples_left_in_fifo_packet = samples_per_fifo_packet;
-    } else {
-        if (stream_info->samples_left_in_fifo_packet < samples_in_packet) {
-            // Not enough samples left in fifo packet to fill the 1722 packet
-            // therefore pull out remaining samples and get the next packet
-            for (i = 0; i < num_channels; i++) {
-                int *src = media_input_fifo_get_ptr(map[i]);
-                sample_copy_strided(src, dest, stride, stream_info->samples_left_in_fifo_packet);
-                media_input_fifo_release_packet(map[i]);
-                src = (int *)media_input_fifo_get_packet(map[i],
-                        &presentationTime,
-                        &(stream_info->dbc_at_start_of_last_fifo_packet));
-                media_input_fifo_set_ptr(map[i], src);
-                dest += 1;
-                timerValid = 1;
-            }
-            dest += (stream_info->samples_left_in_fifo_packet - 1) * num_channels;
-            samples_in_packet -= stream_info->samples_left_in_fifo_packet;
-            stream_info->samples_left_in_fifo_packet = samples_per_fifo_packet;
-        }
-    }
 
     for (i = 0; i < num_channels; i++) {
-        int *src = media_input_fifo_get_ptr(map[i]);
-        sample_copy_strided(src, dest, stride, samples_in_packet);
+        unsigned int *src;
+        unsigned int *chan_dest = dest;
+        for (int j = 0; j < samples_in_packet; j++) {
+            src = (unsigned int *)media_input_fifo_get_sample_ptr(map[i]);
+            unsigned this_dbc = dbc + j;
+            unsigned int ts_this_dbc = ((this_dbc & (stream_info->ts_interval-1)) == 0);
+            unsigned sample = (src[0] >> 8) | AVB1722_audioSampleType;
+            sample = __builtin_bswap32(sample);
+            *chan_dest = sample;
+            if (ts_this_dbc) {
+                timerValid = 1;
+                presentationTime = src[1];
+            }
+            media_input_fifo_move_sample_ptr(map[i]);
+            chan_dest += stride;
+        }
         dest += 1;
-        media_input_fifo_set_ptr(map[i], src + samples_in_packet);
     }
 
-    stream_info->samples_left_in_fifo_packet -= samples_in_packet;
+    dbc += samples_in_packet;
+    stream_info->dbc_at_start_of_last_fifo_packet = dbc;
 
     dbc &= 0xff;
 
-#ifndef AVB_1722_FORMAT_SAF
     AVB1722_CIP_HeaderGen(Buf, dbc);
-#endif
+
     // perform required updates to header
     if (timerValid) {
         ptp_ts = local_timestamp_to_ptp_mod32(presentationTime, timeInfo);
@@ -283,7 +211,7 @@ int avb1722_create_packet(unsigned char Buf0[],
     // Update timestamp value and valid flag.
     AVB1722_AVBTP_HeaderGen(Buf, timerValid, ptp_ts, pkt_data_length, stream_info->sequence_number, stream_id0);
 
-    stream_info->transmit_ok = 0;
+    stream_info->transmit_ok = 1;
     stream_info->sequence_number++;
     return (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + pkt_data_length);
 }
