@@ -112,14 +112,14 @@ extern unsigned char srp_dest_mac[6];
 extern unsigned char mvrp_dest_mac[6];
 
 [[combinable]]
-void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
-                              client interface avb_interface i_avb,
+void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
                               fl_QSPIPorts &?qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
-                              chanend c_ptp) {
+                              chanend c_ptp,
+                              otp_ports_t &?otp_ports) {
   unsigned periodic_timeout;
   timer tmr;
   unsigned int buf[(ETHERNET_MAX_PACKET_SIZE+3)>>2];
@@ -130,7 +130,7 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
-  if (fl_connect(qspi_ports)) {
+  if (!isnull(qspi_ports) && fl_connect(qspi_ports)) {
     // Problem connecting to QSPI flash
     __builtin_trap();
   }
