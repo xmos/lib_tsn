@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _avb_control_types_h_
 #define _avb_control_types_h_
 

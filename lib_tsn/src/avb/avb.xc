@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include "avb.h"
 #include <xccompat.h>
 #include "avb_srp.h"

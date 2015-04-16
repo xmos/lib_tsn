@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __AUDIO_I2S_CTL_H__
 #define __AUDIO_I2S_CTL_H__ 1
 

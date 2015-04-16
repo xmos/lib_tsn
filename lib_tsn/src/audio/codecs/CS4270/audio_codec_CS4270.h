@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _audio_codec_CS42448_h_
 #define _audio_codec_CS42448_h_
 #include "avb_conf.h"

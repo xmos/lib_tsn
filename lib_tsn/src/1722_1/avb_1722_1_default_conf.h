@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef AVB_1722_1_DEFAULT_CONF_H_
 #define AVB_1722_1_DEFAULT_CONF_H_
 

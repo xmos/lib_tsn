@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_router_table.h
  * \brief Definition for the 1722 router table

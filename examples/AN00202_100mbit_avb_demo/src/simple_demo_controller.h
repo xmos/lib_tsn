@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _SIMPLE_DEMO_CONTROLLER_h_
 #define _SIMPLE_DEMO_CONTROLLER_h_
 

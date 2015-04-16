@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __AVB_MVRP_H__
 #define __AVB_MVRP_H__
 #include "avb_conf.h"

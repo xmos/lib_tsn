@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __media_fifo_h__
 #define __media_fifo_h__
 #include "media_output_fifo.h"

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_router_table_simple.c
  * \brief A simple non-hashed routing table for the 1722 packet router

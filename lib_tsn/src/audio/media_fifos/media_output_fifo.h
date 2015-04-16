@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __local_listener_stream_h__
 #define __local_listener_stream_h__
 #ifndef __XC__

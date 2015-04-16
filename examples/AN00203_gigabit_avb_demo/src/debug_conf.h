@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef DEBUG_CONF_H_
 #define DEBUG_CONF_H_
 

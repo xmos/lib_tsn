@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 
 #ifndef _audio_clock_CS2300CP_h_
 #define _audio_clock_CS2300CP_h_

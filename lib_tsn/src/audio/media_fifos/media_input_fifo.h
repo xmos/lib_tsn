@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
  /*
  * @ModuleName Audio DAC/LOCAL_TALKER_STREAM FIFO Defines.
  *

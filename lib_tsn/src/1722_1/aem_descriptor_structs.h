@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <inttypes.h>
 
 typedef struct aem_desc_audio_cluster_t {

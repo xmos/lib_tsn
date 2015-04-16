@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 static void reverse_array(char buf[], unsigned size)
 {
   int begin = 0;

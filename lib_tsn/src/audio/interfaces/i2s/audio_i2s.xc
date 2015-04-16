@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /*
  * @ModuleName IEC 61883-6/AVB1722 Audio over 1722 AVB Transport.
  * @Description: Audio Codec I2S Ctl module.

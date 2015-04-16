@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <platform.h>
 // All the port defines for this board are set in the target description
 // XN file so there is not much to do here

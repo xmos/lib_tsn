@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __avb_1722_talkerlistener_h__
 #define __avb_1722_talkerlistener_h__
 

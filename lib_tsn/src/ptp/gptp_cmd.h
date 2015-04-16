@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __ptp_cmd_h__
 #define __ptp_cmd_h__
 

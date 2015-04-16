@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <xclib.h>
 #include <string.h>
 #include <stddef.h>

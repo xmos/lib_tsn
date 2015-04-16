@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_common.h
  * \brief AVB 1722 common definitions

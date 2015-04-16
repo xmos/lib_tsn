@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __avb_stream_h__
 #define __avb_stream_h__
 

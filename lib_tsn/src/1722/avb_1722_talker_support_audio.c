@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_talker_support_audio.c
  * \brief 1722 Talker support C functions

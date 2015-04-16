@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef FLASH_PERSISTENT_SIZE
 #define FLASH_PERSISTENT_SIZE 15
 #endif

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __media_clock_server_h__
 #define __media_clock_server_h__
 

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include "avb_flash.h"
 #include "flash_defaults.h"
 

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _avb_1722_1_callbacks_h_
 #define _avb_1722_1_callbacks_h_
 

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef MISC_TIMER_H_
 #define MISC_TIMER_H_
 

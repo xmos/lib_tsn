@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _avb_mrp_h_
 #define _avb_mrp_h_
 

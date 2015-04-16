@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_router.c
  * \brief A packet router for 1722. Allows multiple listeners on multiple streams

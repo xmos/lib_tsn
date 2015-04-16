@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_router.h
  * \brief Definitions for the AVB 1722 packet router

@@ -1,3 +1,4 @@
+// Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef _api_h_
 #define _api_h_
 #include <xs1.h>
