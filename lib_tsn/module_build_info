@@ -9,7 +9,7 @@
 #
 # You can also set MODULE_XCC_C_FLAGS, MODULE_XCC_XC_FLAGS etc..
 
-DEPENDENT_MODULES = lib_ethernet lib_i2c lib_logging lib_xassert
+DEPENDENT_MODULES = lib_ethernet(>=3.0.1) lib_i2c(>=3.0.0) lib_logging(>=2.0.0) lib_xassert(>=2.0.0)
 
 OPTIONAL_HEADERS += ethernet_conf.h avb_flash_conf.h random_conf.h avb_conf.h
 
