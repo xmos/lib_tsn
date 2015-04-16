@@ -14,7 +14,7 @@ APP_NAME =
 # In this application the extra include files may be found in a target
 # specific directory for XMOS development boards
 
-INCLUDE_DIRS = src board_support/$(TARGET)
+INCLUDE_DIRS = src
 
 # This header file is marked as optional since it is only included for
 # a known XMOS development board
@@ -35,11 +35,6 @@ XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline
 # The USED_MODULES variable lists other module used by the application. 
 
 USED_MODULES = lib_ethernet lib_otpinfo lib_i2c lib_tsn
-
-ifeq ($(TARGET),SLICEKIT-L2)
-    USED_MODULES += lib_slicekit_support
-endif
-
 
 #=============================================================================
 # The following part of the Makefile includes the common build infrastructure

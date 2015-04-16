@@ -1,13 +1,13 @@
 .. _avb_quickstart:
 
 AVB Endpoint Quick Start Guide
-==============================
+------------------------------
 
 This guide is intended for customers who have purchased the AVB Audio Endpoint Kit (XK-AVB-LC-SYS).
 It applies to version 6 of the reference design firmware.
 
 Obtaining the latest firmware
------------------------------
+.............................
 
 #. Log into xmos.com and access `My XMOS` |submenu| `Reference Designs`
 #. Request access to the `AVB Endpoint Software` by clicking the `Request Access` link under `AVB Audio Endpoint`. An email will be sent to your registered email address when access is granted.
@@ -15,14 +15,14 @@ Obtaining the latest firmware
 
 
 Installing xTIMEcomposer Studio
--------------------------------
+...............................
 
-The AVB-LC software requires xTIMEcomposer version 13.0.2 or greater. It can be downloaded at the following URL
-http://www.xmos.com/support/xtools
+The AVB-LC software requires xTIMEcomposer version 13.0.2 or greater.
+It can be downloaded at the following URL
 
 
 Importing and building the firmware
------------------------------------
+...................................
 
 To import and build the firmware, open xTIMEcomposer Studio and
 follow these steps:
@@ -43,7 +43,7 @@ follow these steps:
 #. Select the ``app_avb_lc_demo`` project in the Project Explorer and click the **Build** icon in the main toolbar.
 
 Installing the application onto flash memory
---------------------------------------------
+............................................
 
 #. Connect the xTAG-2 debug adapter (XA-SK-XTAG2) to the first AVB endpoint board. 
 #. Plug the xTAG-2 into your development system via USB.
@@ -57,12 +57,10 @@ Installing the application onto flash memory
 #. Repeat steps 1 through 8 for the second endpoint.
 
 Setting up the hardware
------------------------
+.......................
 
-.. only:: latex
-
-  .. image:: images/board.pdf
-     :align: center
+.. image:: images/board.pdf
+ :align: center
 
 Refer to the above figure for board controls and connectors.
 
@@ -73,15 +71,14 @@ Refer to the above figure for board controls and connectors.
 #. If not already powered, connect the power supplies to the input power jacks of the boards and power them on.
 #. A third party 1722.1 Controller application can then be used to connect and disconnect streams between the endpoints.
 
-   See https://github.com/audioscience/avdecc-lib for an example command line 1722.1 controller application and library.
+See https://github.com/audioscience/avdecc-lib for an example command line 1722.1 controller application and library.
 
-.. note:: 
-    Note: The audio output from the board is line level. If using headphones, an external headphone amplifier may be required.
+Note: The audio output from the board is line level. If using headphones, an external headphone amplifier may be required.
 
 Next Steps
-----------
+..........
 
-Access more support collatoral from :menuitem:`xmos.com, Support, Reference designs, AVB audio endpoint`.
+Access more support collatoral from xmos.com, Support, Reference designs, AVB audio endpoint.
 
 Including 
 
