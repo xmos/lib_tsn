@@ -63,14 +63,25 @@ static transaction configure_stream(chanend avb1722_tx_config,
 
   avb1722_tx_config :> stream.presentation_delay;
 
-  stream.samples_per_fifo_packet = samplesPerPacket;
+  switch (rate)
+  {
+  case 8000:   stream.ts_interval = 1; break;
+  case 16000:  stream.ts_interval = 2; break;
+  case 32000:  stream.ts_interval = 8; break;
+  case 44100:  stream.ts_interval = 8; break;
+  case 48000:  stream.ts_interval = 8; break;
+  case 88200:  stream.ts_interval = 16; break;
+  case 96000:  stream.ts_interval = 16; break;
+  case 176400: stream.ts_interval = 32; break;
+  case 192000: stream.ts_interval = 32; break;
+  default: __builtin_trap(); break;
+  }
 
   tmp = ((rate / 100) << 16) / (AVB1722_PACKET_RATE / 100);
   stream.samples_per_packet_base = tmp >> 16;
   stream.samples_per_packet_fractional = tmp & 0xffff;
   stream.rem = 0;
 
-  stream.samples_left_in_fifo_packet = 0;
   stream.initial = 1;
   stream.dbc_at_start_of_last_fifo_packet = 0;
   stream.active = 1;
@@ -100,7 +111,6 @@ static void disable_stream(avb1722_Talker_StreamConfig_t &stream) {
 
 static void start_stream(avb1722_Talker_StreamConfig_t &stream) {
   media_input_fifo_enable_fifos(stream.fifo_mask);
-  stream.samples_left_in_fifo_packet = 0;
   stream.sequence_number = 0;
   stream.initial = 1;
   stream.active = 2;

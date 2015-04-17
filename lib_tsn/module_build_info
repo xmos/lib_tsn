@@ -17,6 +17,10 @@ MODULE_XCC_XC_FLAGS = $(XCC_FLAGS) -g -Os
 MODULE_XCC_C_FLAGS = $(XCC_FLAGS) -g -Os
 
 XCC_FLAGS_media_clock_server.xc = $(XCC_FLAGS) -g -O3
+XCC_FLAGS_media_input_fifo.c = $(XCC_FLAGS) -O3
+XCC_FLAGS_media_output_fifo.c = $(XCC_FLAGS) -O3
+XCC_FLAGS_media_output_fifo_support.xc = $(XCC_FLAGS) -O3
+XCC_FLAGS_media_fifo.xc = $(XCC_FLAGS) -O3
 
 GENERATED_FILES = aem_descriptors.h aem_entity_strings.h
 

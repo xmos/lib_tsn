@@ -207,11 +207,15 @@ void media_input_fifo_update_enable_ind_state(unsigned int enable, unsigned int 
  *  \param media_input_fifo0 The FIFO to update
  *  \param p The new value of the sample pointer
  */
-inline void media_input_fifo_set_ptr(media_input_fifo_t media_input_fifo0,
-                                     int *p)
+inline void media_input_fifo_move_sample_ptr(media_input_fifo_t media_input_fifo0)
 {
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  media_input_fifo->ptr = (int) p;
+  int *rdIndex = (int *) media_input_fifo->rdIndex;
+  rdIndex += 2;
+  if (rdIndex + 2 > (int *) media_input_fifo->fifoEnd)
+    rdIndex = (int *) &media_input_fifo->buf[0];
+
+  media_input_fifo->rdIndex = (int) rdIndex;
   return;
 }
 
@@ -224,10 +228,10 @@ inline void media_input_fifo_set_ptr(media_input_fifo_t media_input_fifo0,
  * \param media_input_fifo0 the fifo to read the pointer from
  * \return the value of the sample read pointer
  */
-inline int *media_input_fifo_get_ptr(media_input_fifo_t media_input_fifo0)
+inline int *media_input_fifo_get_sample_ptr(media_input_fifo_t media_input_fifo0)
 {
   volatile ififo_t *media_input_fifo =  (ififo_t *) media_input_fifo0;
-  return (int *) (media_input_fifo->ptr);
+  return (int *) (media_input_fifo->rdIndex);
 }
 #endif
 

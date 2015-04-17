@@ -79,14 +79,14 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
   *  \param  c_ptp chanend into the PTP server
   */
 [[combinable]]
-void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
-                              client interface avb_interface i_avb,
+void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
                               fl_QSPIPorts &?qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
-                              chanend c_ptp);
+                              chanend c_ptp,
+                              otp_ports_t &?otp_ports);
 
 /** Process a received 1722.1 packet
  *
