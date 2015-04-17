@@ -3,6 +3,7 @@
 #define _avb_h_
 
 #include <xccompat.h>
+#include <quadflashlib.h>
 #include "xc2compat.h"
 #include "avb_api.h"
 #include "avb_srp_interface.h"
@@ -60,8 +61,7 @@ void avb_process_1722_control_packet(unsigned int buf[],
                                     eth_packet_type_t packet_type,
                                     client interface ethernet_tx_if i_eth,
                                     client interface avb_interface i_avb,
-                                    client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                                    client interface spi_interface ?i_spi);
+                                    client interface avb_1722_1_control_callbacks i_1722_1_entity);
 
 /** Process an AVB SRP control packet.
 

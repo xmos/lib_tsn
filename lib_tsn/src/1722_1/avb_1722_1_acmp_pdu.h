@@ -67,6 +67,18 @@ typedef struct {
 } avb_1722_1_acmp_listener_pair;
 
 typedef struct {
+	guid_t controller_guid;
+	guid_t talker_guid;
+	unsigned short talker_unique_id;
+	unsigned short padding;
+} avb_1722_1_acmp_fast_connect_talker_info;
+
+typedef struct {
+	unsigned int info_present_bitfield;
+	avb_1722_1_acmp_fast_connect_talker_info talkers[AVB_1722_1_MAX_LISTENERS];
+} avb_1722_1_acmp_fast_connect_persist_state;
+
+typedef struct {
     stream_t stream_id;
 	int connection_count;
 	unsigned char destination_mac[6];

@@ -181,7 +181,6 @@ void avb_1722_1_acmp_controller_periodic(client interface ethernet_tx_if i_eth, 
 
             break;
         }
-        // TODO:
         case ACMP_CONTROLLER_CONNECT_RX_RESPONSE:
         {
             // Remove inflight command
@@ -203,14 +202,16 @@ void avb_1722_1_acmp_controller_periodic(client interface ethernet_tx_if i_eth, 
         {
 
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
-            // Remove inflight command
-            avb_1722_1_acmp_inflight_command *inflight = acmp_remove_inflight(CONTROLLER);
-            if (inflight)
-            {
-                debug_printf("ACMP Controller: Removed inflight %s with response %s - seq id: %d\n",
-                debug_acmp_message_s[inflight->command.message_type],
-                debug_acmp_status_s[inflight->command.status],
-                inflight->original_sequence_id);
+            unsafe {
+                // Remove inflight command
+                avb_1722_1_acmp_inflight_command *unsafe inflight = acmp_remove_inflight(CONTROLLER);
+                if (inflight)
+                {
+                    debug_printf("ACMP Controller: Removed inflight %s with response %s - seq id: %d\n",
+                    debug_acmp_message_s[inflight->command.message_type],
+                    debug_acmp_status_s[inflight->command.status],
+                    inflight->original_sequence_id);
+                }
             }
 
 #else
@@ -373,6 +374,8 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                                             acmp_listener_rcvd_cmd_resp.stream_dest_mac,
                                             stream_id,
                                             my_guid);
+
+                    acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
                 }
                 else
                 {
@@ -409,6 +412,14 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                             stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
                             stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
 
+                            if (AVB_1722_1_FAST_CONNECT_ENABLED)
+                            {
+                                acmp_listener_store_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id,
+                                                                      &acmp_listener_rcvd_cmd_resp.controller_guid,
+                                                                      &acmp_listener_rcvd_cmd_resp.talker_guid,
+                                                                      acmp_listener_rcvd_cmd_resp.talker_unique_id);
+                            }
+
                             acmp_listener_rcvd_cmd_resp.status =
                                 avb_listener_on_talker_connect(avb,
                                                         acmp_listener_rcvd_cmd_resp.listener_unique_id,
@@ -423,7 +434,18 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                         }
                     }
 
-                    acmp_listener_state = ACMP_LISTENER_WAITING;
+                    if (acmp_listener_rcvd_cmd_resp.flags & AVB_1722_1_ACMP_FLAGS_FAST_CONNECT)
+                    {
+                        // Ideally we would go into ACMP_LISTENER_WAITING here, but some Controllers do not register
+                        // fast connect RX responses as an active connection.
+                        // So we force a Get RX State to notify the Controller that a connection was made.
+                        memcpy(&acmp_listener_rcvd_cmd_resp.controller_guid, &my_guid, sizeof(guid_t));
+                        acmp_listener_state = ACMP_LISTENER_GET_STATE;
+                    }
+                    else
+                    {
+                        acmp_listener_state = ACMP_LISTENER_WAITING;
+                    }
 
                     return;
                 }
@@ -442,6 +464,12 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                         acmp_listener_rcvd_cmd_resp.sequence_id = inflight->original_sequence_id;
 
                         acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, i_eth);
+
+                        if (AVB_1722_1_FAST_CONNECT_ENABLED)
+                        {
+                            acmp_listener_erase_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
+                        }
+
                         acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
 
         #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
@@ -487,8 +515,16 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
             if (inflight->retried)
             {
                 inflight->command.sequence_id = inflight->original_sequence_id;
-                // + 7 of the message_type transforms a CONNECT_TX_COMMAND to a CONNECT_RX_RESPONSE etc.
-                acmp_send_response(inflight->command.message_type + 7, &inflight->command, ACMP_STATUS_LISTENER_TALKER_TIMEOUT, i_eth);
+
+                if (inflight->command.flags & AVB_1722_1_ACMP_FLAGS_FAST_CONNECT)
+                {
+
+                }
+                else
+                {
+                    // + 7 of the message_type transforms a CONNECT_TX_COMMAND to a CONNECT_RX_RESPONSE etc.
+                    acmp_send_response(inflight->command.message_type + 7, &inflight->command, ACMP_STATUS_LISTENER_TALKER_TIMEOUT, i_eth);
+                }
                 // Remove inflight command
                 inflight->in_use = 0;
 

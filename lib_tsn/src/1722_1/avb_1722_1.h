@@ -7,6 +7,7 @@
 #ifndef _avb_1722_1_h_
 #define _avb_1722_1_h_
 
+#include <quadflashlib.h>
 #include "xc2compat.h"
 #include "avb_control_types.h"
 #include "avb_1722_1_adp_pdu.h"
@@ -59,7 +60,7 @@ void avb_1722_1_periodic(client interface ethernet_tx_if i_eth, chanend c_ptp, c
 void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                          client interface avb_interface i_avb,
                          client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                         client interface spi_interface ?i_spi,
+                         fl_QSPIPorts &?qspi_ports,
                          client interface ethernet_rx_if i_eth_rx,
                          client interface ethernet_tx_if i_eth_tx,
                          client interface ethernet_cfg_if i_eth_cfg,
@@ -81,7 +82,7 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
 void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
                               client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
-                              client interface spi_interface ?i_spi,
+                              fl_QSPIPorts &?qspi_ports,
                               client interface ethernet_rx_if i_eth_rx,
                               client interface ethernet_tx_if i_eth_tx,
                               client interface ethernet_cfg_if i_eth_cfg,
@@ -96,15 +97,13 @@ void avb_1722_1_maap_srp_task(otp_ports_t &?otp_ports,
  *  \param  c_tx        a transmit chanend to the Ethernet server
  *  \param  i_avb_api   client interface of type avb_interface into avb_manager()
  *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
- *  \param  i_spi       client interface of type spi_interface into avb_srp_task()
  */
 void avb_1722_1_process_packet(unsigned char buf[len],
                                 unsigned len,
                                 unsigned char src_addr[6],
                                 client interface ethernet_tx_if i_eth,
                                 CLIENT_INTERFACE(avb_interface, i_avb_api),
-                                CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity),
-                                CLIENT_INTERFACE(spi_interface, ?i_spi));
+                                CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity));
 #endif
 
 #endif

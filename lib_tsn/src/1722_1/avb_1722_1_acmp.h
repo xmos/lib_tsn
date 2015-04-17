@@ -163,10 +163,8 @@ void acmp_remove_talker_stream_info(void);
 
 unsigned acmp_talker_valid_talker_unique(void);
 
-#ifdef __XC__
-void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp *alias command, int retry, int inflight_idx, client interface ethernet_tx_if i_eth);
-void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, client interface ethernet_tx_if i_eth);
-#endif
+void acmp_send_command(int entity_type, int message_type, avb_1722_1_acmp_cmd_resp *alias command, int retry, int inflight_idx, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+void acmp_send_response(int message_type, avb_1722_1_acmp_cmd_resp *alias response, int status, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
 #ifdef __XC__
 extern "C" {
@@ -182,5 +180,16 @@ void acmp_set_inflight_retry(int entity_type, unsigned int message_type, int inf
 void acmp_add_inflight(int entity_type, unsigned int message_type, unsigned short original_sequence_id);
 
 void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+
+void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+
+#ifdef __XC__
+extern "C" {
+#endif
+    void acmp_listener_store_fast_connect_info(int unique_id, guid_t *controller_guid, guid_t *talker_guid, unsigned short talker_unique_id);
+    void acmp_listener_erase_fast_connect_info(int unique_id);
+#ifdef __XC__
+}
+#endif
 
 #endif /* AVB_17221_ACMP_H_ */
