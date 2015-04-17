@@ -558,10 +558,10 @@ static int process_aem_cmd_start_abort_operation(avb_1722_1_aecp_packet_t *pkt,
           do
           {
             if (flashstatus != 0) {
-              result = fl_startImageAddAsync(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE, 0);
+              result = fl_startImageAdd(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE, 0);
             }
             else {
-              result = fl_startImageReplaceAsync(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE);
+              result = fl_startImageReplace(&image, FLASH_MAX_UPGRADE_IMAGE_SIZE);
             }
             if ((result > 0) && (get_local_time() - t >= in_progress_msg_interval_ms)) {
               t = get_local_time();
