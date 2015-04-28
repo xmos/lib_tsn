@@ -2,15 +2,12 @@
 #include <print.h>
 #include <xccompat.h>
 #include <xscope.h>
-#include "media_output_fifo.h"
+#include "audio_output_fifo.h"
 #include "avb_1722_def.h"
 #include "media_clock_client.h"
 
 #define OUTPUT_DURING_LOCK 0
 #define NOTIFICATION_PERIOD 250
-
-#define START_OF_FIFO(s) ((unsigned int*)&((s)->fifo[0]))
-#define END_OF_FIFO(s)   ((unsigned int*)&((s)->fifo[MEDIA_OUTPUT_FIFO_WORD_SIZE]))
 
 // Volume is represented as a 2.30 signed fixed point number.
 //    SIFFFFFF.FFFFFFFF.FFFFFFFF.FFFFFFFF
@@ -19,32 +16,10 @@
 //    of -2 to 2
 #define MAX_VOLUME 0x40000000
 
-// IMPORTANT: This data structure must match the XC-friendly structure
-// defined in media_output_fifo.h
-typedef struct ofifo_t {
-  int zero_flag;
-  unsigned int * dptr;
-  unsigned int * wrptr;
-  unsigned int * marker;
-  int local_ts;
-  int ptp_ts;
-  unsigned int sample_count;
-  unsigned int * zero_marker;
-  ofifo_state_t state;
-  int last_notification_time;
-  int media_clock;
-  int pending_init_notification;
-  int volume;
-  unsigned int fifo[MEDIA_OUTPUT_FIFO_WORD_SIZE];
-} ofifo_t;
-
-
-
 void
-media_output_fifo_init(int s0, unsigned stream_num)
+audio_output_fifo_init(buffer_handle_t s0, unsigned index)
 {
-  struct ofifo_t *s =
-    (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
 
   s->state = DISABLED;
   s->dptr = START_OF_FIFO(s);
@@ -56,20 +31,18 @@ media_output_fifo_init(int s0, unsigned stream_num)
 }
 
 void
-disable_media_output_fifo(int s0)
+disable_audio_output_fifo(buffer_handle_t s0, unsigned index)
 {
-  struct ofifo_t *s =
-    (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
 
   s->state = DISABLED;
   s->zero_flag = 1;
 }
 
 void
-enable_media_output_fifo(int s0, int media_clock)
+enable_audio_output_fifo(buffer_handle_t s0, unsigned index, int media_clock)
 {
-  struct ofifo_t *s =
-    (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
 
   s->state = ZEROING;
   s->dptr = START_OF_FIFO(s);
@@ -87,16 +60,16 @@ enable_media_output_fifo(int s0, int media_clock)
 
 
 // 1722 thread
-void media_output_fifo_set_ptp_timestamp(media_output_fifo_t s0,
+void audio_output_fifo_set_ptp_timestamp(buffer_handle_t s0,
+                                         unsigned int index,
                                          unsigned int ptp_ts,
                                          unsigned sample_number)
 {
-  struct ofifo_t *s =
-    (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
 
   if (s->marker == 0) {
 	unsigned int* new_marker = s->wrptr + sample_number;
-	if (new_marker >= END_OF_FIFO(s)) new_marker -= MEDIA_OUTPUT_FIFO_WORD_SIZE;
+	if (new_marker >= END_OF_FIFO(s)) new_marker -= AUDIO_OUTPUT_FIFO_WORD_SIZE;
 
 	if (ptp_ts==0) ptp_ts = 1;
     s->ptp_ts = ptp_ts;
@@ -105,52 +78,23 @@ void media_output_fifo_set_ptp_timestamp(media_output_fifo_t s0,
   }
 }
 
-// Audio/channel thread
-unsigned int
-media_output_fifo_pull_sample(media_output_fifo_t s0,
-                              unsigned int timestamp)
-{
-  struct ofifo_t *s =
-    (struct ofifo_t *) s0;
-  unsigned int sample;
-  unsigned int *dptr = s->dptr;
-
-  if (dptr == s->wrptr)
-  {
-    // Underflow
-    // printstrln("Media output FIFO underflow");
-    return 0;
-  }
-
-  sample = *dptr;
-  if (dptr == s->marker && s->local_ts == 0) {
-    if (timestamp==0) timestamp=1;
-    s->local_ts = timestamp;
-  }
-  dptr++;
-  if (dptr == END_OF_FIFO(s)) {
-    dptr = START_OF_FIFO(s);
-  }
-
-  s->dptr = dptr;
-
-  if (s->zero_flag)
-    sample = 0;
-
-  return sample;
-}
+static inline unsigned int
+audio_output_fifo_pull_sample(buffer_handle_t s0,
+                              unsigned index,
+                              unsigned int timestamp);
 
 // 1722 thread
 void
-media_output_fifo_maintain(media_output_fifo_t s0,
+audio_output_fifo_maintain(buffer_handle_t s0,
+                           unsigned index,
                            chanend buf_ctl,
                            int *notified_buf_ctl)
 {
-  struct ofifo_t *s = (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
   unsigned time_since_last_notification;
 
   if (s->pending_init_notification && !(*notified_buf_ctl)) {
-    notify_buf_ctl_of_new_stream(buf_ctl, s0);
+    notify_buf_ctl_of_new_stream(buf_ctl, (int)s); // TODO: This can pass the index
     *notified_buf_ctl = 1;
     s->pending_init_notification = 0;
   }
@@ -192,7 +136,7 @@ media_output_fifo_maintain(media_output_fifo_t s0,
            time_since_last_notification > NOTIFICATION_PERIOD)
           )
         {
-          notify_buf_ctl_of_info(buf_ctl, s0);
+          notify_buf_ctl_of_info(buf_ctl, (int)s); // TODO: FIXME
           *notified_buf_ctl = 1;
           s->last_notification_time = s->sample_count;
         }
@@ -202,18 +146,19 @@ media_output_fifo_maintain(media_output_fifo_t s0,
 
 // 1722 thread
 void
-media_output_fifo_strided_push(media_output_fifo_t s0,
-                                   unsigned int *sample_ptr,
-                                   int stride,
-                                   int n)
+audio_output_fifo_strided_push(buffer_handle_t s0,
+                               unsigned index,
+                               unsigned int *sample_ptr,
+                               int stride,
+                               int n)
 
 {
-  struct ofifo_t *s = (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
   unsigned int *wrptr = s->wrptr;
   unsigned int *new_wrptr;
   int i;
   int sample;
-#ifdef MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+#ifdef AUDIO_OUTPUT_FIFO_VOLUME_CONTROL
   int volume = (s->state == ZEROING) ? 0 : s->volume;
 #else
   int volume = (s->state == ZEROING) ? 0 : 1;
@@ -230,7 +175,7 @@ media_output_fifo_strided_push(media_output_fifo_t s0,
     sample = sample << 8;
 #endif
 
-#ifdef MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+#ifdef AUDIO_OUTPUT_FIFO_VOLUME_CONTROL
 
     {
         // Multiply volume into upper word of 64 bit result
@@ -262,13 +207,14 @@ media_output_fifo_strided_push(media_output_fifo_t s0,
 
 // 1722 thread
 void
-media_output_fifo_handle_buf_ctl(chanend buf_ctl,
-                                 int s0,
+audio_output_fifo_handle_buf_ctl(chanend buf_ctl,
+                                 buffer_handle_t s0,
+                                 unsigned index,
                                  int *buf_ctl_notified,
                                  timer tmr)
 {
   int cmd;
-  struct ofifo_t *s = (struct ofifo_t *) s0;
+  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
   cmd = get_buf_ctl_cmd(buf_ctl);
   switch (cmd)
     {
@@ -336,19 +282,10 @@ media_output_fifo_handle_buf_ctl(chanend buf_ctl,
 }
 
 void
-media_output_fifo_set_volume(media_output_fifo_t s0,
+audio_output_fifo_set_volume(buffer_handle_t s0,
+                             unsigned index,
                              unsigned int volume)
 {
-	  struct ofifo_t *s = (struct ofifo_t *) s0;
+	  ofifo_t *s = (ofifo_t *)((struct output_finfo *)s0)->p_buffer[index];
 	  s->volume = volume;
-}
-
-void
-init_media_output_fifos(media_output_fifo_t ofifos[],
-                       media_output_fifo_data_t ofifo_data[],
-                       int n)
-{
-  for(int i=0;i<n;i++) {
-    ofifos[i] = (unsigned int) &ofifo_data[i];
-  }
 }

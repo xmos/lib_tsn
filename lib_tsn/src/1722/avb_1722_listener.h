@@ -13,7 +13,7 @@
 #include "avb_conf.h"
 #include "avb_1722_def.h"
 #include "gptp.h"
-#include "media_output_fifo.h"
+#include "audio_buffering.h"
 
 #ifndef MAX_INCOMING_AVB_STREAMS
 #define MAX_INCOMING_AVB_STREAMS (AVB_NUM_SINKS)
@@ -38,7 +38,7 @@ typedef struct avb_1722_stream_info_t {
   int num_channels;
   int dbc;                         //!< The DBC of the last seen packet
   int last_sequence;               //!< The sequence number from the last 1722 packet
-  media_output_fifo_t map[AVB_MAX_CHANNELS_PER_LISTENER_STREAM];
+  audio_output_fifo_t map[AVB_MAX_CHANNELS_PER_LISTENER_STREAM];
 } avb_1722_stream_info_t;
 
 
@@ -49,7 +49,8 @@ int avb_1722_listener_process_packet(chanend? buf_ctl,
                                      REFERENCE_PARAM(avb_1722_stream_info_t, stream_info),
                                      NULLABLE_REFERENCE_PARAM(ptp_time_info_mod64, timeInfo),
                                      int index,
-                                     REFERENCE_PARAM(int, notified_buf_ctl));
+                                     REFERENCE_PARAM(int, notified_buf_ctl),
+                                     buffer_handle_t h);
 #else
 int avb_1722_listener_process_packet(chanend buf_ctl,
                                      unsigned char Buf[],
@@ -57,7 +58,8 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
                                      REFERENCE_PARAM(avb_1722_stream_info_t, stream_info),
 				                             REFERENCE_PARAM(ptp_time_info_mod64, timeInfo),
                                      int index,
-                                     REFERENCE_PARAM(int, notified_buf_ctl));
+                                     REFERENCE_PARAM(int, notified_buf_ctl),
+                                     buffer_handle_t h);
 #endif
 
 typedef struct avb_1722_listener_state_s {

@@ -17,6 +17,13 @@ void hton_16(unsigned char x[2], unsigned short v);
 
 void hton_32(unsigned char x[4], unsigned int v);
 
+static inline void hton_32_inline(unsigned char x[4], unsigned int v) {
+  x[0] = (unsigned char) (v >> 24);
+  x[1] = (unsigned char) (v >> 16);
+  x[2] = (unsigned char) (v >> 8);
+  x[3] = (unsigned char) (v);
+}
+
 // Network to/from Host conversion
 #define NTOH_U16(x) ( ((unsigned) x[0] << 8) | ((unsigned) x[1]) )
 #define NTOH_U32(x) ( ((unsigned) x[0] << 24) | ((unsigned) x[1] << 16) | ((unsigned) x[2] << 8) | ((unsigned) x[3]) )
@@ -151,10 +158,10 @@ typedef struct
 #define SET_AVBTP_TV(x, a)                ((x)->version_flags = ((x)->version_flags & ~0x1) | ((a) & 0x1))
 #define SET_AVBTP_SEQUENCE_NUMBER(x, a)   ((x)->sequence_number = ((a) & 0xff))
 #define SET_AVBTP_TU(x, a)                ((x)->reseved_tu |= ((a) & 0x1))
-#define SET_AVBTP_TIMESTAMP(x, a)         hton_32((x)->avb_timestamp, (a))
-#define SET_AVBTP_STREAM_ID1(x, a)        hton_32(&(x)->stream_id[0], (a))
-#define SET_AVBTP_STREAM_ID0(x, a)        hton_32(&(x)->stream_id[4], (a))
-#define SET_AVBTP_GATEWAY_INFO(x, a)      hton_32((x)->gateway_info[0], (a))
+#define SET_AVBTP_TIMESTAMP(x, a)         hton_32_inline((x)->avb_timestamp, (a))
+#define SET_AVBTP_STREAM_ID1(x, a)        hton_32_inline(&(x)->stream_id[0], (a))
+#define SET_AVBTP_STREAM_ID0(x, a)        hton_32_inline(&(x)->stream_id[4], (a))
+#define SET_AVBTP_GATEWAY_INFO(x, a)      hton_32_inline((x)->gateway_info[0], (a))
 #define SET_AVBTP_PACKET_DATA_LENGTH(x, a)  do {(x)->packet_data_length[0] = (a) >> 8; \
                                                 (x)->packet_data_length[1] = (a) & 0xFF; } while (0)
 #define SET_AVBTP_PROTOCOL_SPECIFIC(x, a)   do {(x)->protocol_specific[0] = (a) >> 8; \

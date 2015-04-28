@@ -1,17 +1,12 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-/**
- * \file avb_1722_listener_support.c
- * \brief IEC 61883-6/AVB1722 Listener support C functions
- */
-#define streaming
 #include "avb_1722_listener.h"
 #include "avb_1722_common.h"
 #include "gptp.h"
 #include "avb_1722_def.h"
-#include "media_output_fifo.h"
+#include "audio_output_fifo.h"
 #include <string.h>
 #include <xs1.h>
- #include <xscope.h>
+#include <xscope.h>
 #include "avb_conf.h"
 #include "debug_print.h"
 
@@ -27,7 +22,8 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
                                      avb_1722_stream_info_t *stream_info,
                                      ptp_time_info_mod64* timeInfo,
                                      int index,
-                                     int *notified_buf_ctl)
+                                     int *notified_buf_ctl,
+                                     buffer_handle_t h)
 {
   int pktDataLength, dbc_value;
   AVB_DataHeader_t *pAVBHdr;
@@ -39,7 +35,7 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   unsigned char *sample_ptr;
   int i;
   int num_channels = stream_info->num_channels;
-  media_output_fifo_t *map = &stream_info->map[0];
+  audio_output_fifo_t *map = &stream_info->map[0];
   int stride;
 #if !AVB_1722_FORMAT_SAF
   int dbc_diff;
@@ -174,18 +170,18 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     // register timestamp
     for (int i=0; i<num_channels; i++)
     {
-      if (map[i])
+      if (map[i] >= 0)
       {
-        media_output_fifo_set_ptp_timestamp(map[i], AVBTP_TIMESTAMP(pAVBHdr), sample_num);
+        audio_output_fifo_set_ptp_timestamp(h, map[i], AVBTP_TIMESTAMP(pAVBHdr), sample_num);
       }
     }
   }
 
   for (i=0; i<num_channels; i++)
   {
-    if (map[i])
+    if (map[i] >= 0)
     {
-      media_output_fifo_maintain(map[i], buf_ctl, notified_buf_ctl);
+      audio_output_fifo_maintain(h, map[i], buf_ctl, notified_buf_ctl);
     }
   }
 
@@ -211,9 +207,9 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
 
   for(i=0; i<num_channels; i++)
   {
-    if (map[i])
+    if (map[i] >= 0)
     {
-      media_output_fifo_strided_push(map[i], (unsigned int *) sample_ptr,
+      audio_output_fifo_strided_push(h, map[i], (unsigned int *) sample_ptr,
                                    stride, num_samples_in_payload);
     }
     sample_ptr += 4;

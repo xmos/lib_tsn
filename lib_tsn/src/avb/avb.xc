@@ -208,13 +208,12 @@ static void update_sink_state(unsigned sink_num,
 
         for (int i=0;i<sink->stream.num_channels;i++) {
           if (sink->map[i] == AVB_CHANNEL_UNMAPPED) {
-            *c <: 0;
             debug_printf("  %d unmapped\n", i);
           }
           else {
-            *c <: outputs[sink->map[i]].fifo;
-            debug_printf("  %d -> %x\n", i, sink->map[i]);
+            debug_printf("  %d -> %d\n", i, sink->map[i]);
           }
+          *c <: sink->map[i];
         }
       }
 
@@ -342,7 +341,7 @@ static void update_source_state(unsigned source_num,
           *c <: fifo_mask;
 
           for (int i=0;i<source->stream.num_channels;i++) {
-            *c <: inputs[source->map[i]].fifo;
+            *c <: source->map[i];
           }
           *c <: (int)source->stream.rate;
 
@@ -363,6 +362,7 @@ static void update_source_state(unsigned source_num,
 
         master {
           *c <: AVB1722_SET_VLAN;
+          *c <: (int)source->stream.local_id;
           *c <: (int)source->reservation.vlan_id;
         }
 

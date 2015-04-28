@@ -11,7 +11,7 @@
 #include "avb_1722_common.h"
 #include "gptp.h"
 #include "avb_1722_def.h"
-#include "media_output_fifo.h"
+#include "audio_output_fifo.h"
 #include "avb_conf.h"
 
 #if defined (AVB_1722_FORMAT_61883_4)

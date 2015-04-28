@@ -12,7 +12,7 @@
 #include <xccompat.h>
 #include "avb_conf.h"
 #include "gptp.h"
-#include "media_input_fifo.h"
+#include "audio_buffering.h"
 
 #if AVB_NUM_SOURCES > 0
 
@@ -38,11 +38,18 @@ typedef struct avb1722_Talker_StreamConfig_t
   //! number of channels in the stream
   unsigned int  num_channels;
   //! map from media fifos to channels in the stream
-  media_input_fifo_t map[AVB_MAX_CHANNELS_PER_TALKER_STREAM];
+  unsigned int map[AVB_MAX_CHANNELS_PER_TALKER_STREAM];
   //! word containing the bit flags for the fifo map above
   unsigned int fifo_mask;
   //! the type of samples in the stream
   unsigned int sampleType;
+
+  unsigned int current_samples_in_packet;
+
+  unsigned int timestamp_valid;
+
+  unsigned int timestamp;
+
   //! Data Block Count (count of samples transmitted in the stream)
   //! From 61883: "A data block contains all data arriving at the transmitter within
   //! an audio sample period. The data block contains all the data which make up an event
@@ -86,37 +93,19 @@ void AVB1722_Talker_bufInit(unsigned char Buf[],
 /** This receives user defined audio samples from local out stream and packetize
  *  them into specified AVB1722 transport packet.
  */
+ #ifdef __XC__
+extern "C" {
+#endif
 int avb1722_create_packet(unsigned char Buf[],
                           REFERENCE_PARAM(avb1722_Talker_StreamConfig_t,
                                           stream_info),
                           REFERENCE_PARAM(ptp_time_info_mod64,
                                           timeInfo),
-                          int time);
-
-/** This generates the required CIP Header with specified DBC value.
- *  It is called for every PDU and only updates the fields which
- *  change for each PDU
- *
- *  \param   buf[] buffer array to be populated.
- *  \param   dbc DBC value of CIP header to be populated.
- */
-void AVB1722_CIP_HeaderGen(unsigned char Buf[], int dbc);
-
-/** Update fields in the 1722 header which change for each PDU
- *
- *  \param Buf the buffer containing the packet
- *  \param valid_ts the timestamp is valid flag
- *  \param avbtp_ts the 32 bit PTP timestamp
- *  \param pkt_data_length the number of samples in the PDU
- *  \param sequence_number the 1722 sequence number
- *  \param stream_id0 the bottom 32 bits of the stream id
- */
-void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
-		int valid_ts,
-		unsigned avbtp_ts,
-		int pkt_data_length,
-		int sequence_number,
-		const unsigned stream_id0);
+                          audio_frame_t *frame,
+                          int stream);
+#ifdef __XC__
+}
+#endif
 
 // Max. packet size for AVB 1722 talker
 #ifdef AVB_1722_FORMAT_SAF
@@ -132,7 +121,8 @@ void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
 #endif
 
 typedef struct avb_1722_talker_state_s {
-  unsigned int TxBuf[(MAX_PKT_BUF_SIZE_TALKER + 3) / 4];
+  unsigned int tx_buf[AVB_NUM_SOURCES][(MAX_PKT_BUF_SIZE_TALKER + 3) / 4];
+  unsigned int tx_buf_fill_size[AVB_NUM_SOURCES];
   avb1722_Talker_StreamConfig_t
     talker_streams[AVB_MAX_STREAMS_PER_TALKER_UNIT];
   int max_active_avb_stream ;

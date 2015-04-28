@@ -3,11 +3,9 @@
 #include "avb_1722_def.h"
 #include "avb_conf.h"
 #include "gptp.h"
-#include "media_input_fifo.h"
 #include "avb_1722.h"
 #include "avb_1722_listener.h"
 #include "avb_1722_talker.h"
-#include "media_fifo.h"
 #include "ethernet.h"
 
 #if AVB_NUM_SOURCES != 0

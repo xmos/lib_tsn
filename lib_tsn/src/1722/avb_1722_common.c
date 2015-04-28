@@ -36,3 +36,5 @@ void hton_32(unsigned char x[4], unsigned int v) {
     x[2] = (unsigned char) (v >> 8);
     x[3] = (unsigned char) (v);
 }
+
+static inline void hton_32_inline(unsigned char x[4], unsigned int v);

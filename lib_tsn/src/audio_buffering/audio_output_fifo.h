@@ -1,26 +1,22 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-#ifndef __local_listener_stream_h__
-#define __local_listener_stream_h__
-#ifndef __XC__
-#ifndef streaming
-#define streaming
-#endif
-#ifndef NULLABLE
-#define NULLABLE
-#endif
-#else
-#define NULLABLE ?
-#endif
+#ifndef __AUDIO_OUTPUT_FIFO_h__
+#define __AUDIO_OUTPUT_FIFO_h__
+
 #include <xccompat.h>
+#include <xc2compat.h>
 #include "avb_conf.h"
+#include "audio_buffering.h"
 
 #ifndef AVB_MAX_AUDIO_SAMPLE_RATE
 #define AVB_MAX_AUDIO_SAMPLE_RATE (48000)
 #endif
 
-#ifndef MEDIA_OUTPUT_FIFO_WORD_SIZE
-#define MEDIA_OUTPUT_FIFO_WORD_SIZE (AVB_MAX_AUDIO_SAMPLE_RATE/450)
+#ifndef AUDIO_OUTPUT_FIFO_WORD_SIZE
+#define AUDIO_OUTPUT_FIFO_WORD_SIZE (AVB_MAX_AUDIO_SAMPLE_RATE/450)
 #endif
+
+#define START_OF_FIFO(s) ((unsigned int*)&((s)->fifo[0]))
+#define END_OF_FIFO(s)   ((unsigned int*)&((s)->fifo[AUDIO_OUTPUT_FIFO_WORD_SIZE]))
 
 typedef enum ofifo_state_t {
   DISABLED, //!< Not active
@@ -30,7 +26,7 @@ typedef enum ofifo_state_t {
 } ofifo_state_t;
 
 
-struct media_output_fifo_data_t {
+struct audio_output_fifo_data_t {
   int zero_flag;							//!< When set, the FIFO will output zero samples instead of its contents
   unsigned int dptr;						//!< The read pointer
   unsigned int wrptr;						//!< The write pointer
@@ -44,84 +40,50 @@ struct media_output_fifo_data_t {
   int media_clock;							//!<
   int pending_init_notification;			//!<
   int volume;                               //!< The linear volume multipler in 2.30 signed fixed point format
-  unsigned int fifo[MEDIA_OUTPUT_FIFO_WORD_SIZE];
+  unsigned int fifo[AUDIO_OUTPUT_FIFO_WORD_SIZE];
 };
+
+typedef struct ofifo_t {
+  int zero_flag;
+  unsigned int *unsafe dptr;
+  unsigned int *unsafe wrptr;
+  unsigned int *unsafe marker;
+  int local_ts;
+  int ptp_ts;
+  unsigned int sample_count;
+  unsigned int *unsafe zero_marker;
+  ofifo_state_t state;
+  int last_notification_time;
+  int media_clock;
+  int pending_init_notification;
+  int volume;
+  unsigned int fifo[AUDIO_OUTPUT_FIFO_WORD_SIZE];
+} ofifo_t;
 
 /**
  * \brief This type provides the data structure used by a media output FIFO.
  */
-typedef struct media_output_fifo_data_t media_output_fifo_data_t;
-
-/**
- * \brief This type provides a handle to a media output FIFO.
- **/
-typedef int media_output_fifo_t;
-
-/**
- *  \brief Output audio streams from media fifos to an XC channel.
- *
- * This function outputs samples from several media output FIFOs
- * over an XC channel over the streaming chanend ``samples_out``.
- *
- * The protocol over the channel is that the thread expects a timestamp to
- * be sent to it and then it will output ``num_channels`` samples, pulling
- * from the ``ofifos`` array. It will then expect another timestamp before
- * the next set of samples.
- *
- *  \param samples_out          the chanend on which samples are output
- *  \param ofifos               array of media output FIFOs to pull from
- *  \param num_channels         the number of channels (or FIFOs)
- **/
-void media_output_fifo_to_xc_channel(streaming chanend samples_out,
-                                     media_output_fifo_t ofifos[],
-                                     int num_channels);
-
-
-/**
- *  \brief Output audio streams from media FIFOs to an XC channel, splitting left
- *  and right pairs.
- *
- * This function outputs samples from several media output FIFOs
- * over an XC channel over the streaming chanend ``samples_out``. The
- * media FIFOs are assumed to be grouped in left/right stereo pairs which are
- * then split.
- *
- * The protocol over the channel is that the thread expects a timestamp to
- * be sent to it and then it will first output ``num_channels/2`` samples,
- * pulling
- * from all the even indexed elements of the ``ofifos`` array and then output
- * all the odd elements.
- * It will then expect another timestamp before
- * the next set of samples.
- *
- *  \param samples_out          the chanend on which samples are output
- *  \param output_fifos         array of media output fifos to pull from
- *  \param num_channels         the number of channels (or FIFOs)
- **/
-void
-media_output_fifo_to_xc_channel_split_lr(streaming chanend samples_out,
-                                         media_output_fifo_t output_fifos[],
-                                         int num_channels);
-
+typedef struct audio_output_fifo_data_t audio_output_fifo_data_t;
 
 /**
  * \brief Intiialise a FIFO
  */
-void media_output_fifo_init(media_output_fifo_t s, unsigned stream_num);
+void audio_output_fifo_init(buffer_handle_t s, unsigned index);
 
 /**
  * \brief Disable a FIFO
  *
  * This prevents samples from flowing through the FIFO
  */
-void disable_media_output_fifo(media_output_fifo_t s);
+void disable_audio_output_fifo(buffer_handle_t s, unsigned index);
 
 /**
  * \brief Enable a FIFO
  *
  * This starts samples flowing through the FIFO
  */
-void enable_media_output_fifo(media_output_fifo_t s,
+void enable_audio_output_fifo(buffer_handle_t s,
+                              unsigned index,
                               int media_clock);
 
 /**
@@ -136,7 +98,8 @@ void enable_media_output_fifo(media_output_fifo_t s,
  *  \param notified_buf_ctl pointer to a flag which is set when the media clock has been notified of a timing event in the FIFO
  */
 void
-media_output_fifo_maintain(media_output_fifo_t s,
+audio_output_fifo_maintain(buffer_handle_t s,
+                           unsigned index,
                            chanend buf_ctl,
                            REFERENCE_PARAM(int, notified_buf_ctl));
 
@@ -158,7 +121,8 @@ media_output_fifo_maintain(media_output_fifo_t s,
  *  \param n the number of samples to push into the buffer
  */
 void
-media_output_fifo_strided_push(media_output_fifo_t s0,
+audio_output_fifo_strided_push(buffer_handle_t s0,
+                               unsigned index,
                                unsigned int *sample_ptr,
                                int stride,
                                int n);
@@ -175,9 +139,45 @@ media_output_fifo_strided_push(media_output_fifo_t s0,
  *  \param s the FIFO to remove a sample from
  *  \param timestamp the ref clock time of the sample playout
  */
+ /*
 unsigned int
-media_output_fifo_pull_sample(media_output_fifo_t s,
+audio_output_fifo_pull_sample(buffer_handle_t s,
                                   unsigned int timestamp);
+*/
+__attribute__((always_inline))
+unsafe static inline unsigned int
+audio_output_fifo_pull_sample(buffer_handle_t s0,
+                              unsigned index,
+                              unsigned int timestamp)
+{
+  ofifo_t *unsafe s = (ofifo_t *unsafe)((struct output_finfo *unsafe)s0)->p_buffer[index];
+  unsigned int sample;
+  unsigned int *unsafe dptr = s->dptr;
+
+  if (dptr == s->wrptr)
+  {
+    // Underflow
+    // printstrln("Media output FIFO underflow");
+    return 0;
+  }
+
+  sample = *dptr;
+  if (dptr == s->marker && s->local_ts == 0) {
+    if (timestamp==0) timestamp=1;
+    s->local_ts = timestamp;
+  }
+  dptr++;
+  if (dptr == END_OF_FIFO(s)) {
+    dptr = START_OF_FIFO(s);
+  }
+
+  s->dptr = dptr;
+
+  if (s->zero_flag)
+    sample = 0;
+
+  return sample;
+}
 
 
 /**
@@ -197,7 +197,8 @@ media_output_fifo_pull_sample(media_output_fifo_t s,
  *  \param sample_number the sample, counted from the end of the FIFO, which the timestamp applies to
  *
  */
-void media_output_fifo_set_ptp_timestamp(media_output_fifo_t s0,
+void audio_output_fifo_set_ptp_timestamp(buffer_handle_t s0,
+                                         unsigned index,
                                          unsigned int timestamp,
                                          unsigned sample_number);
 
@@ -215,8 +216,9 @@ void media_output_fifo_set_ptp_timestamp(media_output_fifo_t s0,
  *  \param buf_ctl_notified pointer to the flag which indicates whether the clock recovery thread has been notified of a timing event
  */
 void
-media_output_fifo_handle_buf_ctl(chanend buf_ctl,
-                                 int stream_num,
+audio_output_fifo_handle_buf_ctl(chanend buf_ctl,
+                                 buffer_handle_t s0,
+                                 unsigned index,
                                  REFERENCE_PARAM(int, buf_ctl_notified),
                                  timer tmr);
 
@@ -227,24 +229,9 @@ media_output_fifo_handle_buf_ctl(chanend buf_ctl,
  *  \param volume the 2.30 signed fixed point linear volume multiplier
  */
 void
-media_output_fifo_set_volume(media_output_fifo_t s0,
+audio_output_fifo_set_volume(buffer_handle_t s0,
+                             unsigned index,
                              unsigned int volume);
-
-
-/** Initialize media output FIFOs.
- *
- *  This function initializes media output FIFOs and ties the handles
- *  to their associated data structures. It should be called before the main
- *  component function on a thread to setup the FIFOs.
- *
- *  \param ofifos      an array of media output FIFO handles to initialize
- *  \param ofifo_data  an array of associated data structures
- *  \param n           the number of FIFOs to initialize
- **/
-void
-init_media_output_fifos(media_output_fifo_t ofifos[],
-                       media_output_fifo_data_t ofifo_data[],
-                       int n);
 
 #endif
 

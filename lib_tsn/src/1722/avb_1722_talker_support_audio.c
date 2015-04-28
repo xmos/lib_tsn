@@ -1,24 +1,71 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-/**
- * \file avb_1722_talker_support_audio.c
- * \brief 1722 Talker support C functions
- */
 #include "debug_print.h"
- #include <xscope.h>
+#include <print.h>
+#include <xscope.h>
 #include "avb_conf.h"
+#include <xclib.h>
 
 #if AVB_NUM_SOURCES > 0 && (defined(AVB_1722_FORMAT_61883_6) || defined(AVB_1722_FORMAT_SAF))
 
-#define streaming
 #include <xccompat.h>
 #include <string.h>
 
 #include "avb_1722_talker.h"
 #include "gptp.h"
-#include "media_input_fifo.h"
 
 // default audio sample type 24bits.
 unsigned int AVB1722_audioSampleType = MBLA_24BIT;
+
+/** This generates the required CIP Header with specified DBC value.
+ *  It is called for every PDU and only updates the fields which
+ *  change for each PDU
+ *
+ *  \param   buf[] buffer array to be populated.
+ *  \param   dbc DBC value of CIP header to be populated.
+ */
+static void AVB1722_CIP_HeaderGen(unsigned char Buf[], int dbc)
+{
+    AVB_AVB1722_CIP_Header_t *pAVB1722Hdr = (AVB_AVB1722_CIP_Header_t *) &(Buf[AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE]);
+
+    SET_AVB1722_CIP_DBC(pAVB1722Hdr, dbc);
+}
+
+/** Update fields in the 1722 header which change for each PDU
+ *
+ *  \param Buf the buffer containing the packet
+ *  \param valid_ts the timestamp is valid flag
+ *  \param avbtp_ts the 32 bit PTP timestamp
+ *  \param pkt_data_length the number of samples in the PDU
+ *  \param sequence_number the 1722 sequence number
+ *  \param stream_id0 the bottom 32 bits of the stream id
+ */
+static void AVB1722_AVBTP_HeaderGen(unsigned char Buf[],
+        int valid_ts,
+        unsigned avbtp_ts,
+        int pkt_data_length,
+        int sequence_number,
+        const unsigned stream_id0)
+{
+    AVB_DataHeader_t *pAVBHdr = (AVB_DataHeader_t *) &(Buf[AVB_ETHERNET_HDR_SIZE]);
+
+    SET_AVBTP_PACKET_DATA_LENGTH(pAVBHdr, pkt_data_length);
+
+    // only stamp the AVBTP timestamp when required.
+    if (valid_ts) {
+        SET_AVBTP_TV(pAVBHdr, 1); // AVB timestamp valid.
+        SET_AVBTP_TIMESTAMP(pAVBHdr, avbtp_ts); // Valid ns field.
+    } else {
+        SET_AVBTP_TV(pAVBHdr, 0); // AVB timestamp not valid.
+        SET_AVBTP_TIMESTAMP(pAVBHdr, 0); // NULL the timestmap field as well.
+    }
+
+    // update stream ID by adding stream number to preloaded stream ID
+    // (ignoring the fact that talkerStreamIdExt is stored MSB-first - it's just an ID)
+    SET_AVBTP_STREAM_ID0(pAVBHdr, stream_id0);
+
+    // update the ...
+    SET_AVBTP_SEQUENCE_NUMBER(pAVBHdr, sequence_number);
+}
 
 
 /** This configure AVB Talker buffer for a given stream configuration.
@@ -52,7 +99,6 @@ void AVB1722_Talker_bufInit(unsigned char Buf0[],
         data_block_size = pStreamConfig->num_channels * 1;
         break;
     default:
-        //printstr("ERROR: AVB1722_Talker_bufInit : Unsupported audio MBLA type.\n");
         AVB1722_audioSampleType = MBLA_24BIT;
         data_block_size = pStreamConfig->num_channels * 1;
         break;
@@ -61,8 +107,7 @@ void AVB1722_Talker_bufInit(unsigned char Buf0[],
     // clear all the bytes in header.
     memset( (void *) Buf, 0, (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE));
 
-    //--------------------------------------------------------------------------
-    // 1. Initialaise the ethernet layer.
+    // 1. Initialise the ethernet layer.
     // copy both Src/Dest MAC address
     for (i = 0; i < MAC_ADRS_BYTE_COUNT; i++) {
         pEtherHdr->DA[i] = pStreamConfig->destMACAdrs[i];
@@ -74,23 +119,13 @@ void AVB1722_Talker_bufInit(unsigned char Buf0[],
     SET_AVBTP_VID(pEtherHdr, vlanid);
     SET_AVBTP_ETYPE(pEtherHdr, AVB_1722_ETHERTYPE);
 
-    //--------------------------------------------------------------------------
-    // 2. Initialaise the AVB TP layer.
+    // 2. Initialise the AVB TP layer.
     // NOTE: Since the data structure is cleared before we only set the requird bits.
     SET_AVBTP_SV(p1722Hdr, 1); // set stream ID to valid.
     SET_AVBTP_STREAM_ID0(p1722Hdr, pStreamConfig->streamId[0]);
     SET_AVBTP_STREAM_ID1(p1722Hdr, pStreamConfig->streamId[1]);
 
-    //--------------------------------------------------------------------------
-    // 3. Initialise the Simple Audio Format protocol specific part
-#ifdef AVB_1722_FORMAT_SAF
-    //TODO://This is hardcoded for 48k 32 bit 32 bit samples 2 channels
-    SET_AVBTP_PROTOCOL_SPECIFIC(p1722Hdr, 2);
-    SET_AVBTP_GATEWAY_INFO(p1722Hdr, 0x02000920);
-    SET_AVBTP_SUBTYPE(p1722Hdr, 2);
-#else
-    //--------------------------------------------------------------------------
-    // 3. Initialaise the 61883 CIP protocol specific part
+    // 3. Initialise the 61883 CIP protocol specific part
     SET_AVB1722_CIP_TAG(p1722Hdr, AVB1722_DEFAULT_TAG);
     SET_AVB1722_CIP_CHANNEL(p1722Hdr, AVB1722_DEFAULT_CHANNEL);
     SET_AVB1722_CIP_TCODE(p1722Hdr, AVB1722_DEFAULT_TCODE);
@@ -109,26 +144,23 @@ void AVB1722_Talker_bufInit(unsigned char Buf0[],
     SET_AVB1722_CIP_FMT(p61883Hdr, AVB1722_DEFAULT_FMT);
     SET_AVB1722_CIP_FDF(p61883Hdr, AVB1722_DEFAULT_FDF);
     SET_AVB1722_CIP_SYT(p61883Hdr, AVB1722_DEFAULT_SYT);
-#endif
 
 }
 
-/** This receives user defined audio samples from local out stream and packetize
- *  them into specified AVB1722 transport packet.
- */
 int avb1722_create_packet(unsigned char Buf0[],
         avb1722_Talker_StreamConfig_t *stream_info,
         ptp_time_info_mod64 *timeInfo,
-        int time)
+        audio_frame_t *frame,
+        int stream)
 {
-    unsigned int presentationTime = 0;
-    int timerValid = 0;
-    int i;
+    unsigned int presentation_time = stream_info->timestamp;
+    int timestamp_valid = stream_info->timestamp_valid;
     int num_channels = stream_info->num_channels;
+    int current_samples_in_packet = stream_info->current_samples_in_packet;
     int stream_id0 = stream_info->streamId[0];
-    media_input_fifo_t *map = stream_info->map;
-    int num_audio_samples;
-    int samples_in_packet;
+    unsigned int *map = stream_info->map;
+    int total_samples_in_packet;
+    int samples_per_channel;
 
     // align packet 2 chars into the buffer so that samples are
     // word align for fast copying.
@@ -140,81 +172,75 @@ int avb1722_create_packet(unsigned char Buf0[],
     int dbc;
     int pkt_data_length;
 
+    dest += (current_samples_in_packet * stride);
+
     // Figure out the number of samples in the 1722 packet
-    samples_in_packet = stream_info->samples_per_packet_base;
+    samples_per_channel = stream_info->samples_per_packet_base;
 
     if (stream_info->rem & 0xffff0000) {
-        samples_in_packet += 1;
+        samples_per_channel += 1;
     }
-
-    for (i = 0; i < num_channels; i++) {
-        // If more data is required from the media_fifo then check there are
-        // enough samples present so that this thread won't wait for data
-        const int not_enough_data = (media_input_fifo_fill_level(map[i]) < samples_in_packet);
-        if (not_enough_data)
-            return 0;
-    }
-
-    // If the FIFOs are not being filled then also do not process the packet
-    if ((media_input_fifo_enable_ind_state() & stream_info->fifo_mask) == 0)
-        return 0;
-
-    stream_info->rem += stream_info->samples_per_packet_fractional;
-    if (samples_in_packet > stream_info->samples_per_packet_base) {
-        stream_info->rem &= 0xffff;
-    }
-
-    AVB_Frame_t *pEtherHdr = (AVB_Frame_t *) &(Buf[0]);
-    for (i = 0; i < MAC_ADRS_BYTE_COUNT; i++) {
-        pEtherHdr->DA[i] = stream_info->destMACAdrs[i];
-    }
-
-    num_audio_samples = samples_in_packet * num_channels;
-
-    pkt_data_length = AVB_CIP_HDR_SIZE + (num_audio_samples << 2);
 
     // Find the DBC for the current stream
     dbc = stream_info->dbc_at_start_of_last_fifo_packet;
 
-    for (i = 0; i < num_channels; i++) {
-        unsigned int *src;
-        unsigned int *chan_dest = dest;
-        for (int j = 0; j < samples_in_packet; j++) {
-            src = (unsigned int *)media_input_fifo_get_sample_ptr(map[i]);
-            unsigned this_dbc = dbc + j;
-            unsigned int ts_this_dbc = ((this_dbc & (stream_info->ts_interval-1)) == 0);
-            unsigned sample = (src[0] >> 8) | AVB1722_audioSampleType;
-            sample = __builtin_bswap32(sample);
-            *chan_dest = sample;
-            if (ts_this_dbc) {
-                timerValid = 1;
-                presentationTime = src[1];
-            }
-            media_input_fifo_move_sample_ptr(map[i]);
-            chan_dest += stride;
-        }
+    for (int i = 0; i < num_channels; i++) {
+        unsigned sample = (frame->samples[map[i]] >> 8) | AVB1722_audioSampleType;
+        sample = byterev(sample);
+        *dest = sample;
         dest += 1;
     }
 
-    dbc += samples_in_packet;
-    stream_info->dbc_at_start_of_last_fifo_packet = dbc;
+    unsigned this_dbc = dbc + current_samples_in_packet;
+    unsigned int ts_this_dbc = ((this_dbc & (stream_info->ts_interval-1)) == 0);
 
-    dbc &= 0xff;
-
-    AVB1722_CIP_HeaderGen(Buf, dbc);
-
-    // perform required updates to header
-    if (timerValid) {
-        ptp_ts = local_timestamp_to_ptp_mod32(presentationTime, timeInfo);
-        ptp_ts = ptp_ts + stream_info->presentation_delay;
+    if (ts_this_dbc) {
+        timestamp_valid = 1;
+        presentation_time = frame->timestamp;
     }
 
-    // Update timestamp value and valid flag.
-    AVB1722_AVBTP_HeaderGen(Buf, timerValid, ptp_ts, pkt_data_length, stream_info->sequence_number, stream_id0);
+    current_samples_in_packet++;
 
-    stream_info->transmit_ok = 1;
-    stream_info->sequence_number++;
-    return (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + pkt_data_length);
+    // samples_per_channel is the number of times we need to call this function
+    // i.e. the number of audio frames we need to iterate through to get a full packet worth of samples
+    if (current_samples_in_packet == samples_per_channel) {
+        stream_info->rem += stream_info->samples_per_packet_fractional;
+        if (samples_per_channel > stream_info->samples_per_packet_base) {
+            stream_info->rem &= 0xffff;
+        }
+
+        total_samples_in_packet = samples_per_channel * num_channels;
+
+        pkt_data_length = AVB_CIP_HDR_SIZE + (total_samples_in_packet << 2);
+
+        dbc += samples_per_channel;
+        stream_info->dbc_at_start_of_last_fifo_packet = dbc;
+
+        dbc &= 0xff;
+
+        AVB1722_CIP_HeaderGen(Buf, dbc);
+
+        // perform required updates to header
+        if (timestamp_valid) {
+            ptp_ts = local_timestamp_to_ptp_mod32(presentation_time, timeInfo);
+            ptp_ts = ptp_ts + stream_info->presentation_delay;
+        }
+
+        // Update timestamp value and valid flag.
+        AVB1722_AVBTP_HeaderGen(Buf, timestamp_valid, ptp_ts, pkt_data_length, stream_info->sequence_number, stream_id0);
+
+        stream_info->transmit_ok = 1;
+        stream_info->sequence_number++;
+        stream_info->current_samples_in_packet = 0;
+        stream_info->timestamp_valid = 0;
+        return (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + pkt_data_length);
+    }
+
+    stream_info->timestamp_valid = timestamp_valid;
+    stream_info->timestamp = presentation_time;
+    stream_info->current_samples_in_packet = current_samples_in_packet;
+
+    return 0;
 }
 
 #endif

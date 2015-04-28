@@ -7,6 +7,7 @@
 #ifndef _AVB1722_TOP_H_
 #define _AVB1722_TOP_H_ 1
 #include "ethernet.h"
+#include "audio_buffering.h"
 
 #ifdef __XC__
 
@@ -25,7 +26,8 @@
 void avb_1722_talker(chanend c_ptp,
                      streaming chanend c_eth_tx_hp,
                      chanend c_talker_ctl,
-                     int num_streams);
+                     int num_streams,
+                     client pull_if audio_input_buf);
 
 /** An AVB IEEE 1722 audio listener thread.
  *
@@ -46,7 +48,8 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
                        chanend? c_buf_ctl,
                        chanend? c_ptp_ctl,
                        chanend c_listener_ctl,
-                       int num_streams);
+                       int num_streams,
+                       client push_if audio_output_buf);
 
 
 /*

@@ -8,7 +8,7 @@
 #include "media_clock_client.h"
 #include "media_clock_server.h"
 #include "media_clock_internal.h"
-#include "media_output_fifo.h"
+#include "audio_output_fifo.h"
 #include "debug_print.h"
 #include "gptp.h"
 #include "avb_control_types.h"
@@ -116,7 +116,7 @@ static void manage_buffer(buf_info_t &b,
   unsigned server_tile_id;
 
   if (b.media_clock == -1) {
-      buf_ctl <: b.fifo;
+      buf_ctl <: index;
       buf_ctl <: BUF_CTL_ACK;
       inct(buf_ctl);
       return;
@@ -124,7 +124,7 @@ static void manage_buffer(buf_info_t &b,
 
   wordLength = media_clocks[b.media_clock].wordLength;
 
-  buf_ctl <: b.fifo;
+  buf_ctl <: index;
   buf_ctl <: BUF_CTL_REQUEST_INFO;
   master {
     buf_ctl <: 0;
@@ -145,7 +145,7 @@ static void manage_buffer(buf_info_t &b,
   fill = wrptr - rdptr;
 
   if (fill < 0)
-    fill += MEDIA_OUTPUT_FIFO_WORD_SIZE;
+    fill += AUDIO_OUTPUT_FIFO_WORD_SIZE;
 
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
@@ -169,7 +169,7 @@ static void manage_buffer(buf_info_t &b,
 
   if (wordLength == 0) {
       // clock not locked yet
-      buf_ctl <: b.fifo;
+      buf_ctl <: index;
       buf_ctl <: BUF_CTL_ACK;
       inct(buf_ctl);
       return;
@@ -191,13 +191,13 @@ static void manage_buffer(buf_info_t &b,
   }
 
   if (!fifo_locked && (b.stability_count > STABLE_THRESHOLD)) {
-      int max_adjust = MEDIA_OUTPUT_FIFO_WORD_SIZE-MAX_SAMPLES_PER_1722_PACKET;
+      int max_adjust = AUDIO_OUTPUT_FIFO_WORD_SIZE-MAX_SAMPLES_PER_1722_PACKET;
       if (fill - sample_diff > max_adjust ||
           fill - sample_diff < -max_adjust) {
 #ifdef DEBUG_MEDIA_CLOCK
     	debug_printf("Media output %d compensation too large: %d samples\n", index, sample_diff);
 #endif
-        buf_ctl <: b.fifo;
+        buf_ctl <: index;
         buf_ctl <: BUF_CTL_RESET;
         inct(buf_ctl);
       } else {
@@ -206,7 +206,7 @@ static void manage_buffer(buf_info_t &b,
 #endif
         inform_media_clocks_of_lock(index);
         b.lock_count = 0;
-        buf_ctl <: b.fifo;
+        buf_ctl <: index;
         buf_ctl <: BUF_CTL_ADJUST_FILL;
         buf_ctl <: sample_diff;
         inct(buf_ctl);
@@ -221,12 +221,12 @@ static void manage_buffer(buf_info_t &b,
 #ifdef DEBUG_MEDIA_CLOCK
       debug_printf("Media output %d lost lock\n", index);
 #endif
-      buf_ctl <: b.fifo;
+      buf_ctl <: index;
       buf_ctl <: BUF_CTL_RESET;
       inct(buf_ctl);
       media_clocks[b.media_clock].info.unlock_counter++;
   } else {
-      buf_ctl <: b.fifo;
+      buf_ctl <: index;
       buf_ctl <: BUF_CTL_ACK;
       inct(buf_ctl);
   }
@@ -425,7 +425,7 @@ void media_clock_server(server interface media_clock_if media_clock_ctl,
                             buf_index, tmr);
               break;
             case BUF_CTL_NEW_STREAM:
-              buf_ctl[i] <: buf_info[buf_index].fifo;
+              buf_ctl[i] <: buf_index;
               buf_ctl[i] <: BUF_CTL_REQUEST_NEW_STREAM_INFO;
               master {
                 buf_ctl[i] :> buf_info[buf_index].media_clock;

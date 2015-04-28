@@ -10,12 +10,12 @@
 #include "avb_1722_def.h"
 #include "avb_1722.h"
 #include "avb_1722_listener.h"
-#include "media_fifo.h"
 #include "ethernet.h"
 #include "avb_srp.h"
 #include "avb_unit.h"
 #include "avb_conf.h"
 #include <debug_print.h>
+#include "audio_output_fifo.h"
 
 #define TIMEINFO_UPDATE_INTERVAL 50000000
 
@@ -33,7 +33,8 @@
 #endif
 
 static transaction configure_stream(chanend c,
-                             avb_1722_stream_info_t &s)
+                                    avb_1722_stream_info_t &s,
+                                    buffer_handle_t h)
 {
 	int media_clock;
 
@@ -43,9 +44,11 @@ static transaction configure_stream(chanend c,
 
 	for(int i=0;i<s.num_channels;i++) {
 		c :> s.map[i];
-		if (s.map[i])
+		if (s.map[i] >= 0)
 		{
-			enable_media_output_fifo(s.map[i], media_clock);
+      unsafe {
+        enable_audio_output_fifo(h, s.map[i], media_clock);
+      }
 		}
 	}
 
@@ -58,7 +61,8 @@ static transaction configure_stream(chanend c,
 }
 
 static transaction adjust_stream(chanend c,
-        avb_1722_stream_info_t &s)
+                                 avb_1722_stream_info_t &s,
+                                 buffer_handle_t h)
 {
 	int cmd;
 	c :> cmd;
@@ -70,7 +74,7 @@ static transaction adjust_stream(chanend c,
 			c :> count;
 			for(int i=0;i<count;i++) {
 				c :> volume;
-				if (i < s.num_channels) media_output_fifo_set_volume(s.map[i], volume);
+				if (i < s.num_channels) audio_output_fifo_set_volume(h, s.map[i], volume);
 			}
 #endif
 		}
@@ -79,12 +83,15 @@ static transaction adjust_stream(chanend c,
 }
 
 
-static void disable_stream(avb_1722_stream_info_t &s)
+static void disable_stream(avb_1722_stream_info_t &s,
+                           buffer_handle_t h)
 {
 	for(int i=0;i<s.num_channels;i++) {
-		if (s.map[i])
+		if (s.map[i] >= 0)
 		{
-			disable_media_output_fifo(s.map[i]);
+      unsafe {
+        disable_audio_output_fifo(h, s.map[i]);
+      }
 		}
 	}
 
@@ -111,7 +118,8 @@ void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      ethernet_packet_info_t &packet_info,
                                      chanend c_buf_ctl,
                                      avb_1722_listener_state_t &st,
-                                     ptp_time_info_mod64 &?timeInfo)
+                                     ptp_time_info_mod64 &?timeInfo,
+                                     buffer_handle_t h)
 {
   unsigned stream_id = packet_info.filter_data;
 
@@ -129,14 +137,16 @@ void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      st.listener_streams[stream_id],
                                      timeInfo,
                                      stream_id,
-                                     st.notified_buf_ctl);
+                                     st.notified_buf_ctl,
+                                     h);
   }
 }
 
 
 #pragma select handler
 void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
-                                  avb_1722_listener_state_t &st)
+                                  avb_1722_listener_state_t &st,
+                                  buffer_handle_t h)
 {
   int cmd;
   slave {
@@ -148,7 +158,8 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
           int stream_num;
           c_listener_ctl :> stream_num;
           configure_stream(c_listener_ctl,
-                           st.listener_streams[stream_num]);
+                           st.listener_streams[stream_num],
+                           h);
           break;
         }
       case AVB1722_ADJUST_LISTENER_STREAM:
@@ -156,14 +167,14 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
           int stream_num;
           c_listener_ctl :> stream_num;
           adjust_stream(c_listener_ctl,
-                        st.listener_streams[stream_num]);
+                        st.listener_streams[stream_num], h);
           break;
         }
       case AVB1722_DISABLE_LISTENER_STREAM:
         {
           int stream_num;
           c_listener_ctl :> stream_num;
-          disable_stream(st.listener_streams[stream_num]);
+          disable_stream(st.listener_streams[stream_num], h);
           break;
         }
       case AVB1722_GET_ROUTER_LINK:
@@ -181,7 +192,8 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
                        chanend? c_buf_ctl,
                        chanend? c_ptp,
                        chanend c_listener_ctl,
-                       int num_streams)
+                       int num_streams,
+                       client push_if audio_output_buf)
 {
   avb_1722_listener_state_t st;
   timer tmr;
@@ -205,7 +217,8 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
   t+=TIMEINFO_UPDATE_INTERVAL;
 #endif
 
-  // main loop.
+  buffer_handle_t h = audio_output_buf.get_handle();
+
   while (1) {
 
 #pragma ordered
@@ -214,8 +227,8 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
 #if !defined(AVB_1722_FORMAT_61883_4)
         // Conditional due to compiler bug 11998.
         // FIXME: stream_num variable is not the stream num, it is the FIFO!
-      case !isnull(c_buf_ctl) => c_buf_ctl :> int stream_num:
-          media_output_fifo_handle_buf_ctl(c_buf_ctl, stream_num, st.notified_buf_ctl, tmr);
+      case !isnull(c_buf_ctl) => c_buf_ctl :> int fifo_index:
+          audio_output_fifo_handle_buf_ctl(c_buf_ctl, h, fifo_index, st.notified_buf_ctl, tmr);
         break;
 #endif
 
@@ -236,7 +249,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
                                         #else
                                         null
                                         #endif
-                                        );
+                                        ,h);
         break;
 
 
@@ -252,7 +265,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
         break;
 #endif
 
-      case avb_1722_listener_handle_cmd(c_listener_ctl, st):
+      case avb_1722_listener_handle_cmd(c_listener_ctl, st, h):
         break;
       }
   }

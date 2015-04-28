@@ -91,6 +91,7 @@ ptp_port_role_t ptp_current_state()
   // return ptp_state;
 }
 
+[[dual_issue]]
 unsigned local_timestamp_to_ptp_mod32(unsigned local_ts,
                                       ptp_time_info_mod64 &info)
 {
