@@ -5,13 +5,12 @@
 #include <xccompat.h>
 #include <string.h>
 #include <xscope.h>
-#include "audio_i2s.h"
+#include "i2s.h"
 #include "i2c.h"
 #include "avb.h"
 #include "audio_clock_CS2100CP.h"
 #include "xassert.h"
 #include "debug_print.h"
-#include "media_fifo.h"
 #include "simple_demo_controller.h"
 #include "avb_1722_1_adp.h"
 #include "app_config.h"
@@ -23,6 +22,7 @@
 #include "aem_descriptor_types.h"
 #include "ethernet.h"
 #include "smi.h"
+#include "audio_buffering.h"
 
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
 on tile[1]: otp_ports_t otp_ports1 = OTP_PORTS_INITIALIZER;
@@ -33,48 +33,68 @@ on tile[1]: port p_smi_mdio = XS1_PORT_1C;
 on tile[1]: port p_smi_mdc = XS1_PORT_1D;
 on tile[1]: port p_eth_reset = XS1_PORT_4A;
 
-on tile[1]: out port p_leds_row = XS1_PORT_4C;
-on tile[1]: out port p_leds_column = XS1_PORT_4D;
+// on tile[1]: out port p_leds_row = XS1_PORT_4C;
+// on tile[1]: out port p_leds_column = XS1_PORT_4D;
 
 on tile[0]: port p_i2c = XS1_PORT_4A;
 
 //***** AVB audio ports ****
 on tile[0]: out buffered port:32 p_fs[1] = { XS1_PORT_1A };
-on tile[0]: i2s_ports_t i2s_ports =
-{
-  XS1_CLKBLK_3,
-  XS1_CLKBLK_4,
-  XS1_PORT_1F,
-  XS1_PORT_1H,
-  XS1_PORT_1G
-};
+on tile[0]: out buffered port:32 p_i2s_lrclk = XS1_PORT_1G;
+on tile[0]: out buffered port:32 p_i2s_bclk = XS1_PORT_1H;
+on tile[0]: in port p_i2s_mclk = XS1_PORT_1F;
+
+clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_3;
+clock clk_i2s_mclk = on tile[0]: XS1_CLKBLK_4;
 
 on tile[0]: out buffered port:32 p_aud_dout[4] = {XS1_PORT_1M, XS1_PORT_1N, XS1_PORT_1O, XS1_PORT_1P};
 on tile[0]: in buffered port:32 p_aud_din[4] = {XS1_PORT_1I, XS1_PORT_1J, XS1_PORT_1K, XS1_PORT_1L};
 
 on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 
-#if AVB_DEMO_ENABLE_LISTENER
-media_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
-media_output_fifo_t ofifos[AVB_NUM_MEDIA_OUTPUTS];
-#else
-  #define ofifos null
-#endif
-
-#if AVB_DEMO_ENABLE_TALKER
-media_input_fifo_data_t ififo_data[AVB_NUM_MEDIA_INPUTS];
-media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
-#else
-  #define ififos null
-#endif
-
 [[combinable]] void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity);
 
+//Address on I2C bus
+#define CS5368_ADDR      (0x4C)
+
+//Register Addresess
+#define CS5368_CHIP_REV      0x00
+#define CS5368_GCTL_MDE      0x01
+#define CS5368_OVFL_ST       0x02
+//Address on I2C bus
+#define CS4384_ADDR      (0x18)
+
+//Register Addresess
+#define CS4384_CHIP_REV      0x01
 #define CS4384_MODE_CTRL     0x02
 #define CS4384_PCM_CTRL      0x03
-
+#define CS4384_DSD_CTRL      0x04
+#define CS4384_FLT_CTRL      0x05
+#define CS4384_INV_CTRL      0x06
+#define CS4384_GRP_CTRL      0x07
+#define CS4384_RMP_MUTE      0x08
+#define CS4384_MUTE_CTRL     0x09
+#define CS4384_MIX_PR1       0x0a
+#define CS4384_VOL_A1        0x0b
+#define CS4384_VOL_B1        0x0c
+#define CS4384_MIX_PR2       0x0d
+#define CS4384_VOL_A2        0x0e
+#define CS4384_VOL_B2        0x0f
+#define CS4384_MIX_PR3       0x10
+#define CS4384_VOL_A3        0x11
+#define CS4384_VOL_B3        0x12
+#define CS4384_MIX_PR4       0x13
+#define CS4384_VOL_A4        0x14
+#define CS4384_VOL_B4        0x15
+#define CS4384_CM_MODE       0x16
+#define CS5368_CHIP_REV      0x00
 #define CS5368_GCTL_MDE      0x01
+#define CS5368_OVFL_ST       0x02
+#define CS5368_OVFL_MSK      0x03
+#define CS5368_HPF_CTRL      0x04
 #define CS5368_PWR_DN        0x06
+#define CS5368_MUTE_CTRL     0x08
+#define CS5368_SDO_EN        0x0a
 
 [[distributable]] void audio_hardware_setup(client interface i2c_master_if i2c)
 {
@@ -82,20 +102,111 @@ media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
 
   p_audio_shared <: 0b11000110;
 
-  // DAC
-  i2c.write_reg(0x18, CS4384_MODE_CTRL, 0b11000001);
-  i2c.write_reg(0x18, CS4384_PCM_CTRL, 0b00010111);
-  i2c.write_reg(0x18, CS4384_MODE_CTRL, 0b10000000);
+  /* Mode Control 1 (Address: 0x02) */
+  /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
+   * bit[6] : Freeze controls (FREEZE)       : Set to 1 for freeze
+   * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
+   * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
+   * bit[0] : Power Down (PDN)               : Powered down
+   */
+  i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b11000001);
 
-  // ADC
-  i2c.write_reg(0x4C, CS5368_GCTL_MDE, 0b10010000 | (0x01 << 2) | 0x03);
-  i2c.write_reg(0x4C, CS5368_PWR_DN, 0);
+  /* PCM Control (Address: 0x03) */
+  /* bit[7:4] : Digital Interface Format (DIF) : 0b1100 for TDM
+   * bit[3:2] : Reserved
+   * bit[1:0] : Functional Mode (FM) : 0x11 for auto-speed detect (32 to 200kHz)
+  */
+  i2c.write_reg(CS4384_ADDR, CS4384_PCM_CTRL, 0b11000111);
+
+  /* Mode Control 1 (Address: 0x02) */
+  /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
+   * bit[6] : Freeze controls (FREEZE)       : Set to 0 for freeze
+   * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
+   * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
+   * bit[0] : Power Down (PDN)               : Not powered down
+   */
+  i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b10000000);
+
+  unsigned adc_dif = 0x02; // TDM mode
+  unsigned adc_mode = 0x03;    /* Slave mode all speeds */
+
+  /* Reg 0x01: (GCTL) Global Mode Control Register */
+  /* Bit[7]: CP-EN: Manages control-port mode
+   * Bit[6]: CLKMODE: Setting puts part in 384x mode
+   * Bit[5:4]: MDIV[1:0]: Set to 01 for /2
+   * Bit[3:2]: DIF[1:0]: Data Format: 0x01 for I2S, 0x02 for TDM
+   * Bit[1:0]: MODE[1:0]: Mode: 0x11 for slave mode
+   */
+  i2c.write_reg(CS5368_ADDR, CS5368_GCTL_MDE, 0b10010000 | (adc_dif << 2) | adc_mode);
+
+  /* Reg 0x06: (PDN) Power Down Register */
+  /* Bit[7:6]: Reserved
+   * Bit[5]: PDN-BG: When set, this bit powers-own the bandgap reference
+   * Bit[4]: PDM-OSC: Controls power to internal oscillator core
+   * Bit[3:0]: PDN: When any bit is set all clocks going to that channel pair are turned off
+   */
+  i2c.write_reg(CS5368_ADDR, CS5368_PWR_DN, 0b00000000);
 
   while (1) {
     select {
     }
   }
 }
+
+#pragma unsafe arrays
+[[always_inline]][[distributable]]
+void buffer_manager_to_tdm(server i2s_callback_if tdm, streaming chanend c_audio)
+{
+  audio_frame_t *unsafe p_in_frame;
+  audio_double_buffer_t *unsafe double_buffer;
+  int32_t *unsafe sample_out_buf;
+  unsigned send_count = 0;
+
+  timer tmr;
+  while (1) {
+    select {
+    case tdm.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
+      tdm_config.offset = -1;
+      tdm_config.sync_len = 1;
+      tdm_config.channels_per_frame = 8;
+      send_count = 0;
+
+      unsafe {
+        c_audio :> double_buffer;
+        p_in_frame = &double_buffer->buffer[double_buffer->active_buffer];
+      }
+      break;
+
+    case tdm.restart_check() -> i2s_restart_t restart:
+      restart = I2S_NO_RESTART;
+      break;
+
+    case tdm.receive(size_t index, int32_t sample):
+      unsafe {
+        p_in_frame->samples[index] = sample;
+      }
+      break;
+
+    case tdm.send(size_t index) -> int32_t sample:
+      unsafe {
+        if (send_count == 0) {
+          c_audio :> sample_out_buf;
+        }
+        sample = sample_out_buf[send_count];
+        send_count++;
+        if (send_count == 4) send_count = 0;
+        if (index == 25) {
+          tmr :> p_in_frame->timestamp;
+          audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
+          c_audio <: p_in_frame;
+          p_in_frame = new_frame;
+        }
+      }
+      break;
+    }
+  }
+}
+
 
 [[combinable]]
 void ar8035_phy_driver(client interface smi_if smi,
@@ -225,6 +336,12 @@ int main(void)
   interface avb_interface i_avb[NUM_AVB_MANAGER_CHANS];
   interface avb_1722_1_control_callbacks i_1722_1_entity;
   i2c_master_if i2c[1];
+  i2s_callback_if i_tdm;
+  streaming chan c_audio;
+  interface push_if i_audio_in_push;
+  interface pull_if i_audio_in_pull;
+  interface push_if i_audio_out_push;
+  interface pull_if i_audio_out_pull;
 
   par
   {
@@ -254,33 +371,22 @@ int main(void)
     on tile[0]: [[distribute]] i2c_master_single_port(i2c, 1, p_i2c, 100, 0, 1, 0);
     on tile[0]: [[distribute]] audio_hardware_setup(i2c[0]);
 
-    on tile[0]:
-    {
-#if AVB_DEMO_ENABLE_TALKER
-      init_media_input_fifos(ififos, ififo_data, AVB_NUM_MEDIA_INPUTS);
-#endif
+    on tile[0]: {
+      configure_clock_src_divide(clk_i2s_bclk, p_i2s_mclk, 1);
+      configure_port_clock_output(p_i2s_bclk, clk_i2s_bclk);
 
-#if AVB_DEMO_ENABLE_LISTENER
-      init_media_output_fifos(ofifos, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
-#endif
-      media_ctl_register(c_media_ctl[0], ififos, AVB_NUM_MEDIA_INPUTS,
-                         ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
-
-      i2s_master(i2s_ports,
-                 p_aud_din, AVB_NUM_MEDIA_INPUTS,
-                 p_aud_dout, AVB_NUM_MEDIA_OUTPUTS,
-                 MASTER_TO_WORDCLOCK_RATIO,
-                 ififos,
-                 ofifos);
+      tdm_master(i_tdm, p_i2s_lrclk, p_aud_dout, 4, p_aud_din, 4, clk_i2s_bclk);
     }
 
-#if AVB_DEMO_ENABLE_TALKER
-    // AVB Talker - must be on the same tile as the audio interface
-    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
-                                c_eth_tx_hp,
-                                c_talker_ctl[0],
-                                AVB_NUM_SOURCES);
-#endif
+    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio);
+
+    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0]);
+
+    on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
+
+    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER], c_eth_tx_hp, c_talker_ctl[0], AVB_NUM_SOURCES, i_audio_in_pull);
+
+    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
 #if AVB_DEMO_ENABLE_LISTENER
     // AVB Listener
@@ -288,7 +394,8 @@ int main(void)
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],
-                                  AVB_NUM_SINKS);
+                                  AVB_NUM_SINKS,
+                                  i_audio_out_push);
 #endif
     
 
@@ -308,16 +415,19 @@ int main(void)
                        i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
                        i_media_clock_ctl);
          application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
-         avb_1722_1_maap_srp_task(otp_ports0,
-                                  i_avb[AVB_MANAGER_TO_1722_1],
+         avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
                                   i_1722_1_entity,
                                   null,
                                   i_eth_rx_lp[MAC_TO_1722_1],
                                   i_eth_tx_lp[AVB1722_1_TO_MAC],
                                   i_eth_cfg[MAC_CFG_TO_1722_1],
-                                  c_ptp[PTP_TO_1722_1]);
+                                  c_ptp[PTP_TO_1722_1],
+                                  otp_ports0);
        }
     }
+    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
+    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
+
   }
 
     return 0;
