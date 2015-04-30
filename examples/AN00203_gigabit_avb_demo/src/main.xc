@@ -194,8 +194,8 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm, streaming chanend c_audio
         }
         sample = sample_out_buf[send_count];
         send_count++;
-        if (send_count == 4) send_count = 0;
-        if (index == 25) {
+        if (send_count == (AVB_NUM_MEDIA_OUTPUTS/8)) send_count = 0;
+        if (index == (AVB_NUM_MEDIA_INPUTS-7)) {
           tmr :> p_in_frame->timestamp;
           audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
           c_audio <: p_in_frame;
@@ -375,7 +375,7 @@ int main(void)
       configure_clock_src_divide(clk_i2s_bclk, p_i2s_mclk, 1);
       configure_port_clock_output(p_i2s_bclk, clk_i2s_bclk);
 
-      tdm_master(i_tdm, p_i2s_lrclk, p_aud_dout, 4, p_aud_din, 4, clk_i2s_bclk);
+      tdm_master(i_tdm, p_i2s_lrclk, p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/8, p_aud_din, AVB_NUM_MEDIA_INPUTS/8, clk_i2s_bclk);
     }
 
     on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio);
