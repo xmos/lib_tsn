@@ -13,7 +13,8 @@
 #include "audio_clock_CS2300CP.h"
 #include "audio_codec_CS4270.h"
 #include "debug_print.h"
-#include "media_fifo.h"
+#include "audio_buffering.h"
+#include "audio_output_fifo.h"
 #include "simple_demo_controller.h"
 #include "avb_1722_1_adp.h"
 #include "app_config.h"
@@ -147,51 +148,29 @@ void lan8710a_phy_driver(client interface smi_if smi,
   }
 }
 
-
-#define I2S_SINE_TABLE_SIZE 100
-
-extern unsigned int i2s_sine[I2S_SINE_TABLE_SIZE];
-
-#ifndef I2S_SYNTH_FROM
-#define I2S_SYNTH_FROM 8
-#endif
-
 #pragma unsafe arrays
 [[distributable]]
 void avb_to_i2s(server i2s_callback_if i2s,
+                client push_if audio_input_buf,
+                client pull_if audio_output_buf,
                 chanend c_media_ctl,
                 client i2c_master_if i2c)
 {
-  int sine_count[8] = {0};
-  int sine_inc[8] = {0x080, 0x080, 0x100, 0x100, 0x180, 0x180, 0x200, 0x200};
-
-#if AVB_DEMO_ENABLE_LISTENER
-  media_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
-  media_output_fifo_t ofifos[AVB_NUM_MEDIA_OUTPUTS];
-#else
-  #define ofifos null
-#endif
-
-#if AVB_DEMO_ENABLE_TALKER
-  media_input_fifo_data_t ififo_data[AVB_NUM_MEDIA_INPUTS];
-  media_input_fifo_t ififos[AVB_NUM_MEDIA_INPUTS];
-#else
-  #define ififos null
-#endif
-
-#if AVB_DEMO_ENABLE_TALKER
-  init_media_input_fifos(ififos, ififo_data, AVB_NUM_MEDIA_INPUTS);
-#endif
-
-#if AVB_DEMO_ENABLE_LISTENER
-  init_media_output_fifos(ofifos, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
-#endif
-  media_ctl_register(c_media_ctl, ififos, AVB_NUM_MEDIA_INPUTS,
-                     ofifos, AVB_NUM_MEDIA_OUTPUTS, 0);
-
-  unsigned int active_fifos = 0;
-  unsigned timestamp;
+  buffer_handle_t h_in = audio_input_buf.get_handle();
+  buffer_handle_t h_out = audio_output_buf.get_handle();
+  audio_double_buffer_t *unsafe input_sample_buf;
+  audio_frame_t *unsafe p_in_frame;
+  audio_output_fifo_t *unsafe output_sample_buf;
   timer tmr;
+
+  unsafe {
+    input_sample_buf = ((struct input_finfo *)h_in)->p_buffer;
+    output_sample_buf = (audio_output_fifo_t *unsafe)((struct output_finfo *)h_out)->p_buffer;
+
+    media_ctl_register(c_media_ctl, AVB_NUM_MEDIA_INPUTS,
+                      output_sample_buf, AVB_NUM_MEDIA_OUTPUTS, 0);
+  }
+
   while (1) {
     select {
     case i2s.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
@@ -211,6 +190,10 @@ void avb_to_i2s(server i2s_callback_if i2s,
         audio_codec_CS4270_init(p_audio_shared, 0xff, codec2_addr, i2c);
       #endif
 
+      unsafe {
+        p_in_frame = &input_sample_buf->buffer[input_sample_buf->active_buffer];
+      }
+
       break;
 
     case i2s.restart_check() -> i2s_restart_t restart:
@@ -218,29 +201,22 @@ void avb_to_i2s(server i2s_callback_if i2s,
       break;
 
     case i2s.receive(size_t index, int32_t sample):
-      if (index >= I2S_SYNTH_FROM) {
-        sample = i2s_sine[sine_count[index]>>8];
-        sine_count[index] += sine_inc[index];
-        if (sine_count[index] >= I2S_SINE_TABLE_SIZE * 256)
-          sine_count[index] -= I2S_SINE_TABLE_SIZE * 256;
-      }
-
-      if (active_fifos & (1 << index)) {
-        media_input_fifo_push_sample(ififos[index], sample, timestamp);
-      } else {
-        media_input_fifo_flush(ififos[index]);
-      }
-      if (index == AVB_DEMO_NUM_CHANNELS - 1) {
-        media_input_fifo_update_enable_ind_state(active_fifos, 0xfffffff);
-        active_fifos = media_input_fifo_enable_req_state();
+      unsafe {
+        p_in_frame->samples[index] = sample;
       }
       break;
 
     case i2s.send(size_t index) -> int32_t sample:
-      if (index == 0) {
-        tmr :> timestamp;
+      unsafe {
+        if (index == 0) {
+          tmr :> p_in_frame->timestamp;
+        }
+        sample = audio_output_fifo_pull_sample(output_sample_buf, index,
+                                               p_in_frame->timestamp);
+        if (index == 7) {
+          p_in_frame = audio_buffers_swap_active_buffer(*input_sample_buf);
+        }
       }
-      sample = media_output_fifo_pull_sample(ofifos[index], timestamp);
       break;
     }
   }
@@ -320,6 +296,10 @@ int main(void)
   interface avb_1722_1_control_callbacks i_1722_1_entity;
   i2c_master_if i2c[1];
   i2s_callback_if i_i2s;
+  interface push_if i_audio_in_push;
+  interface pull_if i_audio_in_pull;
+  interface push_if i_audio_out_push;
+  interface pull_if i_audio_out_pull;
 
   par
   {
@@ -361,8 +341,6 @@ int main(void)
 
     on tile[AVB_I2C_TILE]: i2c_master(i2c, 1, p_i2c_scl, p_i2c_sda, 100);
 
-    on tile[0]: [[distribute]] avb_to_i2s(i_i2s, c_media_ctl[0], i2c[0]);
-
     on tile[0]: {
       configure_clock_src(clk_i2s_mclk, p_i2s_mclk);
       start_clock(clk_i2s_mclk);
@@ -375,13 +353,13 @@ int main(void)
                  clk_i2s_mclk);
     }
 
-#if AVB_DEMO_ENABLE_TALKER
-    // AVB Talker - must be on the same tile as the audio interface
-    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
-                                c_eth_tx_hp,
-                                c_talker_ctl[0],
-                                AVB_NUM_SOURCES);
-#endif
+    on tile[0]: [[distribute]] avb_to_i2s(i_i2s, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], i2c[0]);
+
+    on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
+
+    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER], c_eth_tx_hp, c_talker_ctl[0], AVB_NUM_SOURCES, i_audio_in_pull);
+
+    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
 #if AVB_DEMO_ENABLE_LISTENER
     // AVB Listener
@@ -389,7 +367,8 @@ int main(void)
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],
-                                  AVB_NUM_SINKS);
+                                  AVB_NUM_SINKS,
+                                  i_audio_out_push);
 #endif
 
     on tile[1]: {
