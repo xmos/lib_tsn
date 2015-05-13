@@ -5,6 +5,7 @@
 #include <xccompat.h>
 #include <string.h>
 #include <xscope.h>
+#include "gpio.h"
 #include "i2s.h"
 #include "i2c.h"
 #include "avb.h"
@@ -96,66 +97,15 @@ on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 #define CS5368_MUTE_CTRL     0x08
 #define CS5368_SDO_EN        0x0a
 
-[[distributable]] void audio_hardware_setup(client interface i2c_master_if i2c)
-{
-  audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
-
-  p_audio_shared <: 0b11000110;
-
-  /* Mode Control 1 (Address: 0x02) */
-  /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
-   * bit[6] : Freeze controls (FREEZE)       : Set to 1 for freeze
-   * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
-   * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
-   * bit[0] : Power Down (PDN)               : Powered down
-   */
-  i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b11000001);
-
-  /* PCM Control (Address: 0x03) */
-  /* bit[7:4] : Digital Interface Format (DIF) : 0b1100 for TDM
-   * bit[3:2] : Reserved
-   * bit[1:0] : Functional Mode (FM) : 0x11 for auto-speed detect (32 to 200kHz)
-  */
-  i2c.write_reg(CS4384_ADDR, CS4384_PCM_CTRL, 0b11000111);
-
-  /* Mode Control 1 (Address: 0x02) */
-  /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
-   * bit[6] : Freeze controls (FREEZE)       : Set to 0 for freeze
-   * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
-   * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
-   * bit[0] : Power Down (PDN)               : Not powered down
-   */
-  i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b10000000);
-
-  unsigned adc_dif = 0x02; // TDM mode
-  unsigned adc_mode = 0x03;    /* Slave mode all speeds */
-
-  /* Reg 0x01: (GCTL) Global Mode Control Register */
-  /* Bit[7]: CP-EN: Manages control-port mode
-   * Bit[6]: CLKMODE: Setting puts part in 384x mode
-   * Bit[5:4]: MDIV[1:0]: Set to 01 for /2
-   * Bit[3:2]: DIF[1:0]: Data Format: 0x01 for I2S, 0x02 for TDM
-   * Bit[1:0]: MODE[1:0]: Mode: 0x11 for slave mode
-   */
-  i2c.write_reg(CS5368_ADDR, CS5368_GCTL_MDE, 0b10010000 | (adc_dif << 2) | adc_mode);
-
-  /* Reg 0x06: (PDN) Power Down Register */
-  /* Bit[7:6]: Reserved
-   * Bit[5]: PDN-BG: When set, this bit powers-own the bandgap reference
-   * Bit[4]: PDM-OSC: Controls power to internal oscillator core
-   * Bit[3:0]: PDN: When any bit is set all clocks going to that channel pair are turned off
-   */
-  i2c.write_reg(CS5368_ADDR, CS5368_PWR_DN, 0b00000000);
-
-  while (1) {
-    select {
-    }
-  }
-}
-
 #pragma unsafe arrays
 [[always_inline]][[distributable]]
-void buffer_manager_to_tdm(server i2s_callback_if tdm, streaming chanend c_audio)
+void buffer_manager_to_tdm(server i2s_callback_if tdm,
+                           streaming chanend c_audio,
+                           client interface i2c_master_if i2c,
+                           client output_gpio_if dac_reset,
+                           client output_gpio_if adc_reset,
+                           client output_gpio_if pll_select,
+                           client output_gpio_if mclk_select)
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
@@ -170,6 +120,70 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm, streaming chanend c_audio
       tdm_config.sync_len = 1;
       tdm_config.channels_per_frame = 8;
       send_count = 0;
+
+      audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+
+      /* Set CODEC in reset */
+      dac_reset.output(0);
+      adc_reset.output(0);
+
+      /* Select 48Khz family clock (24.576Mhz) */
+      mclk_select.output(0);
+      pll_select.output(1);
+
+      /* Allow the clock to settle */
+      delay_milliseconds(2);
+
+      /* DAC out of reset */
+      dac_reset.output(1);
+
+      /* Mode Control 1 (Address: 0x02) */
+      /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
+       * bit[6] : Freeze controls (FREEZE)       : Set to 1 for freeze
+       * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
+       * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
+       * bit[0] : Power Down (PDN)               : Powered down
+       */
+      i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b11000001);
+
+      /* PCM Control (Address: 0x03) */
+      /* bit[7:4] : Digital Interface Format (DIF) : 0b1100 for TDM
+       * bit[3:2] : Reserved
+       * bit[1:0] : Functional Mode (FM) : 0x11 for auto-speed detect (32 to 200kHz)
+      */
+      i2c.write_reg(CS4384_ADDR, CS4384_PCM_CTRL, 0b11000111);
+
+      /* Mode Control 1 (Address: 0x02) */
+      /* bit[7] : Control Port Enable (CPEN)     : Set to 1 for enable
+       * bit[6] : Freeze controls (FREEZE)       : Set to 0 for freeze
+       * bit[5] : PCM/DSD Selection (DSD/PCM)    : Set to 0 for PCM
+       * bit[4:1] : DAC Pair Disable (DACx_DIS)  : All Dac Pairs enabled
+       * bit[0] : Power Down (PDN)               : Not powered down
+       */
+      i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b10000000);
+
+      /* ADC out of reset */
+      adc_reset.output(1);
+
+      unsigned adc_dif = 0x02; // TDM mode
+      unsigned adc_mode = 0x03;    /* Slave mode all speeds */
+
+      /* Reg 0x01: (GCTL) Global Mode Control Register */
+      /* Bit[7]: CP-EN: Manages control-port mode
+       * Bit[6]: CLKMODE: Setting puts part in 384x mode
+       * Bit[5:4]: MDIV[1:0]: Set to 01 for /2
+       * Bit[3:2]: DIF[1:0]: Data Format: 0x01 for I2S, 0x02 for TDM
+       * Bit[1:0]: MODE[1:0]: Mode: 0x11 for slave mode
+       */
+      i2c.write_reg(CS5368_ADDR, CS5368_GCTL_MDE, 0b10010000 | (adc_dif << 2) | adc_mode);
+
+      /* Reg 0x06: (PDN) Power Down Register */
+      /* Bit[7:6]: Reserved
+       * Bit[5]: PDN-BG: When set, this bit powers-own the bandgap reference
+       * Bit[4]: PDM-OSC: Controls power to internal oscillator core
+       * Bit[3:0]: PDN: When any bit is set all clocks going to that channel pair are turned off
+       */
+      i2c.write_reg(CS5368_ADDR, CS5368_PWR_DN, 0b00000000);
 
       unsafe {
         c_audio :> double_buffer;
@@ -301,6 +315,20 @@ enum ptp_chans {
   NUM_PTP_CHANS
 };
 
+enum gpio_shared_audio_pins {
+  GPIO_DAC_RST_N = 1,
+  GPIO_PLL_SEL = 5,     /* 1 = CS2100, 0 = Phaselink clock source */
+  GPIO_ADC_RST_N = 6,
+  GPIO_MCLK_FSEL = 7,   /* Select frequency on Phaselink clock. 0 = 24.576MHz for 48k, 1 = 22.5792MHz for 44.1k.*/
+};
+
+static char gpio_pin_map[4] =  {
+  GPIO_DAC_RST_N,
+  GPIO_ADC_RST_N,
+  GPIO_PLL_SEL,
+  GPIO_MCLK_FSEL
+};
+
 int main(void)
 {
   ethernet_cfg_if i_eth_cfg[NUM_ETH_CFG_CLIENTS];
@@ -336,6 +364,7 @@ int main(void)
   interface avb_interface i_avb[NUM_AVB_MANAGER_CHANS];
   interface avb_1722_1_control_callbacks i_1722_1_entity;
   i2c_master_if i2c[1];
+  interface output_gpio_if i_gpio[4];
   i2s_callback_if i_tdm;
   streaming chan c_audio;
   interface push_if i_audio_in_push;
@@ -369,7 +398,7 @@ int main(void)
                                    PTP_GRANDMASTER_CAPABLE);
 
     on tile[0]: [[distribute]] i2c_master_single_port(i2c, 1, p_i2c, 100, 0, 1, 0);
-    on tile[0]: [[distribute]] audio_hardware_setup(i2c[0]);
+    on tile[0]: [[distribute]] output_gpio(i_gpio, 4, p_audio_shared, gpio_pin_map);
 
     on tile[0]: {
       configure_clock_src_divide(clk_i2s_bclk, p_i2s_mclk, 1);
@@ -378,7 +407,7 @@ int main(void)
       tdm_master(i_tdm, p_i2s_lrclk, p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/8, p_aud_din, AVB_NUM_MEDIA_INPUTS/8, clk_i2s_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio);
+    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i2c[0], i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0]);
 
