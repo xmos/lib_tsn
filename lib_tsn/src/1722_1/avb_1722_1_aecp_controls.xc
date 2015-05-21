@@ -248,22 +248,26 @@ unsafe void process_aem_cmd_getset_sampling_rate(avb_1722_1_aecp_packet_t *unsaf
     if (avb.get_device_media_clock_rate(media_clock_id, rate))
     {
       hton_32(cmd->sampling_rate, rate);
-      return;
+    }
+    else {
+      status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
     }
   }
   else // AECP_AEM_CMD_SET_SAMPLING_RATE
   {
     rate = ntoh_32(cmd->sampling_rate);
-
+    avb.set_device_media_clock_state(media_clock_id, DEVICE_MEDIA_CLOCK_STATE_DISABLED);
     if (avb.set_device_media_clock_rate(media_clock_id, rate))
     {
+      avb.set_device_media_clock_state(media_clock_id, DEVICE_MEDIA_CLOCK_STATE_ENABLED);
       debug_printf("SET SAMPLING RATE TO %d\n", rate);
       // Success
-      return;
+    }
+    else {
+      status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
     }
   }
-
-  status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+  return;
 }
 
 unsafe void process_aem_cmd_getset_clock_source(avb_1722_1_aecp_packet_t *unsafe pkt,
@@ -281,21 +285,27 @@ unsafe void process_aem_cmd_getset_clock_source(avb_1722_1_aecp_packet_t *unsafe
     if (avb.get_device_media_clock_type(media_clock_id, source_index))
     {
       hton_16(cmd->clock_source_index, source_index);
-      return;
+    }
+    else {
+      status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
     }
   }
   else // AECP_AEM_CMD_SET_CLOCK_SOURCE
   {
     source_index = ntoh_16(cmd->clock_source_index);
 
+    avb.set_device_media_clock_state(media_clock_id, DEVICE_MEDIA_CLOCK_STATE_DISABLED);
     if (avb.set_device_media_clock_type(media_clock_id, source_index))
     {
+      avb.set_device_media_clock_state(media_clock_id, DEVICE_MEDIA_CLOCK_STATE_ENABLED);
       // Success
-      return;
+    }
+    else {
+      status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
     }
   }
 
-  status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+  return;
 }
 
 unsafe void process_aem_cmd_startstop_streaming(avb_1722_1_aecp_packet_t *unsafe pkt,
