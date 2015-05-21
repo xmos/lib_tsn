@@ -1,28 +1,13 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-/**
- * \file media_clock_support.c
- * \brief C functions for the media clock
- *
- * property rights are retained by XMOS and/or its licensors.
- * Terms and conditions covering the use of this code can
- * be found in the Xmos End User License Agreement.
- *
- *
- * In the case where this code is a modification of existing code
- * under a separate license, the separate license terms are shown
- * below. The modifications to the code are still covered by the
- *
- **/
 #include <xccompat.h>
 #include <xscope.h>
+#include "xassert.h"
 #include "gptp.h"
 #include "avb_1722_def.h"
 #include "print.h"
 #include "media_clock_internal.h"
 #include "media_clock_client.h"
 #include "misc_timer.h"
-
-#define NANO_SECOND 1000000000
 
 // The clock recovery internal representation of the worldlen.  More precision and range than the external
 // worldlen representation.  The max percision is 26 bits before the PTP clock recovery multiplcation overflows
@@ -66,6 +51,20 @@ static unsigned int local_wordlen_to_external_wordlen(unsigned long long w) {
 	return (w >> (WORDLEN_FRACTIONAL_BITS - WC_FRACTIONAL_BITS));
 }
 
+static unsigned long long calculate_wordlen(unsigned int sample_rate) {
+	const unsigned long long nanoseconds = (100000000LL << WORDLEN_FRACTIONAL_BITS);
+	/* Calculate what master clock we should be using */
+	if ((sample_rate % 48000) == 0) {
+	    return (nanoseconds / 48000);
+	}
+	else if ((sample_rate % 44100) == 0) {
+	    return (nanoseconds / 44100);
+	}
+	else {
+		fail("Unsupported sample rate");
+	}
+}
+
 void init_media_clock_recovery(chanend ptp_svr,
 							   int clock_num,
 							   unsigned int clk_time,
@@ -76,7 +75,7 @@ void init_media_clock_recovery(chanend ptp_svr,
 	clock_info->rate = rate;
 	clock_info->ierror = 0;
 	if (rate != 0) {
-		clock_info->wordlen = ((100000000LL << WORDLEN_FRACTIONAL_BITS) / clock_info->rate);
+		clock_info->wordlen = calculate_wordlen(clock_info->rate);
 	} else {
 		clock_info->wordlen = 0;
 	}
@@ -139,8 +138,7 @@ unsigned int update_media_clock(chanend ptp_svr,
 
 		// If the stream is unlocked, return the default clock rate
 		if (!clock_info->stream_info2.locked) {
-			clock_info->wordlen = ((100000000LL << WORDLEN_FRACTIONAL_BITS)
-					/ clock_info->rate);
+			clock_info->wordlen = calculate_wordlen(clock_info->rate);
 			clock_info->stream_info1 = clock_info->stream_info2;
 			clock_info->stream_info2.valid = 0;
 			clock_info->first = 1;
