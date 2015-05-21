@@ -42,4 +42,9 @@ enum device_media_clock_type_t
   DEVICE_MEDIA_CLOCK_LOCAL_CLOCK
 };
 
+enum device_media_clock_commands_t
+{
+  DEVICE_MEDIA_CLOCK_SET_SAMPLING_RATE
+};
+
 #endif

@@ -111,8 +111,10 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
   audio_double_buffer_t *unsafe double_buffer;
   int32_t *unsafe sample_out_buf;
   unsigned send_count = 0;
-
   timer tmr;
+
+  audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+
   while (1) {
     select {
     case tdm.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
@@ -120,8 +122,6 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
       tdm_config.sync_len = 1;
       tdm_config.channels_per_frame = 8;
       send_count = 0;
-
-      audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
 
       /* Set CODEC in reset */
       dac_reset.output(0);
@@ -188,6 +188,7 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
       unsafe {
         c_audio :> double_buffer;
         p_in_frame = &double_buffer->buffer[double_buffer->active_buffer];
+        c_audio :> int; // Ignore sample rate info
       }
       break;
 
@@ -409,7 +410,7 @@ int main(void)
 
     on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i2c[0], i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
-    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0]);
+    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_TDM_IO);
 
     on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
 

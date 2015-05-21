@@ -110,7 +110,8 @@ void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull)
 void audio_buffer_manager(streaming chanend c_audio,
                          client push_if audio_input_buf,
                          client pull_if audio_output_buf,
-                         chanend c_media_ctl)
+                         chanend c_media_ctl,
+                         const audio_io_t audio_io_type)
 {
   set_core_high_priority_on();
 
@@ -122,41 +123,77 @@ void audio_buffer_manager(streaming chanend c_audio,
     audio_output_fifo_t *unsafe output_sample_buf = (audio_output_fifo_t *unsafe)((struct output_finfo *)h_out)->p_buffer;
     media_ctl_register(c_media_ctl, AVB_NUM_MEDIA_INPUTS,
                       output_sample_buf, AVB_NUM_MEDIA_OUTPUTS, 0);
+    unsigned ctl_command;
+    unsigned sample_rate;
 
-    c_audio <: input_sample_buf;
+    c_media_ctl :> ctl_command;
+    c_media_ctl :> sample_rate;
 
-    int done = 0;
-    unsigned timestamp = 0;
-    int channel = 0;
-    int32_t sample_out_buf[4] = {0, 0, 0, 0};
+    while (1) {
 
+      int done = 0;
+      unsigned timestamp = 0;
+      int channel = 0;
+      int32_t sample_out_buf[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+      unsigned tmp;
+      unsigned restart = 0;
 
-    for (int i=0; i < 2; i++) {
-      c_audio <: (int32_t *unsafe)&sample_out_buf;
-    }
+      c_audio <: input_sample_buf;
+      c_audio <: sample_rate;
 
-    while (!done) {
-      select {
-        #pragma ordered
-        case c_audio :> uintptr_t buffer :
+      if (audio_io_type == AUDIO_I2S_IO) {
+        c_audio <: (int32_t *unsafe)&sample_out_buf;
+      }
+      else {
+        for (int i=0; i < 2; i++) {
+          c_audio <: (int32_t *unsafe)&sample_out_buf;
+        }
+      }
 
-          audio_frame_t *buf = (audio_frame_t *)buffer;
-          timestamp = buf->timestamp;
-          break;
+      while (!done) {
+        select {
+          #pragma ordered
+          case c_audio :> uintptr_t buffer :
+            audio_frame_t *buf = (audio_frame_t *)buffer;
+            timestamp = buf->timestamp;
+            break;
 
-        default:
-          unsafe {
-            #pragma loop unroll
-            for (int i=0;i<AVB_NUM_SINKS;i++) { // FIXME: This should be number of TDM lines
-              int index = channel + (i*8);
-              sample_out_buf[i] = audio_output_fifo_pull_sample(output_sample_buf, index,
-                                                                timestamp);
+          case c_media_ctl :> ctl_command :
+            c_media_ctl :> sample_rate;
+            sample_out_buf[8] = 1;
+            done = 1;
+            soutct(c_audio, XS1_CT_END);
+            break;
+
+          default:
+            unsafe {
+              if (audio_io_type == AUDIO_I2S_IO) {
+                #pragma loop unroll
+                for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
+                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
+                                                                    timestamp);
+                }
+                #pragma loop unroll
+                for (int i=1;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
+                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
+                                                                    timestamp);
+                }
+                c_audio <: (int32_t *unsafe)&sample_out_buf;
+              }
+              else {
+                #pragma loop unroll
+                for (int i=0;i<AVB_NUM_SINKS;i++) { // FIXME: This should be number of TDM lines
+                  int index = channel + (i*8);
+                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, index,
+                                                                    timestamp);
+                }
+                c_audio <: (int32_t *unsafe)&sample_out_buf;
+                channel++;
+                if (channel == 8) channel = 0;
+              }
             }
-            c_audio <: (int32_t *unsafe)&sample_out_buf;
-            channel++;
-            if (channel == 8) channel = 0;
-          }
-          break;
+            break;
+        }
       }
     }
   }

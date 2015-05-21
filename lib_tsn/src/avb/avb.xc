@@ -520,6 +520,11 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
       break;
     case avb[int i]._set_media_clock_info(unsigned clock_num,
                                           media_clock_info_t info):
+      media_clock_info_t old_info = i_media_clock_ctl.get_clock_info(clock_num);
+      if (old_info.rate != info.rate) {
+        c_media_ctl[0] <: DEVICE_MEDIA_CLOCK_SET_SAMPLING_RATE;
+        c_media_ctl[0] <: info.rate;
+      }
       i_media_clock_ctl.set_clock_info(clock_num, info);
       break;
     }

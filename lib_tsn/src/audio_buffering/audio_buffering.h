@@ -9,8 +9,9 @@
 #include "xc2compat.h"
 #include "hwlock.h"
 
-#define AUDIO_INPUT_FRAME_BUFFER_COUNT 8
-
+/**
+ * \brief This type provides a handle to an audio buffer.
+ **/
 typedef void * unsafe buffer_handle_t;
 
 typedef struct audio_frame_t {
@@ -44,18 +45,22 @@ typedef interface pull_if {
   buffer_handle_t get_handle();
 } pull_if ;
 
-/**
- * \brief This type provides a handle to a media output FIFO.
- **/
-
 [[distributable]]
 void audio_input_sample_buffer(server push_if i_push, server pull_if i_pull);
 [[distributable]]
 void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull);
+
+typedef enum audio_io_t
+{
+  AUDIO_I2S_IO,
+  AUDIO_TDM_IO
+} audio_io_t;
+
 void audio_buffer_manager(streaming chanend c_audio,
                            client push_if audio_input_buf,
                            client pull_if audio_output_buf,
-                           chanend c_media_ctrl);
+                           chanend c_media_ctrl,
+                           const audio_io_t audio_io_type);
 unsafe void media_ctl_register(chanend media_ctl,
                         unsigned num_in,
                         audio_output_fifo_t *unsafe output_fifos,
@@ -82,14 +87,9 @@ unsafe static audio_frame_t *unsafe audio_buffers_swap_active_buffer0(audio_doub
   return &p_buffer->buffer[p_buffer->active_buffer];
 }
 
-
-// This function is just to avoid unused static function warnings for
-// tdm_master0,it should never be called.
 unsafe inline void audio_buffers_swap_active_buffer1(audio_double_buffer_t &buffer){
   audio_buffers_swap_active_buffer0(buffer);
 }
 #endif
-
-void audio_init_lock(void);
 
 #endif // __AUDIO_BUFFERING_H__
