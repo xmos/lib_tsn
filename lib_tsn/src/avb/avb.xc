@@ -273,6 +273,39 @@ static void update_sink_state(unsigned sink_num,
   }
 }
 
+static void configure_talker_stream(chanend c, avb_source_info_t *alias source, unsigned source_num) {
+  unsigned fifo_mask = 0;
+
+  for (int i=0;i<source->stream.num_channels;i++) {
+    inputs[source->map[i]].mapped_to = source_num;
+    fifo_mask |= (1 << source->map[i]);
+  }
+
+  master {
+    c <: AVB1722_CONFIGURE_TALKER_STREAM;
+    c <: (int)source->stream.local_id;
+    c <: (int)source->stream.format;
+
+    for (int i=0; i < 6;i++) {
+      c <: (int)source->reservation.dest_mac_addr[i];
+    }
+
+    c <: source_num;
+    c <: (int)source->stream.num_channels;
+    c <: fifo_mask;
+
+    for (int i=0;i<source->stream.num_channels;i++) {
+      c <: source->map[i];
+    }
+    c <: (int)source->stream.rate;
+
+    if (source->presentation)
+      c <: source->presentation;
+    else
+      c <: AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
+  }
+}
+
 static unsigned avb_srp_calculate_max_framesize(avb_source_info_t *source_info)
 {
 #if defined(AVB_1722_FORMAT_61883_6) || defined(AVB_1722_FORMAT_SAF)
@@ -320,36 +353,7 @@ static void update_source_state(unsigned source_num,
 
 
       if (valid) {
-        unsigned fifo_mask = 0;
-
-        for (int i=0;i<source->stream.num_channels;i++) {
-          inputs[source->map[i]].mapped_to = source_num;
-          fifo_mask |= (1 << source->map[i]);
-        }
-
-        master {
-          *c <: AVB1722_CONFIGURE_TALKER_STREAM;
-          *c <: (int)source->stream.local_id;
-          *c <: (int)source->stream.format;
-
-          for (int i=0; i < 6;i++) {
-            *c <: (int)source->reservation.dest_mac_addr[i];
-          }
-
-          *c <: source_num;
-          *c <: (int)source->stream.num_channels;
-          *c <: fifo_mask;
-
-          for (int i=0;i<source->stream.num_channels;i++) {
-            *c <: source->map[i];
-          }
-          *c <: (int)source->stream.rate;
-
-          if (source->presentation)
-            *c <: source->presentation;
-          else
-            *c <: AVB_DEFAULT_PRESENTATION_TIME_DELAY_NS;
-        }
+        configure_talker_stream(*c, source, source_num);
 
         source->reservation.tspec_max_frame_size = avb_srp_calculate_max_framesize(source);
         if (isnull(i_srp)) {
@@ -397,6 +401,7 @@ static void update_source_state(unsigned source_num,
     else if (prev == AVB_SOURCE_STATE_POTENTIAL &&
              state == AVB_SOURCE_STATE_ENABLED) {
       // start transmitting
+      configure_talker_stream(*c, source, source_num);
 
       debug_printf("%s #%d on\n", stream_string, source_num);
 
