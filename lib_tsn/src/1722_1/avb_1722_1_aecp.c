@@ -716,6 +716,13 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         cd_len = sizeof(avb_1722_1_aem_getset_stream_info_t);
         break;
       }
+      case AECP_AEM_CMD_GET_STREAM_FORMAT:
+      case AECP_AEM_CMD_SET_STREAM_FORMAT: // Fallthrough intentional
+      {
+        process_aem_cmd_getset_stream_format(pkt, &status, command_type, i_avb_api);
+        cd_len = sizeof(avb_1722_1_aem_getset_stream_format_t);
+        break;
+      }
       case AECP_AEM_CMD_GET_SAMPLING_RATE:
       case AECP_AEM_CMD_SET_SAMPLING_RATE:
       {
