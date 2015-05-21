@@ -238,7 +238,7 @@ void ar8035_phy_driver(client interface smi_if smi,
   delay_milliseconds(phy_reset_delay_ms);
   p_eth_reset <: 0xf;
 
-  eth.set_ingress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 300);
+  eth.set_ingress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
   eth.set_egress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
 
   eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 350);
