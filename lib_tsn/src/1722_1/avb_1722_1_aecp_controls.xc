@@ -324,6 +324,7 @@ unsafe void process_aem_cmd_startstop_streaming(avb_1722_1_aecp_packet_t *unsafe
     {
       if (command_type == AECP_AEM_CMD_START_STREAMING)
       {
+        avb.set_sink_state(stream_index, AVB_SINK_STATE_POTENTIAL);
         avb.set_sink_state(stream_index, AVB_SINK_STATE_ENABLED);
       }
       else
@@ -332,6 +333,7 @@ unsafe void process_aem_cmd_startstop_streaming(avb_1722_1_aecp_packet_t *unsafe
         {
           avb.set_sink_state(stream_index, AVB_SINK_STATE_POTENTIAL);
         }
+        avb.set_sink_state(stream_index, AVB_SINK_STATE_DISABLED);
       }
     }
     else status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
