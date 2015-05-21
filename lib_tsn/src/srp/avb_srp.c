@@ -518,10 +518,7 @@ void avb_srp_listener_join_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attribu
     if (enable_stream && (state == AVB_SOURCE_STATE_POTENTIAL)) {
       if (four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY ||
         four_packed_event == AVB_SRP_FOUR_PACKED_EVENT_READY_FAILED) {
-  #if SRP_AUTO_TALKER_STREAM_CONTROL
         avb_set_source_state(avb, stream, AVB_SOURCE_STATE_ENABLED);
-  #else
-  #endif
       }
     }
   }
@@ -551,14 +548,11 @@ void avb_srp_listener_leave_ind(CLIENT_INTERFACE(avb_interface, avb), mrp_attrib
     avb_get_source_state(avb, stream, &state);
 
     if (state == AVB_SOURCE_STATE_ENABLED && !matched_listener_opposite_port) {
-  #if SRP_AUTO_TALKER_STREAM_CONTROL
       avb_set_source_state(avb, stream, AVB_SOURCE_STATE_POTENTIAL);
       if (stream_table[entry].bw_reserved[attr->port_num] == 1) {
         srp_decrease_port_bandwidth(sink_info->reservation.tspec_max_frame_size, 0, attr->port_num);
         stream_table[entry].bw_reserved[attr->port_num] = 0;
       }
-  #else
-  #endif
    }
   }
 }

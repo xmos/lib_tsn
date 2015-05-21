@@ -105,8 +105,4 @@ enum aem_control_indices {
 /** Enable 1722.1 Controller functionality on the entity. */
 #define AVB_1722_1_CONTROLLER_ENABLED 0
 
-
-/** Enable SRP auto-start and auto-stop a stream when Listeners come and go */
-#define SRP_AUTO_TALKER_STREAM_CONTROL 1
-
 #endif
