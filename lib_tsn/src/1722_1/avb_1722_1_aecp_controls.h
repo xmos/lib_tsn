@@ -17,6 +17,11 @@ unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe 
                                           unsigned short command_type,
                                           CLIENT_INTERFACE(avb_interface, i_avb));
 
+unsafe void process_aem_cmd_getset_stream_format(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                          REFERENCE_PARAM(unsigned char, status),
+                                          unsigned short command_type,
+                                          CLIENT_INTERFACE(avb_interface, i_avb));
+
 unsafe void process_aem_cmd_getset_sampling_rate(avb_1722_1_aecp_packet_t *unsafe pkt,
                                           REFERENCE_PARAM(unsigned char, status),
                                           unsigned short command_type,
