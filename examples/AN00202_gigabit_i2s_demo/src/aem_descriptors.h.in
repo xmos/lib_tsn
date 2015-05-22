@@ -64,7 +64,7 @@ unsigned char desc_configuration_0[] =
   U16(AEM_AVB_INTERFACE_TYPE),
   U16(1),
   U16(AEM_CLOCK_SOURCE_TYPE),
-  U16(1),
+  U16(2),
   U16(AEM_LOCALE_TYPE),
   U16(1),
   U16(AEM_MEMORY_OBJECT_TYPE),
@@ -116,9 +116,11 @@ unsigned char desc_audio_unit_0[] =
   U16(0),                                     /* base_control_block */
   U32(48000),                                 /* current_sample_rate */
   U16(144),                                   /* sample_rates_offset */
-  U16(1),                                     /* sample_rates_count */
+  U16(3),                                     /* sample_rates_count */
   /* sample_rates */
-  U32(48000)
+  U32(48000),
+  U32(96000),
+  U32(192000)
 };
 
 /*******************************/
@@ -367,7 +369,7 @@ unsigned char desc_stream_input_0[] =
   AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
   0, // label_midi_cnt[0:3], label_smptecnt[4:]
   U16(132),                                   /* formats_offset */
-  U16(1),                                     /* number_of_formats */
+  U16(3),                                     /* number_of_formats */
   0, 0, 0, 0, 0, 0, 0, 0,                     /* backup_talker_guid[0] */
   U16(0),                                     /* backup_talker_unique[0] */
   0, 0, 0, 0, 0, 0, 0, 0,                     /* backup_talker_guid[1] */
@@ -381,6 +383,18 @@ unsigned char desc_stream_input_0[] =
   /* 130-> formats */
   /* 48 khz */
   0x00, 0xa0, 0x02, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x40, // b[0], nb[1], reserved[2:]
+  0, // label_iec_60958_cnt
+  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
+  0, // label_midi_cnt[0:3], label_smptecnt[4:]
+  // 96 
+  0x00, 0xa0, 0x04, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x40, // b[0], nb[1], reserved[2:]
+  0, // label_iec_60958_cnt
+  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
+  0, // label_midi_cnt[0:3], label_smptecnt[4:]
+  // 192
+  0x00, 0xa0, 0x06, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
   AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
@@ -398,13 +412,13 @@ unsigned char desc_stream_output_0[] =
   U16(AEM_NO_STRING),                         /* 68-69 localized_description */
   U16(0),                                     /* 70-71 clock_domain_index */
   U16(AEM_STREAM_FLAGS_CLASS_A),              /* stream_flags */
-  0x00, 0xa0, 0x02, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,     /* current_format */                           /* current_format */
+  0x00, 0xa0, 0x02, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,     /* current_format */
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
   AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
   0, // label_midi_cnt[0:3], label_smptecnt[4:]
   U16(132),                                   /* formats_offset */
-  U16(1),                                     /* number_of_formats */
+  U16(3),                                     /* number_of_formats */
   0, 0, 0, 0, 0, 0, 0, 0,                     /* backup_talker_guid[0] */
   U16(0),                                     /* backup_talker_unique[0] */
   0, 0, 0, 0, 0, 0, 0, 0,                     /* backup_talker_guid[1] */
@@ -421,6 +435,18 @@ unsigned char desc_stream_output_0[] =
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
   AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
+  0, // label_midi_cnt[0:3], label_smptecnt[4:]
+  // 96 
+  0x00, 0xa0, 0x04, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x40, // b[0], nb[1], reserved[2:]
+  0, // label_iec_60958_cnt
+  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
+  0, // label_midi_cnt[0:3], label_smptecnt[4:]
+  // 192
+  0x00, 0xa0, 0x06, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x40, // b[0], nb[1], reserved[2:]
+  0, // label_iec_60958_cnt
+  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
   0 // label_midi_cnt[0:3], label_smptecnt[4:]
 };
 #endif
@@ -554,7 +580,8 @@ unsigned char desc_upgrade_image_memory_object_0[] =
   U16(0),                                     /* 74-75 target_descriptor_index */
   U64(0),                                     /* 76-83 start_address */
   U64(131072),                                /* 84-91 maximum_length */
-  U64(0)                                      /* 92-99 length */
+  U64(0),                                     /* 92-99 length */
+  U64(256)                                    /* 100-107 maximum_segment_length */
 };
 
 /* List of descriptors */

@@ -2,7 +2,7 @@
 # compiled for. It either refers to an XN file in the source directories
 # or a valid argument for the --target option when compiling.
 
-TARGET = XR-AVB-LC-BRD
+TARGET = XR-AUDIO-216-MC
 
 # The APP_NAME variable determines the name of the final .xe file. It should
 # not include the .xe postfix. If left blank the name will default to 
@@ -28,9 +28,9 @@ OPTIONAL_HEADERS = avb_app_board_config.h
 # If the variable XCC_MAP_FLAGS is set it overrides the flags passed to 
 # xcc for the final link (mapping) stage.
 
-XCC_FLAGS = -Os -save-temps -g -report -Xmapper --map -Xmapper MAPFILE -fxscope -lquadflash
+XCC_FLAGS = -Os -save-temps -g -report -Xmapper --map -Xmapper MAPFILE -fxscope  -fno-xta-info -DRGMII=1 -lquadflash
 
-XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline
+XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline -O3
 
 # The USED_MODULES variable lists other module used by the application. 
 
