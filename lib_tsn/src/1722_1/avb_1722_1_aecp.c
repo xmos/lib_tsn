@@ -16,15 +16,9 @@
 #include <platform.h>
 #include "avb_util.h"
 #include "ethernet_wrappers.h"
-
-#if AVB_1722_1_USE_AVC
-#include "avc_commands.h"
-#endif
-#if AVB_1722_1_AEM_ENABLED
 #include "aem_descriptor_types.h"
 #include "aem_descriptors.h"
 #include "aem_descriptor_structs.h"
-#endif
 
 extern unsigned int avb_1722_1_buf[AVB_1722_1_PACKET_SIZE_WORDS];
 extern guid_t my_guid;
@@ -748,6 +742,13 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
       case AECP_AEM_CMD_SET_CONTROL:
       {
         cd_len = process_aem_cmd_getset_control(pkt, &status, command_type, i_1722_1_entity) + sizeof(avb_1722_1_aem_getset_control_t) + AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
+        break;
+      }
+      case AECP_AEM_CMD_GET_SIGNAL_SELECTOR:
+      case AECP_AEM_CMD_SET_SIGNAL_SELECTOR:
+      {
+        process_aem_cmd_getset_signal_selector(pkt, &status, command_type, i_1722_1_entity);
+        cd_len = sizeof(avb_1722_1_aem_getset_signal_selector_t);
         break;
       }
       case AECP_AEM_CMD_GET_COUNTERS:

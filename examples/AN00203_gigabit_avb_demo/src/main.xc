@@ -498,8 +498,9 @@ void application_task(client interface avb_interface avb, server interface avb_1
     select
     {
       case i_1722_1_entity.get_control_value(unsigned short control_index,
+                                            unsigned int &value_size,
                                             unsigned short &values_length,
-                                            unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]) -> unsigned char return_status:
+                                            unsigned char values[]) -> unsigned char return_status:
       {
         return_status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
 
@@ -514,10 +515,9 @@ void application_task(client interface avb_interface avb, server interface avb_1
 
         break;
       }
-
       case i_1722_1_entity.set_control_value(unsigned short control_index,
                                             unsigned short values_length,
-                                            unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]) -> unsigned char return_status:
+                                            unsigned char values[]) -> unsigned char return_status:
       {
         return_status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
 
@@ -537,8 +537,22 @@ void application_task(client interface avb_interface avb, server interface avb_1
             break;
           }
         }
-
-
+        break;
+      }
+      case i_1722_1_entity.get_signal_selector(unsigned short selector_index,
+                                               unsigned short &signal_type,
+                                               unsigned short &signal_index,
+                                               unsigned short &signal_output) -> unsigned char return_status:
+      {
+        return_status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+        break;
+      }
+      case i_1722_1_entity.set_signal_selector(unsigned short selector_index,
+                                               unsigned short signal_type,
+                                               unsigned short signal_index,
+                                               unsigned short signal_output) -> unsigned char return_status:
+      {
+        return_status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
         break;
       }
     }

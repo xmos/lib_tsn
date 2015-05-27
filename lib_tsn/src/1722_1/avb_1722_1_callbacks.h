@@ -16,8 +16,9 @@ interface avb_1722_1_control_callbacks {
     * \returns              an AEM status code of enum ``avb_1722_1_aecp_aem_status_code`` for the GET_CONTROL response
     */
   unsigned char get_control_value(unsigned short control_index,
+                                  unsigned int &value_size,
                                   unsigned short &values_length,
-                                  unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]);
+                                  unsigned char values[]);
 
   /** This function events on a SET_CONTROL 1722.1 command received from a Controller.
     *
@@ -33,7 +34,17 @@ interface avb_1722_1_control_callbacks {
     */
   unsigned char set_control_value(unsigned short control_index,
                                   unsigned short values_length,
-                                  unsigned char values[AEM_MAX_CONTROL_VALUES_LENGTH_BYTES]);
+                                  unsigned char values[]);
+
+  unsigned char get_signal_selector(unsigned short selector_index,
+                                    unsigned short &signal_type,
+                                    unsigned short &signal_index,
+                                    unsigned short &signal_output);
+
+  unsigned char set_signal_selector(unsigned short selector_index,
+                                    unsigned short signal_type,
+                                    unsigned short signal_index,
+                                    unsigned short signal_output);
 
 };
 #endif

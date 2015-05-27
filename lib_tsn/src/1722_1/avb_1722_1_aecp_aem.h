@@ -109,6 +109,16 @@ typedef struct {
     unsigned char descriptor_id[2];
 } avb_1722_1_aem_getset_control_t;
 
+/* 7.4.29 SET_SIGNAL_SELECTOR */
+typedef struct {
+    unsigned char descriptor_type[2];
+    unsigned char descriptor_id[2];
+    unsigned char signal_type[2];
+    unsigned char signal_index[2];
+    unsigned char signal_output[2];
+    unsigned char reserved[2];
+} avb_1722_1_aem_getset_signal_selector_t;
+
 /* 7.4.42 GET_COUNTERS */
 typedef struct {
     unsigned char descriptor_type[2];

@@ -12,6 +12,11 @@ unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *u
                                                      unsigned short command_type,
                                                      CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity));
 
+unsafe void process_aem_cmd_getset_signal_selector(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                                   REFERENCE_PARAM(unsigned char, status),
+                                                   unsigned short command_type,
+                                                   CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity));
+
 unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe pkt,
                                           REFERENCE_PARAM(unsigned char, status),
                                           unsigned short command_type,

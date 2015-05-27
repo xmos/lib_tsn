@@ -7,42 +7,12 @@
 #include "misc_timer.h"
 #include "avb_srp_pdu.h"
 #include <string.h>
-#include <print.h>
+#include "xassert.h"
 #include "debug_print.h"
 #include "xccompat.h"
 #include "avb_1722_1.h"
-
-#if AVB_1722_1_AEM_ENABLED
 #include "aem_descriptor_types.h"
-#endif
-
-unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *unsafe pkt,
-                                                     unsigned char &status,
-                                                     unsigned short command_type,
-                                                     client interface avb_1722_1_control_callbacks i_1722_1_entity)
-{
-  avb_1722_1_aem_getset_control_t *cmd = (avb_1722_1_aem_getset_control_t *)(pkt->data.aem.command.payload);
-  unsigned short control_index = ntoh_16(cmd->descriptor_id);
-  unsigned short control_type = ntoh_16(cmd->descriptor_type);
-  unsigned char *values = pkt->data.aem.command.payload + sizeof(avb_1722_1_aem_getset_control_t);
-  unsigned short values_length = GET_1722_1_DATALENGTH(&(pkt->header)) - sizeof(avb_1722_1_aem_getset_control_t) - AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
-
-  if (control_type != AEM_CONTROL_TYPE)
-  {
-    status = AECP_AEM_STATUS_BAD_ARGUMENTS;
-    return values_length;
-  }
-
-  if (command_type == AECP_AEM_CMD_GET_CONTROL)
-  {
-    status = i_1722_1_entity.get_control_value(control_index, values_length, values);
-  }
-  else // AECP_AEM_CMD_SET_CONTROL
-  {
-    status = i_1722_1_entity.set_control_value(control_index, values_length, values);
-  }
-  return values_length;
-}
+#include "aem_descriptor_structs.h"
 
 static int sfc_from_sampling_rate(int rate)
 {
@@ -74,6 +44,74 @@ static int sampling_rate_from_sfc(int sfc)
   }
 }
 
+static unsafe void set_stream_format_field(avb_stream_info_t *unsafe stream_info, unsigned char stream_format[8])
+{
+  stream_format[0] = 0x00;
+  stream_format[1] = 0xa0;
+  stream_format[2] = sfc_from_sampling_rate(stream_info->rate); // 10.3.2 in 61883-6
+  stream_format[3] = stream_info->num_channels; // dbs
+  stream_format[4] = 0x40; // b[0], nb[1], reserved[2:]
+  stream_format[5] = 0; // label_iec_60958_cnt
+  stream_format[6] = stream_info->num_channels; // label_mbla_cnt
+  stream_format[7] = 0; // label_midi_cnt[0:3], label_smptecnt[4:]
+}
+unsafe void process_aem_cmd_getset_signal_selector(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                                   unsigned char &status,
+                                                   unsigned short command_type,
+                                                   client interface avb_1722_1_control_callbacks i_1722_1_entity)
+{
+  avb_1722_1_aem_getset_signal_selector_t *cmd = (avb_1722_1_aem_getset_signal_selector_t *)(pkt->data.aem.command.payload);
+  unsigned short selector_index = ntoh_16(cmd->descriptor_id);
+  unsigned short selector_type = ntoh_16(cmd->descriptor_type);
+  unsigned short signal_type = ntoh_16(cmd->signal_type);
+  unsigned short signal_index = ntoh_16(cmd->signal_index);
+  unsigned short signal_output = ntoh_16(cmd->signal_output);
+
+  if (selector_type != AEM_SIGNAL_SELECTOR_TYPE)
+  {
+    status = AECP_AEM_STATUS_BAD_ARGUMENTS;
+    return;
+  }
+
+  if (command_type == AECP_AEM_CMD_GET_SIGNAL_SELECTOR)
+  {
+    status = i_1722_1_entity.get_signal_selector(selector_index, signal_type, signal_index, signal_output);
+  }
+  else // AECP_AEM_CMD_SET_SIGNAL_SELECTOR
+  {
+    status = i_1722_1_entity.set_signal_selector(selector_index, signal_type, signal_index, signal_output);
+  }
+  return;
+}
+
+unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *unsafe pkt,
+                                                     unsigned char &status,
+                                                     unsigned short command_type,
+                                                     client interface avb_1722_1_control_callbacks i_1722_1_entity)
+{
+  avb_1722_1_aem_getset_control_t *cmd = (avb_1722_1_aem_getset_control_t *)(pkt->data.aem.command.payload);
+  unsigned short control_index = ntoh_16(cmd->descriptor_id);
+  unsigned short control_type = ntoh_16(cmd->descriptor_type);
+  unsigned char *values = pkt->data.aem.command.payload + sizeof(avb_1722_1_aem_getset_control_t);
+  unsigned short values_length = GET_1722_1_DATALENGTH(&(pkt->header)) - sizeof(avb_1722_1_aem_getset_control_t) - AVB_1722_1_AECP_COMMAND_DATA_OFFSET;
+  unsigned int value_size;
+
+  if (control_type != AEM_CONTROL_TYPE)
+  {
+    status = AECP_AEM_STATUS_BAD_ARGUMENTS;
+    return values_length;
+  }
+
+  if (command_type == AECP_AEM_CMD_GET_CONTROL)
+  {
+    status = i_1722_1_entity.get_control_value(control_index, value_size, values_length, values);
+  }
+  else // AECP_AEM_CMD_SET_CONTROL
+  {
+    status = i_1722_1_entity.set_control_value(control_index, values_length, values);
+  }
+  return values_length;
+}
 
 unsafe void process_aem_cmd_getset_stream_format(avb_1722_1_aecp_packet_t *unsafe pkt,
                                           REFERENCE_PARAM(unsigned char, status),
@@ -108,14 +146,7 @@ unsafe void process_aem_cmd_getset_stream_format(avb_1722_1_aecp_packet_t *unsaf
 
   if (command_type == AECP_AEM_CMD_GET_STREAM_FORMAT)
   {
-    cmd->stream_format[0] = 0x00;
-    cmd->stream_format[1] = 0xa0;
-    cmd->stream_format[2] = sfc_from_sampling_rate(stream->rate); // 10.3.2 in 61883-6
-    cmd->stream_format[3] = stream->num_channels; // dbs
-    cmd->stream_format[4] = 0x40; // b[0], nb[1], reserved[2:]
-    cmd->stream_format[5] = 0; // label_iec_60958_cnt
-    cmd->stream_format[6] = stream->num_channels; // label_mbla_cnt
-    cmd->stream_format[7] = 0; // label_midi_cnt[0:3], label_smptecnt[4:]
+    set_stream_format_field(stream, cmd->stream_format);
   }
   else // AECP_AEM_CMD_SET_STREAM_FORMAT
   {
@@ -178,15 +209,7 @@ unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe 
 
   if (command_type == AECP_AEM_CMD_GET_STREAM_INFO)
   {
-
-    cmd->stream_format[0] = 0x00;
-    cmd->stream_format[1] = 0xa0;
-    cmd->stream_format[2] = sfc_from_sampling_rate(stream->rate); // 10.3.2 in 61883-6
-    cmd->stream_format[3] = stream->num_channels; // dbs
-    cmd->stream_format[4] = 0x40; // b[0], nb[1], reserved[2:]
-    cmd->stream_format[5] = 0; // label_iec_60958_cnt
-    cmd->stream_format[6] = stream->num_channels; // label_mbla_cnt
-    cmd->stream_format[7] = 0; // label_midi_cnt[0:3], label_smptecnt[4:]
+    set_stream_format_field(stream, cmd->stream_format);
 
     hton_32(&cmd->stream_id[0], reservation->stream_id[0]);
     hton_32(&cmd->stream_id[4], reservation->stream_id[1]);
