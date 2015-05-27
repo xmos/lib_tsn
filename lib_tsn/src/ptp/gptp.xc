@@ -1166,7 +1166,7 @@ static void reset_ascapable(int eth_port) {
     ptp_port_info[eth_port].delay_info.exchanges = 0;
     ptp_port_info[eth_port].delay_info.pdelay = 0;
     ptp_port_info[eth_port].delay_info.valid = 0;
-    set_new_role(PTP_DISABLED, eth_port);
+    set_new_role(PTP_MASTER, eth_port);
 #if DEBUG_PRINT_AS_CAPABLE
     debug_printf("asCapable = 0\n");
 #endif
@@ -1263,7 +1263,7 @@ void ptp_recv(client interface ethernet_tx_if i_eth,
 #if DEBUG_PRINT
           debug_printf("RX Follow Up, Port %d\n", src_port);
 #endif
-          received_sync = 2;
+          received_sync = 0;
         }
       }
       else
@@ -1461,27 +1461,25 @@ void ptp_periodic(client interface ethernet_tx_if i_eth, unsigned t)
       }
     }
 
+    // followUpReceiptTimeout:
+    if ((received_sync == 1 && (ptp_port_info[i].role_state == PTP_SLAVE) &&
+        timeafter(t, last_received_sync_time[i] + last_receive_sync_upstream_interval[i]))) {
+      received_sync = 0;
+    }
+
     if ((last_received_announce_time_valid[i] &&
-        timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) ||
-        // syncReceiptTimeout
+        timeafter(t, last_received_announce_time[i] + RECV_ANNOUNCE_TIMEOUT)) || // announceReceiptTimeout
+         // syncReceiptTimeout
         (received_sync && (ptp_port_info[i].role_state == PTP_SLAVE) &&
-        timeafter(t, last_received_sync_time[i] + recv_sync_timeout_interval)) ||
-        // followUpReceiptTimeout:
-        (received_sync == 1 && (ptp_port_info[i].role_state == PTP_SLAVE) &&
-        timeafter(t, last_received_sync_time[i] + last_receive_sync_upstream_interval[i])))  {
+        timeafter(t, last_received_sync_time[i] + recv_sync_timeout_interval)))  {
 
       received_sync = 0;
+      last_received_announce_time[i] = t;
+      last_announce_time[i] = t - ANNOUNCE_PERIOD - 1;
+      last_received_announce_time_valid[i] = 0;
 
       if (role == PTP_SLAVE ) {
         set_new_role(PTP_UNCERTAIN, i);
-        last_received_announce_time[i] = t;
-        last_announce_time[i] = t - ANNOUNCE_PERIOD - 1;
-#if DEBUG_PRINT_ANNOUNCE
-        debug_printf("RX Announce timeout, Port %d\n", i);
-#endif
-      }
-      else if (role == PTP_UNCERTAIN) {
-        set_new_role(PTP_MASTER, i);
       }
     }
 
