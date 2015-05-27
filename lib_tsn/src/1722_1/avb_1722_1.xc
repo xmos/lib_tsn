@@ -1,6 +1,7 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <print.h>
 #include <string.h>
+#include "xassert.h"
 #include "avb.h"
 #include "avb_api.h"
 #include "avb_1722_common.h"
@@ -131,9 +132,11 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
-  if (!isnull(qspi_ports) && fl_connect(qspi_ports)) {
-    // Problem connecting to QSPI flash
-    __builtin_trap();
+  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED && isnull(qspi_ports)) {
+    fail("Firmware upgrade enabled but QSPI ports null");
+  }
+  else if (fl_connect(qspi_ports)) {
+    fail("Could not connect to flash");
   }
 
   i_avb.initialise();
