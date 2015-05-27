@@ -37,16 +37,10 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   int num_channels = stream_info->num_channels;
   audio_output_fifo_t *map = &stream_info->map[0];
   int stride;
-#if !AVB_1722_FORMAT_SAF
   int dbc_diff;
-#endif
 
   // sanity check on number bytes in payload
-#if AVB_1722_FORMAT_SAF
-  if (numBytes <= avb_ethernet_hdr_size + AVB_TP_HDR_SIZE)
-#else
   if (numBytes <= avb_ethernet_hdr_size + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE)
-#endif
   {
     return (0);
   }
@@ -71,21 +65,16 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   prev_seq_num = seq_num;
 #endif
 
-#if !AVB_1722_FORMAT_SAF
   dbc_value = (int) pAVB1722Hdr->DBC;
   dbc_diff = dbc_value - stream_info->dbc;
   stream_info->dbc = dbc_value;
 
   if (dbc_diff < 0)
     dbc_diff += 0x100;
-#endif
+
 
   pktDataLength = NTOH_U16(pAVBHdr->packet_data_length);
-#if AVB_1722_FORMAT_SAF
-  num_samples_in_payload = pktDataLength>>2;
-#else
   num_samples_in_payload = (pktDataLength-8)>>2;
-#endif
 
   int prev_num_samples = stream_info->prev_num_samples;
   stream_info->prev_num_samples = num_samples_in_payload;
@@ -94,16 +83,11 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   {
     int num_channels;
 
-#if !AVB_1722_FORMAT_SAF
-    if (!prev_num_samples || dbc_diff == 0)
+    if (!prev_num_samples || dbc_diff == 0) {
       return 0;
-#endif
+    }
 
-#if AVB_1722_FORMAT_SAF
-    num_channels = AVBTP_PROTOCOL_SPECIFIC(pAVBHdr);
-#else
     num_channels = prev_num_samples / dbc_diff;
-#endif
 
     if (!stream_info->num_channels_in_payload ||
         stream_info->num_channels_in_payload != num_channels)
@@ -117,7 +101,6 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
 
     stream_info->chan_lock++;
 
-#if !AVB_1722_FORMAT_SAF
     if (stream_info->chan_lock == 16)
     {
       stream_info->rate = (stream_info->rate / stream_info->num_channels_in_payload / 16);
@@ -135,16 +118,10 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
       default: stream_info->rate = 0; break;
       }
     }
-#endif
 
     return 0;
   }
 
-#if AVB_1722_FORMAT_SAF
-  if ((AVBTP_TV(pAVBHdr)==1))
-  {
-    unsigned sample_num = 0;
-#else
   if ((AVBTP_TV(pAVBHdr)==1))
   {
     // See 61883-6 section 6.2 which explains that the receiver can calculate
@@ -167,7 +144,6 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     default: return 0; break;
     }
     sample_num = (syt_interval - (dbc_value & (syt_interval-1))) & (syt_interval-1);
-#endif
     // register timestamp
     for (int i=0; i<num_channels; i++)
     {
@@ -188,14 +164,9 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
 
 
   // now send the samples
-#if AVB_1722_FORMAT_SAF
-  sample_ptr = (unsigned char *) &Buf[(avb_ethernet_hdr_size +
-                                       AVB_TP_HDR_SIZE)];
-#else
   sample_ptr = (unsigned char *) &Buf[(avb_ethernet_hdr_size +
                                        AVB_TP_HDR_SIZE +
                                        AVB_CIP_HDR_SIZE)];
-#endif
 
   num_channels_in_payload = stream_info->num_channels_in_payload;
 
