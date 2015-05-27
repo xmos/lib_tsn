@@ -131,6 +131,7 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
       case 6: stream_info->rate = 48000; break;
       case 11: stream_info->rate = 88200; break;
       case 12: stream_info->rate = 96000; break;
+      case 24: stream_info->rate = 192000; break;
       default: stream_info->rate = 0; break;
       }
     }
