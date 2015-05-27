@@ -185,6 +185,25 @@ static int valid_to_leave_vlan(int vlan)
   return all_streams_disabled;
 }
 
+static void set_avb_sink_map(chanend c, avb_sink_info_t &sink, unsigned sink_num) {
+  debug_printf("Listener sink #%d chan map:\n", sink_num);
+  master {
+    c <: AVB1722_ADJUST_LISTENER_STREAM;
+    c <: (int)sink.stream.local_id;
+    c <: AVB1722_ADJUST_LISTENER_CHANNEL_MAP;
+    c <: (int)sink.stream.sync;
+    for (int i=0;i<sink.stream.num_channels;i++) {
+      if (sink.map[i] == AVB_CHANNEL_UNMAPPED) {
+        debug_printf("  %d unmapped\n", i);
+      }
+      else {
+        debug_printf("  %d -> %x\n", i, sink.map[i]);
+      }
+      c <: sink.map[i];
+    }
+  }
+}
+
 static void update_sink_state(unsigned sink_num,
                               enum avb_sink_state_t prev,
                               enum avb_sink_state_t state,
@@ -241,6 +260,10 @@ static void update_sink_state(unsigned sink_num,
         sink->reservation.vlan_id = i_srp.register_attach_request(sink->reservation.stream_id, sink->reservation.vlan_id);
       }
 
+    }
+    else if (prev != AVB_SINK_STATE_DISABLED &&
+             state != AVB_SINK_STATE_DISABLED) {
+      set_avb_sink_map(*c, *sink, sink_num);
     }
     else if (prev != AVB_SINK_STATE_DISABLED &&
             state == AVB_SINK_STATE_DISABLED) {

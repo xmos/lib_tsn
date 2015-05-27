@@ -683,8 +683,7 @@ extends client interface avb_interface : {
    *
    *  Sets the map i.e. the mapping from the 1722 stream to output FIFOs.
    *
-   *  This setting will not take effect until the next time the sink
-   *  state moves from disabled to potential.
+   *  This setting will take affect immediately.
    *
    * \param sink_num   the number of the sink
    * \param map        array containing the media output FIFOs that the
@@ -699,8 +698,6 @@ extends client interface avb_interface : {
       return 0;
     avb_sink_info_t sink;
     sink = i._get_sink_info(sink_num);
-    if (sink.stream.state != AVB_SINK_STATE_DISABLED)
-      return 0;
     if (len > AVB_MAX_CHANNELS_PER_LISTENER_STREAM)
       return 0;
     memcpy(sink.map, map, len<<2);
