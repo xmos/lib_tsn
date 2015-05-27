@@ -15,7 +15,6 @@
 #include "avb_1722_1_aecp_pdu.h"
 #include "avb_1722_1_callbacks.h"
 #include "otp_board_info.h"
-#include "spi.h"
 #include "ethernet.h"
 #include "avb_srp_interface.h"
 

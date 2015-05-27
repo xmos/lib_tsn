@@ -10,8 +10,6 @@
 #include "avb_control_types.h"
 #include "avb_api.h"
 #include "avb_1722_1_callbacks.h"
-#include "avb_flash.h"
-#include "spi.h"
 #include "ethernet.h"
 
 void avb_1722_1_aecp_aem_init(unsigned int serial_num);

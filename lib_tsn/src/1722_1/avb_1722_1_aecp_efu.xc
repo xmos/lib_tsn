@@ -6,7 +6,6 @@
 #include <print.h>
 #include "debug_print.h"
 #include "xccompat.h"
-#include "avb_flash.h"
 
 static unsigned write_offset = -1;
 

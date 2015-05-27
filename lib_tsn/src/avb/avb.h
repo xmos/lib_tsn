@@ -8,7 +8,6 @@
 #include "avb_api.h"
 #include "avb_srp_interface.h"
 #include "avb_1722_1_callbacks.h"
-#include "spi.h"
 #include "media_clock_server.h"
 #include "ethernet.h"
 

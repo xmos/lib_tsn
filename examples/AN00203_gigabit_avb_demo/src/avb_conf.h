@@ -77,7 +77,7 @@
 #define AVB_NUM_MEDIA_CLOCKS 1
 
 /** The maximum sample rate in Hz of audio that is to be input or output */
-#define AVB_MAX_AUDIO_SAMPLE_RATE 96000
+#define AVB_MAX_AUDIO_SAMPLE_RATE 48000
 
 // This is the number of master clocks in a word clock
 #define MASTER_TO_WORDCLOCK_RATIO 512
@@ -104,5 +104,8 @@ enum aem_control_indices {
 
 /** Enable 1722.1 Controller functionality on the entity. */
 #define AVB_1722_1_CONTROLLER_ENABLED 0
+
+#define FLASH_MAX_UPGRADE_IMAGE_SIZE (128 * 1024)
+#define FLASH_PAGE_SIZE (256)
 
 #endif

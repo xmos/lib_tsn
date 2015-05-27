@@ -12,7 +12,6 @@
 #include "avb_1722_1_aecp.h"
 #include "avb_1722_maap.h"
 #include "ethernet.h"
-#include "spi.h"
 #include "avb_1722_1_protocol.h"
 #include "avb_srp_interface.h"
 #include "avb_mrp.h"

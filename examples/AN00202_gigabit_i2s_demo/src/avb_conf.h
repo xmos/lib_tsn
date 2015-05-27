@@ -107,4 +107,7 @@ enum aem_control_indices {
 /** Enable 1722.1 Controller functionality on the entity. */
 #define AVB_1722_1_CONTROLLER_ENABLED 0
 
+#define FLASH_MAX_UPGRADE_IMAGE_SIZE (128 * 1024)
+#define FLASH_PAGE_SIZE (256)
+
 #endif
