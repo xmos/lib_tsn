@@ -35,6 +35,14 @@ on tile[1]: port p_smi_mdio = XS1_PORT_1C;
 on tile[1]: port p_smi_mdc = XS1_PORT_1D;
 on tile[1]: port p_eth_reset = XS1_PORT_4A;
 
+on tile[0]: fl_QSPIPorts qspi_ports =
+{
+  XS1_PORT_1B,
+  XS1_PORT_1C,
+  XS1_PORT_4B,
+  XS1_CLKBLK_1
+};
+
 // on tile[1]: out port p_leds_row = XS1_PORT_4C;
 // on tile[1]: out port p_leds_column = XS1_PORT_4D;
 
@@ -469,7 +477,7 @@ int main(void)
          application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
          avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
                                   i_1722_1_entity,
-                                  null,
+                                  qspi_ports,
                                   i_eth_rx_lp[MAC_TO_1722_1],
                                   i_eth_tx_lp[AVB1722_1_TO_MAC],
                                   i_eth_cfg[MAC_CFG_TO_1722_1],
