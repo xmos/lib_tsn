@@ -1376,6 +1376,7 @@ void ptp_reset(int port_num) {
   last_received_announce_time_valid[port_num] = 0;
   ptp_port_info[port_num].delay_info.multiple_resp_count = 0;
   ptp_port_info[port_num].delay_info.pdelay = 0;
+  ptp_port_info[port_num].delay_info.lost_responses = 0;
   periodic_counter[port_num] = 0;
   reset_ascapable(port_num);
 }
