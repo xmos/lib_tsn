@@ -55,6 +55,79 @@ static unsafe void set_stream_format_field(avb_stream_info_t *unsafe stream_info
   stream_format[6] = stream_info->num_channels; // label_mbla_cnt
   stream_format[7] = 0; // label_midi_cnt[0:3], label_smptecnt[4:]
 }
+
+unsafe void set_current_fields_in_descriptor(unsigned char *unsafe descriptor,
+                                      unsigned int desc_size_bytes,
+                                      unsigned int read_type, unsigned int read_id,
+                                      CLIENT_INTERFACE(avb_interface, i_avb_api),
+                                      CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
+{
+  switch (read_type) {
+    case AEM_AUDIO_UNIT_TYPE:
+    case AEM_CLOCK_DOMAIN_TYPE:
+    {
+      media_clock_info_t clock_info = i_avb_api._get_media_clock_info(0);
+      if (read_type == AEM_AUDIO_UNIT_TYPE) {
+        aem_desc_audio_unit_t *unsafe audio_unit = (aem_desc_audio_unit_t *)descriptor;
+        hton_32(audio_unit->current_sampling_rate, clock_info.rate);
+      }
+      else {
+        aem_desc_clock_domain_t *clock_domain = (aem_desc_clock_domain_t *)descriptor;
+        hton_16(clock_domain->clock_source_index, clock_info.clock_type);
+      }
+      break;
+    }
+    case AEM_STREAM_INPUT_TYPE:
+    case AEM_STREAM_OUTPUT_TYPE:
+    {
+      avb_stream_info_t *unsafe stream;
+      aem_desc_stream_input_output_t *unsafe stream_inout = (aem_desc_stream_input_output_t *)descriptor;
+      if (read_type == AEM_STREAM_INPUT_TYPE)
+      {
+        avb_sink_info_t sink = i_avb_api._get_sink_info(read_id);
+        stream = &sink.stream;
+      }
+      else
+      {
+        avb_source_info_t source = i_avb_api._get_source_info(read_id);
+        stream = &source.stream;
+      }
+      set_stream_format_field(stream, stream_inout->current_format);
+      break;
+    }
+    case AEM_CONTROL_TYPE:
+      aem_desc_control_t *unsafe control = (aem_desc_control_t *)descriptor;
+      unsigned int value_size;
+      unsigned short values_length;
+      unsigned char values[12]; // Max value length * number of values
+      i_1722_1_entity.get_control_value(read_id, value_size, values_length, values);
+      if (value_size != values_length) {
+        fail("value_size must equal values_length");
+      }
+      if (ntoh_16(control->control_value_type) <= AEM_CONTROL_LINEAR_DOUBLE) {
+        // Calculate the correct current value offset in the descriptor for linear control types
+        memcpy(descriptor + sizeof(aem_desc_control_t) + (4*value_size), values, value_size);
+      }
+      else {
+        fail("Unsupported control value type");
+      }
+      break;
+    case AEM_SIGNAL_SELECTOR_TYPE:
+      aem_desc_signal_selector_t *unsafe signal_selector = (aem_desc_signal_selector_t *)descriptor;
+      unsigned short signal_type;
+      unsigned short signal_index;
+      unsigned short signal_output;
+      i_1722_1_entity.get_signal_selector(read_id, signal_type, signal_index, signal_output);
+
+      hton_16(signal_selector->current_signal_type, signal_type);
+      hton_16(signal_selector->current_signal_index, signal_index);
+      hton_16(signal_selector->current_signal_output, signal_output);
+      break;
+    default:
+      break;
+  }
+}
+
 unsafe void process_aem_cmd_getset_signal_selector(avb_1722_1_aecp_packet_t *unsafe pkt,
                                                    unsigned char &status,
                                                    unsigned short command_type,

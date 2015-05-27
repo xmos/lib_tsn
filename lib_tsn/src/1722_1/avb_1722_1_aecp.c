@@ -165,7 +165,12 @@ static void generate_object_name(char *object_name, int base, int n) {
   strcat(object_name, num_string);
 }
 
-static int create_aem_read_descriptor_response(unsigned int read_type, unsigned int read_id, unsigned char src_addr[6], avb_1722_1_aecp_packet_t *pkt)
+static int create_aem_read_descriptor_response(unsigned int read_type,
+                                               unsigned int read_id,
+                                               unsigned char src_addr[6],
+                                               avb_1722_1_aecp_packet_t *pkt,
+                                               CLIENT_INTERFACE(avb_interface, i_avb_api),
+                                               CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
 {
   int desc_size_bytes = 0, i = 0;
   unsigned char *descriptor = NULL;
@@ -331,7 +336,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type, unsigned 
 
     memcpy(aem, pkt->data.payload, 6);
     if (found_descriptor < 2) memcpy(&(aem->command.read_descriptor_resp.descriptor), descriptor, desc_size_bytes+40);
-
+    set_current_fields_in_descriptor(aem->command.read_descriptor_resp.descriptor, desc_size_bytes, read_type, read_id, i_avb_api, i_1722_1_entity);
     return packet_size;
   }
   else // Descriptor not found, send NO_SUCH_DESCRIPTOR reply
@@ -671,7 +676,7 @@ static void process_avb_1722_1_aecp_aem_msg(avb_1722_1_aecp_packet_t *pkt,
         desc_read_type = ntoh_16(aem_msg->command.read_descriptor_cmd.descriptor_type);
         desc_read_id = ntoh_16(aem_msg->command.read_descriptor_cmd.descriptor_id);
 
-        num_tx_bytes = create_aem_read_descriptor_response(desc_read_type, desc_read_id, src_addr, pkt);
+        num_tx_bytes = create_aem_read_descriptor_response(desc_read_type, desc_read_id, src_addr, pkt, i_avb_api, i_1722_1_entity);
 
         if (num_tx_bytes < 64) num_tx_bytes = 64;
 

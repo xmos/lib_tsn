@@ -7,6 +7,12 @@
 #include "avb_api.h"
 #include "avb_1722_1_callbacks.h"
 
+unsafe void set_current_fields_in_descriptor(unsigned char *unsafe descriptor,
+                                            unsigned int desc_size_bytes,
+                                            unsigned int read_type, unsigned int read_id,
+                                            CLIENT_INTERFACE(avb_interface, i_avb_api),
+                                            CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity));
+
 unsafe unsigned short process_aem_cmd_getset_control(avb_1722_1_aecp_packet_t *unsafe pkt,
                                                      REFERENCE_PARAM(unsigned char, status),
                                                      unsigned short command_type,
