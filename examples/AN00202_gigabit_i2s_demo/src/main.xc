@@ -424,6 +424,7 @@ int main(void)
     on tile[0]: [[distribute]] output_gpio(i_gpio, 4, p_audio_shared, gpio_pin_map);
 
     on tile[0]: {
+      set_core_high_priority_on();
       configure_clock_src(clk_i2s_mclk, p_i2s_mclk);
       start_clock(clk_i2s_mclk);
       i2s_master(i_i2s,
