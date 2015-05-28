@@ -25,14 +25,4 @@ Features
 Software version and dependencies
 .................................
 
-This document pertains to version |version| of the TSN library. It is
-intended to be used with version 14.x of the xTIMEcomposer studio tools.
-
-TODO: LIBRARY DEPENDENCIES
-
-Related application notes
-.........................
-
-The following application notes use this library:
-
-  * TODO
+.. libdeps::
