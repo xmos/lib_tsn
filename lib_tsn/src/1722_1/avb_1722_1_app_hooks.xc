@@ -63,10 +63,6 @@ avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface
                                                                 unsigned short vlan_id,
                                                                 const_guid_ref_t my_guid)
 {
-  const int channels_per_stream = AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS;
-  int map[AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS];
-  for (int i = 0; i < channels_per_stream; i++) map[i] = sink_num ? sink_num*channels_per_stream+i  : sink_num+i;
-
   debug_printf("CONNECTING Listener sink #%d -> Talker stream %x%x, DA: %x:%x:%x:%x:%x:%x\n", sink_num, stream_id[0], stream_id[1],
                                                                                               dest_addr[0], dest_addr[1], dest_addr[2],
                                                                                               dest_addr[3], dest_addr[4], dest_addr[5]);
@@ -78,9 +74,6 @@ avb_1722_1_acmp_status_t avb_listener_on_talker_connect_default(client interface
     avb.set_sink_state(sink_num, AVB_SINK_STATE_DISABLED);
   }
 
-  avb.set_sink_sync(sink_num, 0);
-  avb.set_sink_channels(sink_num, channels_per_stream);
-  avb.set_sink_map(sink_num, map, channels_per_stream);
   avb.set_sink_id(sink_num, stream_id);
   avb.set_sink_addr(sink_num, dest_addr, 6);
   avb.set_sink_vlan(sink_num, vlan_id);

@@ -16,36 +16,13 @@
 #endif
 
 #if AVB_ENABLE_1722_1
-extern avb_1722_1_entity_record entities[AVB_1722_1_MAX_ENTITIES];
-static int controller_state = 0;
 
 #define XMOS_VENDOR_ID 0x00229700
-
-void simple_demo_controller(int *change_stream, int *toggle_remote, client interface ethernet_tx_if i_eth)
-{
-  if (*toggle_remote != controller_state)
-  {
-    avb_1722_1_controller_disconnect_all_listeners(0, i_eth);
-
-    if (*toggle_remote)
-    {
-      avb_1722_1_acmp_controller_deinit();
-    }
-    else
-    {
-      avb_1722_1_acmp_controller_init();
-      avb_1722_1_entity_database_flush();
-      avb_1722_1_adp_discover_all();
-    }
-  }
-  controller_state = *toggle_remote;
-}
-
 
 void avb_entity_on_new_entity_available(client interface avb_interface avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity, client interface ethernet_tx_if i_eth)
 {
   // If Talker is enabled, connect to the first XMOS listener we see
-  if (AVB_DEMO_ENABLE_TALKER && AVB_1722_1_CONTROLLER_ENABLED)
+  if (AVB_1722_1_TALKER_ENABLED && AVB_1722_1_CONTROLLER_ENABLED)
   {
     if ((entity->vendor_id == XMOS_VENDOR_ID) &&
        ((entity->listener_capabilities & AVB_1722_1_ADP_LISTENER_CAPABILITIES_AUDIO_SINK) == AVB_1722_1_ADP_LISTENER_CAPABILITIES_AUDIO_SINK) &&

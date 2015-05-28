@@ -2,10 +2,6 @@
 #ifndef __avb_conf_h__
 #define __avb_conf_h__
 
-#include "app_config.h"
-
-/* Some of the configuration depends on the app_config.h file included above */
-
 /******** ETHERNET MAC CONFIGURATION PARAMETERS *************************************************/
 
 #define NUM_ETHERNET_PORTS 1
@@ -14,7 +10,6 @@
 /******** ENDPOINT AUDIO AND CLOCKING PARAMETERS ************************************************/
 
 /* Talker configuration */
-#if AVB_DEMO_ENABLE_TALKER
 
 /** The total number of AVB sources (streams that are to be transmitted). */
 #define AVB_NUM_SOURCES 4
@@ -26,17 +21,7 @@
 /** Enable the 1722.1 Talker functionality */
 #define AVB_1722_1_TALKER_ENABLED 1
 
-#else
-
-#define AVB_NUM_SOURCES 0
-#define AVB_NUM_TALKER_UNITS 0
-#define AVB_NUM_MEDIA_INPUTS 0
-#define AVB_1722_1_TALKER_ENABLED 0
-
-#endif
-
 /* Listener configuration */
-#if AVB_DEMO_ENABLE_LISTENER
 
 /** The total number of AVB sinks (incoming streams that can be listened to) */
 #define AVB_NUM_SINKS 4
@@ -48,14 +33,6 @@
 /** Enable the 1722.1 Listener functionality */
 #define AVB_1722_1_LISTENER_ENABLED 1
 
-#else
-
-#define AVB_NUM_SINKS 0
-#define AVB_NUM_LISTENER_UNITS 0
-#define AVB_NUM_MEDIA_OUTPUTS 0
-#define AVB_1722_1_LISTENER_ENABLED 0
-
-#endif
 
 /** The maximum number of channels permitted per 1722 Talker stream */
 #define AVB_MAX_CHANNELS_PER_TALKER_STREAM 8

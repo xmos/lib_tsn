@@ -12,9 +12,7 @@
 #include "audio_clock_CS2100CP.h"
 #include "xassert.h"
 #include "debug_print.h"
-#include "simple_demo_controller.h"
 #include "avb_1722_1_adp.h"
-#include "app_config.h"
 #include "avb_1722.h"
 #include "gptp.h"
 #include "media_clock_server.h"
@@ -331,9 +329,7 @@ enum avb_manager_chans {
 };
 
 enum ptp_chans {
-#if AVB_DEMO_ENABLE_TALKER
   PTP_TO_TALKER,
-#endif
   PTP_TO_1722_1,
   NUM_PTP_CHANS
 };
@@ -366,19 +362,9 @@ int main(void)
   chan c_ptp[NUM_PTP_CHANS];
 
   // AVB unit control
-#if AVB_DEMO_ENABLE_TALKER
   chan c_talker_ctl[AVB_NUM_TALKER_UNITS];
-#else
-  #define c_talker_ctl null
-#endif
-
-#if AVB_DEMO_ENABLE_LISTENER
   chan c_listener_ctl[AVB_NUM_LISTENER_UNITS];
   chan c_buf_ctl[AVB_NUM_LISTENER_UNITS];
-#else
-  #define c_listener_ctl null
-  #define c_buf_ctl null
-#endif
 
   // Media control
   chan c_media_ctl[AVB_NUM_MEDIA_UNITS];
@@ -446,7 +432,6 @@ int main(void)
 
     on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
-#if AVB_DEMO_ENABLE_LISTENER
     // AVB Listener
     on tile[0]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
@@ -454,8 +439,6 @@ int main(void)
                                   c_listener_ctl[0],
                                   AVB_NUM_SINKS,
                                   i_audio_out_push);
-#endif
-    
 
     on tile[0]: {
       unsigned tile0 = get_tile_id(tile[0]);
@@ -497,32 +480,36 @@ int main(void)
 /** The main application control task **/
 [[combinable]]
 void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity)
-{  
-#if AVB_DEMO_ENABLE_TALKER
-  const int channels_per_stream = AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
-  int map[AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES];
-#endif
+{
   const unsigned default_sample_rate = 48000;
   unsigned char aem_identify_control_value = 0;
 
   // Initialize the media clock
   avb.set_device_media_clock_type(0, DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED);
-  avb.set_device_media_clock_rate(0, 48000);
+  avb.set_device_media_clock_rate(0, default_sample_rate);
   avb.set_device_media_clock_state(0, DEVICE_MEDIA_CLOCK_STATE_ENABLED);
 
-#if AVB_DEMO_ENABLE_TALKER
   for (int j=0; j < AVB_NUM_SOURCES; j++)
   {
-    avb.set_source_channels(j, channels_per_stream);
-    for (int i = 0; i < channels_per_stream; i++)
-      map[i] = j ? j*(channels_per_stream)+i  : j+i;
+    const int channels_per_stream = AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
+    int map[AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES];
+    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*(channels_per_stream)+i  : j+i;
     avb.set_source_map(j, map, channels_per_stream);
     avb.set_source_format(j, AVB_SOURCE_FORMAT_MBLA_24BIT, default_sample_rate);
-    avb.set_source_sync(j, 0); // use the media_clock defined above
+    avb.set_source_sync(j, 0);
+    avb.set_source_channels(j, channels_per_stream);
   }
-#endif
 
-  avb.set_sink_format(0, AVB_SOURCE_FORMAT_MBLA_24BIT, default_sample_rate);
+  for (int j=0; j < AVB_NUM_SINKS; j++)
+  {
+    const int channels_per_stream = AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS;
+    int map[AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS];
+    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*channels_per_stream+i  : j+i;
+    avb.set_sink_map(j, map, channels_per_stream);
+    avb.set_sink_format(j, AVB_SOURCE_FORMAT_MBLA_24BIT, default_sample_rate);
+    avb.set_sink_sync(j, 0);
+    avb.set_sink_channels(j, channels_per_stream);
+  }
 
   while (1)
   {

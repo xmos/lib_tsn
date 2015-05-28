@@ -44,7 +44,7 @@ static int sampling_rate_from_sfc(int sfc)
   }
 }
 
-static unsafe void set_stream_format_field(avb_stream_info_t *unsafe stream_info, unsigned char stream_format[8])
+static unsafe void get_stream_format_field(avb_stream_info_t *unsafe stream_info, unsigned char stream_format[8])
 {
   stream_format[0] = 0x00;
   stream_format[1] = 0xa0;
@@ -92,7 +92,7 @@ unsafe void set_current_fields_in_descriptor(unsigned char *unsafe descriptor,
         avb_source_info_t source = i_avb_api._get_source_info(read_id);
         stream = &source.stream;
       }
-      set_stream_format_field(stream, stream_inout->current_format);
+      get_stream_format_field(stream, stream_inout->current_format);
       break;
     }
     case AEM_CONTROL_TYPE:
@@ -219,7 +219,7 @@ unsafe void process_aem_cmd_getset_stream_format(avb_1722_1_aecp_packet_t *unsaf
 
   if (command_type == AECP_AEM_CMD_GET_STREAM_FORMAT)
   {
-    set_stream_format_field(stream, cmd->stream_format);
+    get_stream_format_field(stream, cmd->stream_format);
   }
   else // AECP_AEM_CMD_SET_STREAM_FORMAT
   {
@@ -282,7 +282,7 @@ unsafe void process_aem_cmd_getset_stream_info(avb_1722_1_aecp_packet_t *unsafe 
 
   if (command_type == AECP_AEM_CMD_GET_STREAM_INFO)
   {
-    set_stream_format_field(stream, cmd->stream_format);
+    get_stream_format_field(stream, cmd->stream_format);
 
     hton_32(&cmd->stream_id[0], reservation->stream_id[0]);
     hton_32(&cmd->stream_id[4], reservation->stream_id[1]);
