@@ -113,8 +113,6 @@ void audio_buffer_manager(streaming chanend c_audio,
                          chanend c_media_ctl,
                          const audio_io_t audio_io_type)
 {
-  set_core_high_priority_on();
-
   unsafe {
     buffer_handle_t h_in = audio_input_buf.get_handle();
     audio_double_buffer_t *unsafe input_sample_buf = ((struct input_finfo *)h_in)->p_buffer;
