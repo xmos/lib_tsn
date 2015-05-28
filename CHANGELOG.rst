@@ -1,5 +1,20 @@
-sc_avb Change Log
-=================
+TSN library change log
+======================
+
+7.0.0
+-----
+  * Library changed to new structure and tools 14 compatibility added
+  * Support added for new version 3 of Ethernet library and Gigabit Ethernet on xCORE-200
+  * Support added for new version 2 of I2S/TDM library
+  * Audio buffering performance improvements for higher channel count applications
+  * Support added for 1722.1 Enitity Firmware Upgrade (EFU) using new Quad SPI flash library
+  * Support added for 1722.1 ACMP Fast Connect
+  * Support added for 1722.1 AECP sample rate change via GET/SET_SAMPLING_RATE and GET/SET_STREAM_FORMAT commands
+  * Support added for 1722.1 AECP GET/SET_SIGNAL_SELECTOR commands
+  * Current value fields in 1722.1 descriptors are now updated to reflect the current set value
+  * Bug fix for gPTP number of lost reponses not being reset on link up event
+  * Unimplemented 1722.1 commands now return the correct NOT_IMPLEMENTED status response
+  * Resolved bug in 1722.1 ACMP disconnection caused by stream info not being zeroed
 
 6.3.1
 -----
@@ -170,89 +185,5 @@ sc_avb Change Log
   * Added 8-channel TDM audio interface
   * Added uip IP/UDP/TCP server for adding configuration layer
   * Various bug fixes
-
-31st July 2009
-  * Dropped support for xs1a architecture
-  * Major rewrite, many internal APIs changed, overall performance  improvements
-  * New mii-ethernet layer (better performance, capable of 2-port switch)
-  * New clock recovery mechanism (including global clock recovery)
-  * Internal APIs now use XC features (desktop tools 9.7.0+)
-  * New, more efficient, I2S codec interface code
-  * XDK Demo is now both a talker and listener endpoint
-  * XDK Demo now has debug log on screen (black button)
-  * XDK Demo now has stream selection display (green button)
-  * XDK Demo now has touch screen equalizer (16 bank bi-quad filter)
-  * Demos (synthesised talker) for XC-2 and XC-3 dev boards
-  * Added capability to have multiple talker endpoints on network
-  * Some 802.1as bug fixes
-
-30th April 2009
-  * Added capability to have multiple talker endpoints on network
-  * Some 802.1as bug fixes
-
-6th April 2009
-  * Added XC-2 mii code
-  * Now default to xslb
-  * Windows makefile issues fixed
-
-14th February 2009
-  * Code restructuring
-  * Added dsp based clock recovery
-  * Documentation updates
-
-30th January 2009
-  * Various bug fixes
-  * Major code restructuring
-  * PTP now defaults to old multicast mac address (can be set to
-    802.1as multicast with build flag)
-
-
-15th January 2009
-
-  * Various bug fixes.
-
-  * 802.1AS support.
-
-  * First spec of host side API for communicating to an XMOS device
-    implementing AVB.
-
-
-19th December 2008
-
-  * Media clock recovery now fully based on 802.1AS
-    timestamps. Presentation time is honoured.
-
-  * Changed 1588v2 timing protocol to 802.1as (note that some issues
-    remain - see release notes for details)
-
-10th December 2008
-
-  * Code now runs codec in slave mode on the listener and implements
-    media clock recovery.
-
-  * Fixed timestamp to match spec. Timestamps are generated every 8
-    samples (according to IEC61883-6 SYT_INTERVAL)  - so a valid
-    timestamp is generated every 3 out of 4 packets
-
-  * Implemented internal bandwidth restriction in mac layer. Each
-    link going the mac layer (e.g. ptp, avb stream)
-    can be set to use no more than a certain number of Mbps of
-    bandwidth (see the mac_set_bandwidth function).
-
-27th November 2008
-
-  * Fixed bug in Mii ethernet layer that hung the demo when a short
-    (<64 bytes) packet was received.
-
-
-21st November 2008
-
-  * General internal code restructuring to prepare for future
-    enhancements
-  * Fixed timestamp generation issues, AVB packets are now timestamped
-    every packet (i.e. every 6 samples) corrected
-  * Fixed incorrect DBC value creation
-  * Tested on RevB silicon
-
 
 
