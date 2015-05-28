@@ -275,5 +275,5 @@ Parties
       non-exclusive jurisdiction of the English courts.
 
 Schedule
-XMOS Time Sensitive Networking Library sofware
+XMOS application note AN00202 software
 No license fee.
