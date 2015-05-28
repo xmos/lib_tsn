@@ -41,8 +41,8 @@ on tile[0]: fl_QSPIPorts qspi_ports =
   XS1_CLKBLK_1
 };
 
-// on tile[1]: out port p_leds_row = XS1_PORT_4C;
-// on tile[1]: out port p_leds_column = XS1_PORT_4D;
+on tile[1]: out port p_leds_row = XS1_PORT_4C;
+on tile[1]: out port p_leds_column = XS1_PORT_4D;
 
 on tile[0]: port p_i2c = XS1_PORT_4A;
 

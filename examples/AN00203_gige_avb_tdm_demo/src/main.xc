@@ -32,8 +32,8 @@ on tile[1]: port p_smi_mdio = XS1_PORT_1C;
 on tile[1]: port p_smi_mdc = XS1_PORT_1D;
 on tile[1]: port p_eth_reset = XS1_PORT_4A;
 
-// on tile[1]: out port p_leds_row = XS1_PORT_4C;
-// on tile[1]: out port p_leds_column = XS1_PORT_4D;
+on tile[1]: out port p_leds_row = XS1_PORT_4C;
+on tile[1]: out port p_leds_column = XS1_PORT_4D;
 
 on tile[0]: port p_i2c = XS1_PORT_4A;
 
