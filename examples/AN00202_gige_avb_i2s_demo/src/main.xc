@@ -441,37 +441,31 @@ int main(void)
                                   i_audio_out_push);
 
     on tile[0]: {
-      unsigned tile0 = get_tile_id(tile[0]);
-      write_pswitch_reg(tile0, XS1_PSWITCH_PLL_CLK_DIVIDER_NUM, 0);
-      setps(XS1_PS_XCORE_CTRL0, XS1_XCORE_CTRL0_CLK_DIVIDER_EN_SET(0,1));
       char mac_address[6];
       if (otp_board_info_get_mac(otp_ports0, 0, mac_address) == 0) {
         fail("No MAC address programmed in OTP");
       }
       i_eth_cfg[MAC_CFG_TO_AVB_MANAGER].set_macaddr(0, mac_address);
-       [[combine]]
-       par {
-          avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
-                       null,
-                       c_media_ctl,
-                       c_listener_ctl,
-                       c_talker_ctl,
-                       i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
-                       i_media_clock_ctl);
-         application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
-         avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
-                                  i_1722_1_entity,
-                                  qspi_ports,
-                                  i_eth_rx_lp[MAC_TO_1722_1],
-                                  i_eth_tx_lp[AVB1722_1_TO_MAC],
-                                  i_eth_cfg[MAC_CFG_TO_1722_1],
-                                  c_ptp[PTP_TO_1722_1],
-                                  otp_ports0);
-       }
+      [[combine]]
+      par {
+        avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
+                     null,
+                     c_media_ctl,
+                     c_listener_ctl,
+                     c_talker_ctl,
+                     i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
+                     i_media_clock_ctl);
+        application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
+        avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
+                                i_1722_1_entity,
+                                qspi_ports,
+                                i_eth_rx_lp[MAC_TO_1722_1],
+                                i_eth_tx_lp[AVB1722_1_TO_MAC],
+                                i_eth_cfg[MAC_CFG_TO_1722_1],
+                                c_ptp[PTP_TO_1722_1],
+                                otp_ports0);
+      }
     }
-    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
-    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
-
   }
 
     return 0;

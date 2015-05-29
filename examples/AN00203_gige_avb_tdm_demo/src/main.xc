@@ -419,29 +419,26 @@ int main(void)
         fail("No MAC address programmed in OTP");
       }
       i_eth_cfg[MAC_CFG_TO_AVB_MANAGER].set_macaddr(0, mac_address);
-       [[combine]]
-       par {
-          avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
-                       null,
-                       c_media_ctl,
-                       c_listener_ctl,
-                       c_talker_ctl,
-                       i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
-                       i_media_clock_ctl);
-         application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
-         avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
-                                  i_1722_1_entity,
-                                  null,
-                                  i_eth_rx_lp[MAC_TO_1722_1],
-                                  i_eth_tx_lp[AVB1722_1_TO_MAC],
-                                  i_eth_cfg[MAC_CFG_TO_1722_1],
-                                  c_ptp[PTP_TO_1722_1],
-                                  otp_ports0);
-       }
+      [[combine]]
+      par {
+        avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
+                     null,
+                     c_media_ctl,
+                     c_listener_ctl,
+                     c_talker_ctl,
+                     i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
+                     i_media_clock_ctl);
+        application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
+        avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
+                                i_1722_1_entity,
+                                null,
+                                i_eth_rx_lp[MAC_TO_1722_1],
+                                i_eth_tx_lp[AVB1722_1_TO_MAC],
+                                i_eth_cfg[MAC_CFG_TO_1722_1],
+                                c_ptp[PTP_TO_1722_1],
+                                otp_ports0);
+      }
     }
-    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
-    on tile[0]: { set_core_fast_mode_on(); while(1) {}}
-
   }
 
     return 0;
