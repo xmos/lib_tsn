@@ -131,11 +131,13 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
-  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED && isnull(qspi_ports)) {
-    fail("Firmware upgrade enabled but QSPI ports null");
-  }
-  else if (fl_connect(qspi_ports)) {
-    fail("Could not connect to flash");
+  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
+    if (isnull(qspi_ports)) {
+      fail("Firmware upgrade enabled but QSPI ports null");
+    }
+    else if (fl_connect(qspi_ports)) {
+      fail("Could not connect to flash");
+    }
   }
 
   i_avb.initialise();
