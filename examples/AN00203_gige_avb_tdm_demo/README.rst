@@ -1,5 +1,5 @@
-XMOS Gigabit Ethernet AVB demo app note
-=======================================
+XMOS Gigabit Ethernet TDM AVB demo app note
+===========================================
 
 .. appnote:: AN00203
 
