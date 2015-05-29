@@ -1,4 +1,4 @@
-XMOS Gigabit Ethernet I2S AVB demo app note
+XMOS Gigabit Ethernet AVB I2S demo app note
 ===========================================
 
 .. appnote:: AN00202
