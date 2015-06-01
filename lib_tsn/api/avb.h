@@ -1,14 +1,56 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-#ifndef _api_h_
-#define _api_h_
+#ifndef _avb_h_
+#define _avb_h_
 #include <xs1.h>
 #include <xccompat.h>
+#include "otp_board_info.h"
+#include "quadflashlib.h"
 #include "debug_print.h"
 #include "xc2compat.h"
-#include "avb_control_types.h"
 #include "avb_stream.h"
 #include "media_clock_server.h"
 #include "string.h"
+#include "avb_1722_1_callbacks.h"
+
+enum avb_stream_format_t
+{
+  AVB_SOURCE_FORMAT_MBLA_24BIT,
+};
+
+
+/** The state of an AVB source.
+ **/
+enum avb_source_state_t
+{
+  AVB_SOURCE_STATE_DISABLED, /*!< The source is disabled and will not transmit. */
+  AVB_SOURCE_STATE_POTENTIAL, /*!< The source is enabled and will transmit if
+                                a listener requests it */
+  AVB_SOURCE_STATE_ENABLED, /*!< The source is enabled and transmitting */
+};
+
+enum avb_sink_state_t
+{
+  AVB_SINK_STATE_DISABLED,
+  AVB_SINK_STATE_POTENTIAL,
+  AVB_SINK_STATE_ENABLED,
+};
+
+enum device_media_clock_state_t
+{
+  DEVICE_MEDIA_CLOCK_STATE_DISABLED,
+  DEVICE_MEDIA_CLOCK_STATE_ENABLED
+};
+
+enum device_media_clock_type_t
+{
+  DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED,
+  DEVICE_MEDIA_CLOCK_LOCAL_CLOCK
+};
+
+enum device_media_clock_commands_t
+{
+  DEVICE_MEDIA_CLOCK_SET_SAMPLING_RATE
+};
 
 #ifdef __XC__
 interface avb_interface {
@@ -26,7 +68,6 @@ interface avb_interface {
   /** Intended for internal use within client interface get and set extensions only */
   void _set_media_clock_info(unsigned clock_num, media_clock_info_t info);
 };
-
 
 extends client interface avb_interface : {
   /** Get the format of an AVB source.
@@ -856,6 +897,157 @@ extends client interface avb_interface : {
 
 }
 
+interface srp_interface {
+  /** Used by a Talker application entity to issue a request to the MSRP Participant
+   *  to initiate the advertisement of an available Stream
+   *
+   *  \param stream_info Struct of type avb_srp_info_t containing parameters of the stream to register
+   */
+  short register_stream_request(avb_srp_info_t stream_info);
+
+  /** Used by a Talker application entity to request removal of the Talker’s advertisement declaration,
+   *  and thus remove the advertisement of a Stream, from the network.
+   *
+   *  \param stream_id two int array containing the Stream ID of the stream to deregister
+   */
+  void deregister_stream_request(unsigned stream_id[2]);
+
+  /** Used by a Listener application entity to issue a request to attach to the referenced Stream.
+   *
+   *  \param stream_id two int array containing the Stream ID of the stream to register
+   */
+  short register_attach_request(unsigned stream_id[2], short vlan_id);
+
+  /** Used by a Listener application entity to remove the request to attach to the referenced Stream.
+   *
+   *  \param stream_id two int array containing the Stream ID of the stream to deregister
+   */
+  void deregister_attach_request(unsigned stream_id[2]);
+};
+
+
+/** Core AVB API management task that can be combined with other AVB tasks such as SRP or 1722.1
+
+ * \param i_avb[]           array of avb_interface server interfaces connected to clients of avb_manager
+ * \param num_avb_clients   number of client interface connections to the server and the number of elements of i_avb[]
+ * \param i_srp            client interface of type srp_interface into an srp_task() task
+ * \param c_media_ctl[]     array of chanends connected to components that register/control media FIFOs
+ * \param c_listener_ctl[]  array of chanends connected to components that register/control IEEE 1722 sinks
+ * \param c_talker_ctl[]    array of chanends connected to components that register/control IEEE 1722 sources
+ * \param c_mac_tx          chanend connection to the Ethernet TX server
+ * \param i_media_clock_ctl client interface of type media_clock_if connected to the media clock server
+ * \param c_ptp             chanend connection to the PTP server
+ */
+[[combinable]]
+void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned num_avb_clients,
+                 client interface srp_interface ?i_srp,
+                 chanend c_media_ctl[],
+                 chanend (&?c_listener_ctl)[],
+                 chanend (&?c_talker_ctl)[],
+                 client interface ethernet_cfg_if i_eth_cfg,
+                 client interface media_clock_if ?i_media_clock_ctl);
+
+
+/** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
+  *
+  *  Can be combined with other combinable tasks.
+  *
+  *  \param  otp_ports    reference to an OTP ports structure of type otp_ports_t
+  *  \param  i_avb   client interface of type avb_interface into avb_manager()
+  *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
+  *  \param  i_spi  client interface of type spi_interface into avb_srp_task()
+  *  \param  c_mac_rx chanend into the Ethernet RX server
+  *  \param  c_mac_tx chanend into the Ethernet TX server
+  *  \param  c_ptp chanend into the PTP server
+  */
+[[combinable]]
+void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
+                         client interface avb_interface i_avb,
+                         client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                         fl_QSPIPorts &?qspi_ports,
+                         client interface ethernet_rx_if i_eth_rx,
+                         client interface ethernet_tx_if i_eth_tx,
+                         client interface ethernet_cfg_if i_eth_cfg,
+                         chanend c_ptp);
+
+/** 1722.1 task that runs ADP, ACMP and AECP protocols and interacts with the rest of the AVB stack.
+  *
+  *  Can be combined with other combinable tasks.
+  *
+  *  \param  otp_ports    reference to an OTP ports structure of type otp_ports_t
+  *  \param  i_avb   client interface of type avb_interface into avb_manager()
+  *  \param  i_1722_1_entity client interface of type avb_1722_1_control_callbacks
+  *  \param  i_spi  client interface of type spi_interface into avb_srp_task()
+  *  \param  c_mac_rx chanend into the Ethernet RX server
+  *  \param  c_mac_tx chanend into the Ethernet TX server
+  *  \param  c_ptp chanend into the PTP server
+  */
+[[combinable]]
+void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
+                              client interface avb_1722_1_control_callbacks i_1722_1_entity,
+                              fl_QSPIPorts &?qspi_ports,
+                              client interface ethernet_rx_if i_eth_rx,
+                              client interface ethernet_tx_if i_eth_tx,
+                              client interface ethernet_cfg_if i_eth_cfg,
+                              chanend c_ptp,
+                              otp_ports_t &?otp_ports);
+
+/** SRP task that implements MSRP and MVRP protocols. Can be combined with other combinable tasks.
+  *
+  * \param i_avb  client interface of type avb_interface into the avb_manager()
+                  for API control of the stack
+    \param i_srp server interface of type srp_interface that offers client tasks
+                  access to SRP reservation functionality
+    \param c_mac_rx chanend into the Ethernet RX server
+    \param c_mac_tx chanend into the Ethernet TX server
+  */
+[[combinable]]
+void avb_srp_task(client interface avb_interface i_avb,
+                  server interface srp_interface i_srp,
+                  client interface ethernet_rx_if i_eth_rx,
+                  client interface ethernet_tx_if i_eth_tx,
+                  client interface ethernet_cfg_if i_eth_cfg);
+
+/** An AVB IEEE 1722 audio talker thread.
+ *  This thread implements a talker, taking
+ *  media input FIFOs and combining them into 1722 packets to be
+ *  sent to the ethernet component. It is dynamically configured
+ *  using the AVB control API.
+ *
+ *  \param c_ptp            link to the PTP timing server
+ *  \param c_mac_tx         transmit link to the ethernet MAC
+ *  \param c_talker_ctl     channel to configure the talker (given
+ *                          to avb_init())
+ *  \param num_streams      the number of streams the unit controls
+ **/
+void avb_1722_talker(chanend c_ptp,
+                     streaming chanend c_eth_tx_hp,
+                     chanend c_talker_ctl,
+                     int num_streams,
+                     client pull_if audio_input_buf);
+
+/** An AVB IEEE 1722 audio listener thread.
+ *
+ *  This thread implements a listener. It takes IEEE 1722 packets from
+ *  the ethernet MAC and splits them into output FIFOs. The
+ *  buffer fill level of these streams is set in conjunction with communication
+ *  to the media clock server. This thread is dynamically configured
+ *  using the AVB control API.
+ *
+ *  \param c_mac_rx         receive link to the ethernet MAC
+ *  \param c_buf_ctl        buffer control link to the media clock server
+ *  \param c_ptp_ctl        PTP server link for retrieving PTP time info
+ *  \param c_listener_ctl   channel to configure the listener (given
+ *                          to avb_init())
+ *  \param num_streams      the number of streams the unit will handle
+ */
+void avb_1722_listener(streaming chanend c_eth_rx_hp,
+                       chanend? c_buf_ctl,
+                       chanend? c_ptp_ctl,
+                       chanend c_listener_ctl,
+                       int num_streams,
+                       client push_if audio_output_buf);
+
 #endif
 
 int avb_get_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, REFERENCE_PARAM(enum avb_source_state_t, state));
@@ -865,4 +1057,4 @@ int avb_set_source_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned source_nu
 int avb_get_sink_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned sink_num, REFERENCE_PARAM(int, vlan));
 int avb_set_sink_vlan(CLIENT_INTERFACE(avb_interface, avb), unsigned sink_num, int vlan);
 
-#endif // _api_h_
+#endif // _avb_h_
