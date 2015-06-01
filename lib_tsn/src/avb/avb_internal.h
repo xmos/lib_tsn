@@ -1,12 +1,11 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
-#ifndef _avb_h_
-#define _avb_h_
+#ifndef _avb_internal_h_
+#define _avb_internal_h_
 
 #include <xccompat.h>
 #include <quadflashlib.h>
 #include "xc2compat.h"
-#include "avb_api.h"
-#include "avb_srp_interface.h"
+#include "avb.h"
 #include "avb_1722_1_callbacks.h"
 #include "media_clock_server.h"
 #include "ethernet.h"
@@ -14,31 +13,6 @@
 #ifndef MAX_AVB_CONTROL_PACKET_SIZE
 #define MAX_AVB_CONTROL_PACKET_SIZE (1518)
 #endif
-
-#ifdef __XC__
-
-/** Core AVB API management task that can be combined with other AVB tasks such as SRP or 1722.1
-
- * \param i_avb[]           array of avb_interface server interfaces connected to clients of avb_manager
- * \param num_avb_clients   number of client interface connections to the server and the number of elements of i_avb[]
- * \param i_srp            client interface of type srp_interface into an srp_task() task
- * \param c_media_ctl[]     array of chanends connected to components that register/control media FIFOs
- * \param c_listener_ctl[]  array of chanends connected to components that register/control IEEE 1722 sinks
- * \param c_talker_ctl[]    array of chanends connected to components that register/control IEEE 1722 sources
- * \param c_mac_tx          chanend connection to the Ethernet TX server
- * \param i_media_clock_ctl client interface of type media_clock_if connected to the media clock server
- * \param c_ptp             chanend connection to the PTP server
- */
-[[combinable]]
-void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned num_avb_clients,
-                 client interface srp_interface ?i_srp,
-                 chanend c_media_ctl[],
-                 chanend (&?c_listener_ctl)[],
-                 chanend (&?c_talker_ctl)[],
-                 client interface ethernet_cfg_if i_eth_cfg,
-                 client interface media_clock_if ?i_media_clock_ctl);
-#endif
-
 
 #ifdef __XC__
 /** Process an AVB 1722 control packet.
@@ -103,4 +77,11 @@ void set_avb_source_volumes(unsigned sink_num, int volumes[], int count);
 int set_avb_source_port(unsigned source_num,
                         int srcport);
 
-#endif // _avb_h_
+int avb_register_listener_streams(chanend listener_ctl,
+                                   int num_streams);
+
+void avb_register_talker_streams(chanend listener_ctl,
+                                 int num_streams,
+                                 unsigned char mac_addr[6]);
+
+#endif // _avb_internal_h_

@@ -6,7 +6,6 @@
 #include "avb_mrp.h"
 #include "avb_stream.h"
 #include "gptp_config.h"
-#include "avb_control_types.h"
 #include <string.h>
 #include "debug_print.h"
 #include <print.h>
@@ -14,8 +13,6 @@
 #include "avb_1722_maap.h"
 #include "nettypes.h"
 #include "avb_1722_router.h"
-#include "avb_api.h"
-#include "avb_srp_interface.h"
 #include "avb_1722_1_acmp.h"
 
 #if AVB_ENABLE_1722_1

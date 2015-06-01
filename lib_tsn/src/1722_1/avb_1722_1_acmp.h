@@ -2,11 +2,10 @@
 #ifndef AVB_1722_1_ACMP_H_
 #define AVB_1722_1_ACMP_H_
 
-#include "avb_api.h"
+#include "avb.h"
 #include <xccompat.h>
 #include "xc2compat.h"
 #include "avb_1722_1_acmp_pdu.h"
-#include "avb_control_types.h"
 
 #define AVB_1722_1_ACMP_DEST_MAC {0x91, 0xe0, 0xf0, 0x01, 0x00, 0x00};
 

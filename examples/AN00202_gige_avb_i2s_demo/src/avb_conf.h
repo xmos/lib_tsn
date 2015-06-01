@@ -56,9 +56,6 @@
 /** The maximum sample rate in Hz of audio that is to be input or output */
 #define AVB_MAX_AUDIO_SAMPLE_RATE 192000
 
-// This is the number of master clocks in a word clock
-#define MASTER_TO_WORDCLOCK_RATIO 512
-
 /******** 1722.1 PARAMETERS *****************************************************************/
 
 /** Enable 1722.1 AVDECC on the entity */

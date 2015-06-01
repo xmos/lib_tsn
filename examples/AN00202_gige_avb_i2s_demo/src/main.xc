@@ -13,7 +13,6 @@
 #include "xassert.h"
 #include "debug_print.h"
 #include "avb_1722_1_adp.h"
-#include "avb_1722.h"
 #include "gptp.h"
 #include "media_clock_server.h"
 #include "avb_1722_1.h"
@@ -25,7 +24,6 @@
 #include "audio_output_fifo.h"
 
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
-on tile[1]: otp_ports_t otp_ports1 = OTP_PORTS_INITIALIZER;
 
 on tile[1]: rgmii_ports_t rgmii_ports = RGMII_PORTS_INITIALIZER;
 
@@ -120,7 +118,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
   unsigned cur_sample_rate;
   timer tmr;
 
-  audio_clock_CS2100CP_init(i2c, MASTER_TO_WORDCLOCK_RATIO);
+  audio_clock_CS2100CP_init(i2c);
 
   while (1) {
     select {
@@ -432,7 +430,6 @@ int main(void)
 
     on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
-    // AVB Listener
     on tile[0]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
                                   null,

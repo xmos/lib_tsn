@@ -6,10 +6,8 @@
 #include "avb_srp_pdu.h"
 #include "avb_1722_talker.h"
 #include "avb_mrp.h"
-#include "avb_control_types.h"
 #include "avb_stream.h"
-#include "avb_api.h"
-#include "avb_srp_interface.h"
+#include "avb.h"
 #include "ethernet.h"
 
 #define AVB_SRP_ETHERTYPE (0x22ea)
@@ -24,25 +22,6 @@ typedef struct avb_stream_entry
   char bw_reserved[MRP_NUM_PORTS]; // While the bw_reserved flag is set/not set we do not add/subtract Qav credit
   char reservation_failed;
 } avb_stream_entry;
-
-#ifdef __XC__
-/** SRP task that implements MSRP and MVRP protocols. Can be combined with other combinable tasks.
-  *
-  * \param i_avb  client interface of type avb_interface into the avb_manager()
-                  for API control of the stack
-    \param i_srp server interface of type srp_interface that offers client tasks
-                  access to SRP reservation functionality
-    \param c_mac_rx chanend into the Ethernet RX server
-    \param c_mac_tx chanend into the Ethernet TX server
-  */
-[[combinable]]
-void avb_srp_task(client interface avb_interface i_avb,
-                  server interface srp_interface i_srp,
-                  client interface ethernet_rx_if i_eth_rx,
-                  client interface ethernet_tx_if i_eth_tx,
-                  client interface ethernet_cfg_if i_eth_cfg);
-#endif
-
 
 void avb_match_and_join_leave(mrp_attribute_state *unsafe attr, int join);
 

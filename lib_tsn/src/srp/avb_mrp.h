@@ -2,7 +2,7 @@
 #ifndef _avb_mrp_h_
 #define _avb_mrp_h_
 
-#include "avb_api.h"
+#include "avb.h"
 #include "avb_conf.h"
 #include "xc2compat.h"
 #include "avb_mmrp_pdu.h"

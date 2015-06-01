@@ -6,7 +6,7 @@
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_acmp.h"
 #include "debug_print.h"
-#include "avb_api.h"
+#include "avb.h"
 #include "misc_timer.h"
 #ifdef AVB_1722_1_ENABLE_ASSERTIONS
 #include <assert.h>

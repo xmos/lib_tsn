@@ -3,7 +3,7 @@
 #include <string.h>
 #include "xassert.h"
 #include "avb.h"
-#include "avb_api.h"
+#include "avb_internal.h"
 #include "avb_1722_common.h"
 #include "avb_1722_1.h"
 #include "avb_1722_1_common.h"
@@ -13,10 +13,10 @@
 #include "avb_1722_maap.h"
 #include "ethernet.h"
 #include "avb_1722_1_protocol.h"
-#include "avb_srp_interface.h"
 #include "avb_mrp.h"
 #include "avb_srp.h"
 #include "avb_mvrp.h"
+#include "otp_board_info.h"
 
 #define PERIODIC_POLL_TIME 5000
 

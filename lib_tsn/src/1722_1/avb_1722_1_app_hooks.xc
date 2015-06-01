@@ -5,7 +5,6 @@
 #include "avb.h"
 #include "avb_conf.h"
 #include "avb_1722_common.h"
-#include "avb_control_types.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_protocol.h"
 #include "avb_1722_1_acmp.h"

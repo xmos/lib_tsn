@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stddef.h>
 #include "avb.h"
+#include "avb_internal.h"
 #include "avb_conf.h"
 #include "avb_srp.h"
 #include "avb_mrp_pdu.h"
@@ -10,11 +11,9 @@
 #include "avb_stream.h"
 #include "avb_1722_talker.h"
 #include <print.h>
-#include "avb_control_types.h"
 #include "stdlib.h"
 #include "debug_print.h"
 #include "avb_1722_router.h"
-#include "avb_api.h"
 #include "ethernet.h"
 #include "avb_mvrp.h"
 

@@ -8,7 +8,7 @@
 #ifdef AVB_1722_1_ACMP_DEBUG_INFLIGHT
 #include "avb_1722_1_acmp_debug.h"
 #endif
-#include "avb_api.h"
+#include "avb.h"
 #include "misc_timer.h"
 #ifdef AVB_1722_1_ENABLE_ASSERTIONS
 #include <assert.h>

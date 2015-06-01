@@ -1,7 +1,6 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include "avb_1722_1_aecp_controls.h"
 #include "avb.h"
-#include "avb_api.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_aecp.h"
 #include "misc_timer.h"

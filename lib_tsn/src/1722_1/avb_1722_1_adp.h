@@ -2,9 +2,8 @@
 #ifndef AVB_1722_1_ADP_H_
 #define AVB_1722_1_ADP_H_
 
-#include "avb_api.h"
+#include "avb.h"
 #include "avb_1722_1_adp_pdu.h"
-#include "avb_control_types.h"
 #include "ethernet.h"
 
 #define AVB_1722_1_ADP_DEST_MAC {0x91, 0xe0, 0xf0, 0x01, 0x00, 0x00};

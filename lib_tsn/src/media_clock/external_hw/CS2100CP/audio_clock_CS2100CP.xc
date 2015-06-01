@@ -11,12 +11,12 @@ static unsigned char regaddr[9] = {0x09,0x08,0x07,0x06,0x17,0x16,0x05,0x03,0x1E}
 static unsigned char regdata[9] = {0x00,0x00,0x00,0x00,0x00,0x08,0x01,0x05,0x00};
 
 // Set up the multiplier in the PLL clock generator
-void audio_clock_CS2100CP_init(client interface i2c_master_if i2c,
-                               unsigned mclks_per_wordclk)
+void audio_clock_CS2100CP_init(client interface i2c_master_if i2c)
 {
   int deviceAddr = 0x4E;
   unsigned char data[1];
   unsigned int mult[1];
+  const unsigned int mclks_per_wordclk = 512;
 
   // this is the muiltiplier in the PLL, which takes the PLL reference clock and
   // multiplies it up to the MCLK frequency.

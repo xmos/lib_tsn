@@ -3,8 +3,7 @@
 #define __AVB_1722_MAAP_H_
 #include <xccompat.h>
 #include "xc2compat.h"
-#include "avb_control_types.h"
-#include "avb_api.h"
+#include "avb.h"
 
 #define MAX_AVB_1722_MAAP_PDU_SIZE (64)
 

@@ -11,7 +11,6 @@
 #include "audio_output_fifo.h"
 #include "debug_print.h"
 #include "gptp.h"
-#include "avb_control_types.h"
 
 #define DEBUG_MEDIA_CLOCK
 #define PLL_OUTPUT_TIMING_CHECK 0

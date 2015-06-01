@@ -8,11 +8,10 @@
 #include <xclib.h>
 #include <print.h>
 #include "avb_1722_def.h"
-#include "avb_1722.h"
 #include "avb_1722_listener.h"
 #include "ethernet.h"
 #include "avb_srp.h"
-#include "avb_unit.h"
+#include "avb_internal.h"
 #include "avb_conf.h"
 #include <debug_print.h>
 #include "audio_output_fifo.h"

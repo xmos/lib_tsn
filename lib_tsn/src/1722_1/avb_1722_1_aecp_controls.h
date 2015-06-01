@@ -4,7 +4,7 @@
 
 #include "avb_1722_1_aecp_pdu.h"
 #include "xc2compat.h"
-#include "avb_api.h"
+#include "avb.h"
 #include "avb_1722_1_callbacks.h"
 
 unsafe void set_current_fields_in_descriptor(unsigned char *unsafe descriptor,

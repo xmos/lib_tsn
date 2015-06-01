@@ -7,8 +7,7 @@
 #include "avb_1722_1.h"
 #include "avb_1722_1_aecp_pdu.h"
 #include "avb_1722_1_aecp_aem.h"
-#include "avb_control_types.h"
-#include "avb_api.h"
+#include "avb.h"
 #include "avb_1722_1_callbacks.h"
 #include "ethernet.h"
 

@@ -9,7 +9,6 @@
 #include "avb_1722_maap_protocol.h"
 #include "avb_1722_1_adp.h"
 #include "avb_1722_1_acmp.h"
-#include "avb_control_types.h"
 
 void avb_talker_on_source_address_reserved_default(client interface avb_interface avb, int source_num, unsigned char mac_addr[6])
 {

@@ -6,12 +6,11 @@
 #include <xscope.h>
 
 #include "avb_1722_def.h"
-#include "avb_1722.h"
 #include "avb_1722_listener.h"
 #include "avb_1722_talker.h"
 #include "ethernet.h"
 #include "avb_srp.h"
-#include "avb_unit.h"
+#include "avb_internal.h"
 #include "avb_conf.h"
 #include "debug_print.h"
 #include "audio_buffering.h"
@@ -256,6 +255,7 @@ void avb_1722_talker(chanend c_ptp,
   int pending_timeinfo = 0;
 
   set_thread_fast_mode_on();
+  // set_core_high_priority_on();
   avb_1722_talker_init(c_talker_ctl, st, num_streams);
 
   ptp_request_time_info_mod64(c_ptp);

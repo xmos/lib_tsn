@@ -1,13 +1,12 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <debug_print.h>
 #include "avb.h"
-#include "avb_api.h"
+#include "avb_internal.h"
 #include "avb_mrp.h"
 #include "avb_srp.h"
 #include "avb_mvrp.h"
 #include "ethernet.h"
 #include "avb_1722_router.h"
-#include "avb_srp_interface.h"
 
 
 // avb_mrp.c:

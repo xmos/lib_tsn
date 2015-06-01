@@ -3,7 +3,7 @@
 #define AVB_1722_1_APP_HOOKS_H_
 
 #include <xccompat.h>
-#include "avb_api.h"
+#include "avb.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_adp.h"
 #include "avb_1722_1_acmp_pdu.h"
