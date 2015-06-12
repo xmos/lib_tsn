@@ -2,7 +2,7 @@
 #include <xs1.h>
 #include <print.h>
 #include "media_clock_client.h"
-#include "media_clock_server.h"
+#include "media_clock_internal.h"
 
 void notify_buf_ctl_of_info(chanend buf_ctl, int fifo)
 {

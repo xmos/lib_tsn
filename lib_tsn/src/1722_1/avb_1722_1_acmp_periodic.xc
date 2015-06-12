@@ -188,8 +188,10 @@ void avb_1722_1_acmp_controller_periodic(client interface ethernet_tx_if i_eth, 
 
             if (acmp_controller_cmd_resp.status != ACMP_STATUS_SUCCESS)
             {
+#if AVB_ENABLE_1722_1
                 avb_talker_on_listener_connect_failed(avb, my_guid, acmp_controller_cmd_resp.talker_unique_id,
                         acmp_controller_cmd_resp.listener_guid, acmp_controller_cmd_resp.status, i_eth);
+#endif
             }
 
             acmp_controller_state = ACMP_CONTROLLER_WAITING;
@@ -246,9 +248,10 @@ void avb_1722_1_acmp_talker_periodic(client interface ethernet_tx_if i_eth, clie
             else
             {
                 acmp_add_talker_stream_info();
+#if AVB_ENABLE_1722_1
                 /* Application hook */
                 avb_talker_on_listener_connect(avb, acmp_talker_rcvd_cmd_resp.talker_unique_id, acmp_talker_rcvd_cmd_resp.listener_guid);
-
+#endif
                 acmp_set_talker_response();
                 acmp_send_response(ACMP_CMD_CONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, i_eth);
 
@@ -266,9 +269,10 @@ void avb_1722_1_acmp_talker_periodic(client interface ethernet_tx_if i_eth, clie
             {
                 unsigned unique_id = acmp_talker_rcvd_cmd_resp.talker_unique_id;
                 acmp_remove_talker_stream_info();
+#if AVB_ENABLE_1722_1
                 /* Application hook */
                 avb_talker_on_listener_disconnect(avb, unique_id, acmp_talker_rcvd_cmd_resp.listener_guid, acmp_talker_streams[unique_id].connection_count);
-
+#endif
                 acmp_set_talker_response();
                 acmp_send_response(ACMP_CMD_DISCONNECT_TX_RESPONSE, &acmp_talker_rcvd_cmd_resp, ACMP_STATUS_SUCCESS, i_eth);
             }
@@ -368,12 +372,14 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                     stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
                     stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
 
+#if AVB_ENABLE_1722_1
                     avb_listener_on_talker_disconnect(avb,
                                             acmp_listener_rcvd_cmd_resp.listener_unique_id,
                                             acmp_listener_rcvd_cmd_resp.talker_guid,
                                             acmp_listener_rcvd_cmd_resp.stream_dest_mac,
                                             stream_id,
                                             my_guid);
+#endif
 
                     acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
                 }
@@ -412,14 +418,14 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                             stream_id[1] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 0);
                             stream_id[0] = (unsigned)(acmp_listener_rcvd_cmd_resp.stream_id.l >> 32);
 
-                            if (AVB_1722_1_FAST_CONNECT_ENABLED)
-                            {
-                                acmp_listener_store_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id,
-                                                                      &acmp_listener_rcvd_cmd_resp.controller_guid,
-                                                                      &acmp_listener_rcvd_cmd_resp.talker_guid,
-                                                                      acmp_listener_rcvd_cmd_resp.talker_unique_id);
-                            }
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+                            acmp_listener_store_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id,
+                                                                  &acmp_listener_rcvd_cmd_resp.controller_guid,
+                                                                  &acmp_listener_rcvd_cmd_resp.talker_guid,
+                                                                  acmp_listener_rcvd_cmd_resp.talker_unique_id);
+#endif
 
+#if AVB_ENABLE_1722_1
                             acmp_listener_rcvd_cmd_resp.status =
                                 avb_listener_on_talker_connect(avb,
                                                         acmp_listener_rcvd_cmd_resp.listener_unique_id,
@@ -428,6 +434,7 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
                                                         stream_id,
                                                         acmp_listener_rcvd_cmd_resp.vlan_id,
                                                         my_guid);
+#endif
 
                             acmp_send_response(ACMP_CMD_CONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, i_eth);
                             acmp_add_listener_stream_info();
@@ -465,10 +472,9 @@ void avb_1722_1_acmp_listener_periodic(client interface ethernet_tx_if i_eth, cl
 
                         acmp_send_response(ACMP_CMD_DISCONNECT_RX_RESPONSE, &acmp_listener_rcvd_cmd_resp, acmp_listener_rcvd_cmd_resp.status, i_eth);
 
-                        if (AVB_1722_1_FAST_CONNECT_ENABLED)
-                        {
-                            acmp_listener_erase_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
-                        }
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+                        acmp_listener_erase_fast_connect_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
+#endif
 
                         acmp_zero_listener_stream_info(acmp_listener_rcvd_cmd_resp.listener_unique_id);
 

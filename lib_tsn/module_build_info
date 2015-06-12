@@ -9,7 +9,7 @@
 #
 # You can also set MODULE_XCC_C_FLAGS, MODULE_XCC_XC_FLAGS etc..
 
-DEPENDENT_MODULES = lib_ethernet(>=3.0.2) lib_i2c(>=3.0.0) lib_logging(>=2.0.0) lib_xassert(>=2.0.0)
+DEPENDENT_MODULES = lib_ethernet(>=3.0.3) lib_i2c(>=3.0.0) lib_logging(>=2.0.0) lib_xassert(>=2.0.0) lib_otpinfo(>=2.0.0)
 
 OPTIONAL_HEADERS += ethernet_conf.h random_conf.h avb_conf.h
 
@@ -21,14 +21,5 @@ XCC_FLAGS_audio_output_fifo.c = $(XCC_FLAGS) -O3
 XCC_FLAGS_avb_1722_talker_support_audio.c = $(XCC_FLAGS) -O3
 XCC_FLAGS_audio_buffering.xc = $(XCC_FLAGS) -O3
 XCC_FLAGS_avb_1722_talker.xc = $(XCC_FLAGS) -O3
-
-GENERATED_FILES = aem_descriptors.h aem_entity_strings.h
-
-$(GEN_DIR)/aem_descriptors.generated: $(call UNMANGLE,$(CURRENT_MODULE_DIR)/src/1722_1/generate.py) $(call UNMANGLE, src/aem_descriptors.h.in) $(call UNMANGLE,src/aem_entity_strings.h.in)  | $(GEN_DIR)
-	@echo "Generating AEM header files"
-	@echo "generated" > $(GEN_DIR)/aem_descriptors.generated
-	@xta --console-basic source "$(call UNMANGLE_NO_ESCAPE,$(CURRENT_MODULE_DIR)/src/1722_1/generate.py)" "$(call UNMANGLE_NO_ESCAPE, src/)" $(GEN_DIR) -exit
-$(GEN_DIR)/aem_descriptors.h: $(GEN_DIR)/aem_descriptors.generated
-$(GEN_DIR)/aem_entity_strings.h: $(GEN_DIR)/aem_descriptors.generated
 
 VERSION = 7.0.0

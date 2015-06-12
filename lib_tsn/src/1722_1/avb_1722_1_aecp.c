@@ -1,5 +1,6 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include "avb.h"
+#include "avb_1722_common.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_aecp.h"
 #include "avb_1722_1_adp.h"
@@ -17,7 +18,9 @@
 #include "avb_util.h"
 #include "ethernet_wrappers.h"
 #include "aem_descriptor_types.h"
+#if AVB_1722_1_AEM_ENABLED
 #include "aem_descriptors.h"
+#endif
 #include "aem_descriptor_structs.h"
 
 extern unsigned int avb_1722_1_buf[AVB_1722_1_PACKET_SIZE_WORDS];
@@ -69,6 +72,7 @@ static enum {
 // Called on startup to initialise certain static descriptor fields
 void avb_1722_1_aem_descriptors_init(unsigned int serial_num)
 {
+#if AVB_1722_1_AEM_ENABLED
   if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
     fl_BootImageInfo image;
 
@@ -107,6 +111,7 @@ void avb_1722_1_aem_descriptors_init(unsigned int serial_num)
   desc_avb_interface_0[78+7] = my_mac_addr[5];
   desc_avb_interface_0[78+8] = 0;
   desc_avb_interface_0[78+9] = 1;
+#endif
 }
 
 void avb_1722_1_aecp_aem_init(unsigned int serial_num)
@@ -149,6 +154,9 @@ static void avb_1722_1_create_aecp_aem_response(unsigned char src_addr[6], unsig
   memcpy(aem, cmd_pkt->data.payload, command_data_len + 2);
 }
 
+#if (AVB_1722_1_AEM_ENABLED == 0)
+__attribute__((unused))
+#endif
 static void generate_object_name(char *object_name, int base, int n) {
   char num_string[5];
   int count;
@@ -172,6 +180,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
                                                CLIENT_INTERFACE(avb_interface, i_avb_api),
                                                CLIENT_INTERFACE(avb_1722_1_control_callbacks, i_1722_1_entity))
 {
+#if AVB_1722_1_AEM_ENABLED
   int desc_size_bytes = 0, i = 0;
   unsigned char *descriptor = NULL;
   int found_descriptor = 0;
@@ -349,6 +358,9 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 
     return packet_size;
   }
+#else
+  return 0;
+#endif
 }
 
 static unsigned short avb_1722_1_create_controller_available_packet(void)

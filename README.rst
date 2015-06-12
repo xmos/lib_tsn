@@ -16,10 +16,11 @@ Ethernet AVB (Audio Video Bridging).
 Features
 ........
 
-* IEEE 1722 AVB audio transport support (talker and listener)
-* IEEE 1722 MAAP support for Talkers
-* 802.1Q MRP, MVRP, SRP protocols
+* 1722 61883-6 audio Talker and Listener (simultaneous) support
+* 1722 MAAP support for Talkers
+* 802.1Q MRP, MVRP, MSRP protocols
 * gPTP server and protocol
+* Media clock recovery and interface to PLL clock source
 * Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
 
 Software version and dependencies

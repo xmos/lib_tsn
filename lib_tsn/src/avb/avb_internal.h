@@ -7,7 +7,7 @@
 #include "xc2compat.h"
 #include "avb.h"
 #include "avb_1722_1_callbacks.h"
-#include "media_clock_server.h"
+#include "media_clock_internal.h"
 #include "ethernet.h"
 
 #ifndef MAX_AVB_CONTROL_PACKET_SIZE
@@ -83,5 +83,20 @@ int avb_register_listener_streams(chanend listener_ctl,
 void avb_register_talker_streams(chanend listener_ctl,
                                  int num_streams,
                                  unsigned char mac_addr[6]);
+
+/** Utility function to get the index of a source stream based on its
+ * pointer.  This is used by SRP, which stores a pointer to the stream
+ * structure rather than an index.
+ */
+unsigned avb_get_source_stream_index_from_pointer(avb_source_info_t *unsafe p);
+
+/** Utility function to get the index of a sink stream based on its
+ * pointer.  This is used by SRP, which stores a pointer to the stream
+ * structure rather than an index.
+ */
+unsigned avb_get_sink_stream_index_from_pointer(avb_sink_info_t *unsafe p);
+
+unsigned avb_get_source_stream_index_from_stream_id(unsigned int stream_id[2]);
+unsigned avb_get_sink_stream_index_from_stream_id(unsigned int stream_id[2]);
 
 #endif // _avb_internal_h_

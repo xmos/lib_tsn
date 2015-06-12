@@ -4,16 +4,13 @@
 
 #include <xccompat.h>
 #include "ethernet.h"
-#include "nettypes.h"
 
-#define PTP_ADJUST_PREC 30
-
-/** This type represents a timestamp in the gptp clock domain.
+/** This type represents a timestamp in the gPTP clock domain with respect to the epoch.
  *
  **/
 typedef struct ptp_timestamp {
-  unsigned int seconds[2];
-  unsigned int nanoseconds;
+  unsigned int seconds[2];  /*!< The integer portion of the timestamp in units of seconds */
+  unsigned int nanoseconds; /*!< The fractional portion of the timestamp in units of nanoseconds. */
 } ptp_timestamp;
 
 /**
@@ -22,8 +19,8 @@ typedef struct ptp_timestamp {
  */
 struct ptp_time_info {
   unsigned int local_ts; /*!< A local timestamp based on the 100MHz
-                              XCore reference clock */
-  ptp_timestamp ptp_ts;  /*!< A PTP timestamp in the gptp clock domain
+                              xCORE reference clock */
+  ptp_timestamp ptp_ts;  /*!< A PTP timestamp in the gPTP clock domain
                            that matches the local timestamp */
 
   int ptp_adjust; /*!< The adjustment required to convert from
@@ -33,7 +30,7 @@ struct ptp_time_info {
 };
 
 
-/** This type is used to relate local XCore time with gptp time.
+/** This type is used to relate local xCORE time with gPTP time.
  *  It can be retrieved from the PTP server using the ptp_get_time_info()
  *  function.
  **/
@@ -51,8 +48,8 @@ struct ptp_time_info_mod64 {
   int inv_ptp_adjust;
 };
 
-/** This structure is used to relate local XCore time with the least
- *  significant 64 bits of gptp time. The 64 bits of time is the PTP
+/** This structure is used to relate local xCORE time with the least
+ *  significant 64 bits of gPTP time. The 64 bits of time is the PTP
  *  time in nanoseconds from the epoch.
  *
  *  It can be retrieved from the PTP server using the ptp_get_time_info_mod64()
@@ -63,58 +60,31 @@ typedef struct ptp_time_info_mod64 ptp_time_info_mod64;
 /** The type of a PTP server. Can be passed into the ptp_server() function.
  **/
 enum ptp_server_type {
-  PTP_GRANDMASTER_CAPABLE,
-  PTP_SLAVE_ONLY
+  PTP_GRANDMASTER_CAPABLE, /*!< The port is capable of being both PTP Grandmaster and Slave role */
+  PTP_SLAVE_ONLY           /*!< The port is capable of PTP Slave role only */
 };
 
-typedef enum ptp_port_role_t {
-  PTP_MASTER,
-  PTP_UNCERTAIN,
-  PTP_SLAVE,
-  PTP_DISABLED
-} ptp_port_role_t;
+#ifdef __XC__
+/** This function runs the PTP server. It takes one logical core and runs
+    indefinitely.
 
-typedef struct ptp_path_delay_t {
-  int valid;
-  unsigned int pdelay;
-  unsigned int lost_responses;
-  unsigned int exchanges;
-  unsigned int multiple_resp_count;
-  unsigned int last_multiple_resp_seq_id;
-  n80_t rcvd_source_identity;
-} ptp_path_delay_t;
-
-typedef struct ptp_port_info_t {
-  int asCapable;
-  ptp_port_role_t role_state;
-  ptp_path_delay_t delay_info;
-} ptp_port_info_t;
-
-/** This function runs the PTP server. It takes one thread and runs
-    indefinitely
-
-    \param i_eth_rx  interface connected to the ethernet server (receive)
-    \param i_eth_tx  interface connected to the ethernet server (transmit)
-    \param client       an array of chanends to connect to clients
-                        of the ptp server
+    \param i_eth_rx  a receive interface connected to the Ethernet server
+    \param i_eth_tx  a transmit interface connected to the Ethernet server
+    \param i_eth_cfg a client configuration interface to the Ethernet server
+    \param ptp_clients  an array of channel ends to connect to clients
+                        of the PTP server
     \param num_clients  The number of clients attached
     \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
                        or ``PTP_SLAVE_ONLY``)
  **/
-void ptp_server(CLIENT_INTERFACE(ethernet_rx_if, i_eth_rx),
-                CLIENT_INTERFACE(ethernet_tx_if, i_eth_tx),
-                CLIENT_INTERFACE(ethernet_cfg_if, i_eth_cfg),
+void ptp_server(client interface ethernet_rx_if i_eth_rx,
+                client interface ethernet_tx_if i_eth_tx,
+                client interface ethernet_cfg_if i_eth_cfg,
                 chanend ptp_clients[], int num_clients,
                 enum ptp_server_type server_type);
+#endif
 
-
-// Synchronous PTP client functions
-// --------------------------------
-
-ptp_port_role_t ptp_get_state(chanend ptp_server);
-
-
-/** Retrieve time information from the ptp server
+/** Retrieve time information from the PTP server
  *
  *  This function gets an up-to-date structure of type `ptp_time_info` to use
  *  to convert local time to PTP time.
@@ -123,21 +93,13 @@ ptp_port_role_t ptp_get_state(chanend ptp_server);
  *  \param info       structure to be filled with time information
  *
  **/
-void ptp_get_propagation_delay(chanend ptp_server, unsigned *pdelay);
-
-/** Retrieve port progatation delay from the ptp server
- *
- *
- *  \param ptp_server chanend connected to the ptp_server
- *  \param pdelay     unsigned int with delay in ns
- *
- **/
 void ptp_get_time_info(chanend ptp_server,
                         REFERENCE_PARAM(ptp_time_info, info));
-/** Retrieve time information from the ptp server
+
+/** Retrieve time information from the PTP server
  *
  *  This function gets an up-to-date structure of type `ptp_time_info_mod64`
- *  to use to convert local time to ptp time (modulo 64 bits).
+ *  to use to convert local time to PTP time (modulo 64 bits).
  *
  *  \param ptp_server chanend connected to the ptp_server
  *  \param info       structure to be filled with time information
@@ -200,48 +162,41 @@ void ptp_request_time_info_mod64(chanend ptp_server);
 void ptp_get_requested_time_info_mod64(chanend ptp_server,
                                         REFERENCE_PARAM(ptp_time_info_mod64, info));
 
-#ifdef __XC__
-#pragma select handler
-#endif
-void ptp_get_requested_time_info_mod64_use_timer(chanend c,
-                                                 REFERENCE_PARAM(ptp_time_info_mod64, info),
-                                                 timer tmr);
 
-
-/** Convert a timestamp from the local XCore timer to PTP time.
+/** Convert a timestamp from the local xCORE timer to PTP time.
  *
- *  This function takes a 32-bit timestamp taken from an XCore timer and
+ *  This function takes a 32-bit timestamp taken from an xCORE timer and
  *  converts it to PTP time.
  *
  *  \param ptp_ts         the PTP timestamp structure to be filled with the
  *                        converted time
  *  \param local_ts       the local timestamp to be converted
- *  \param info           a time information structure retrieved from the ptp
+ *  \param info           a time information structure retrieved from the PTP
  *                        server
  **/
 void local_timestamp_to_ptp(REFERENCE_PARAM(ptp_timestamp, ptp_ts),
                             unsigned local_ts,
                             REFERENCE_PARAM(ptp_time_info, info));
 
-/** Convert a timestamp from the local XCore timer to the least significant
+/** Convert a timestamp from the local xCORE timer to the least significant
  *  32 bits of PTP time.
  *
- *  This function takes a 32-bit timestamp taken from an XCore timer and
+ *  This function takes a 32-bit timestamp taken from an xCORE timer and
  *  converts it to the least significant 32 bits of global PTP time.
  *
  *  \param local_ts       the local timestamp to be converted
  *  \param info           a time information structure retrieved from the PTP
  *                        server
- *  \returns              the least significant 32-bits of ptp time in
+ *  \returns              the least significant 32-bits of PTP time in
  *                        nanoseconds
  **/
 unsigned local_timestamp_to_ptp_mod32(unsigned local_ts,
                                       REFERENCE_PARAM(ptp_time_info_mod64, info));
 
-/** Convert a PTP timestamp to a local XCore timestamp.
+/** Convert a PTP timestamp to a local xCORE timestamp.
  *
  *  This function takes a PTP timestamp and converts it to a local
- *  32-bit timestamp that is related to the XCore timer.
+ *  32-bit timestamp that is related to the xCORE timer.
  *
  *  \param ts             the PTP timestamp to convert
  *  \param info           a time information structure retrieved from the PTP
@@ -251,10 +206,10 @@ unsigned local_timestamp_to_ptp_mod32(unsigned local_ts,
 unsigned ptp_timestamp_to_local(REFERENCE_PARAM(ptp_timestamp, ts),
                                 REFERENCE_PARAM(ptp_time_info, info));
 
-/** Convert a PTP timestamp to a local XCore timestamp.
+/** Convert a PTP timestamp to a local xCORE timestamp.
  *
  *  This function takes a PTP timestamp and converts it to a local
- *  32-bit timestamp that is related to the XCore timer.
+ *  32-bit timestamp that is related to the xCORE timer.
  *
  *  \param ts             the least significant 32 bits of a PTP timestamp to convert
  *  \param info           a time information structure retrieved from the PTP
@@ -274,71 +229,4 @@ unsigned ptp_mod32_timestamp_to_local(unsigned ts, REFERENCE_PARAM(ptp_time_info
  */
 void ptp_timestamp_offset(REFERENCE_PARAM(ptp_timestamp, ts), int offset);
 
-
-void ptp_get_current_grandmaster(chanend ptp_server, unsigned char grandmaster[8]);
-
-
-/** Initialize the inline ptp server.
- *
- *  \param i_eth_rx       interface connected to the ethernet server (receive)
- *  \param i_eth_tx       interface connected to the ethernet server (transmit)
- *  \param server_type The type of the server (``PTP_GRANDMASTER_CAPABLE``
- *                     or ``PTP_SLAVE_ONLY``)
- *
- *  This function initializes the ptp server when you want to use it inline
- *  combined with other event handling functions (i.e. share the resource in
- *  the ptp thread).
- *  It needs to be called in conjunction with do_ptp_server().
- *  Here is an example usage::
- *
- *     ptp_server_init(c_rx, c_tx, PTP_GRANDMASTER_CAPABLE);
- *     while (1) {
- *         select {
- *             do_ptp_server(c_tx, c_tx, ptp_client, num_clients);
- *             // Add your own cases here
- *         }
- *
- *     }
- *
- *  \sa do_ptp_server
- **/
-void ptp_server_init(CLIENT_INTERFACE(ethernet_cfg_if, i_eth_cfg),
-                     CLIENT_INTERFACE(ethernet_rx_if, i_eth_rx),
-                     chanend c,
-                     enum ptp_server_type server_type,
-                     timer ptp_timer,
-                     REFERENCE_PARAM(int, ptp_timeout));
-
-
-#ifdef __XC__
-void ptp_recv_and_process_packet(client interface ethernet_rx_if i_eth_rx, client interface ethernet_tx_if i_eth_tx);
-#endif
-#ifdef __XC__
-#pragma select handler
-#endif
-void ptp_process_client_request(chanend c, timer ptp_timer);
-void ptp_periodic(CLIENT_INTERFACE(ethernet_tx_if, i_eth), unsigned);
-#define PTP_PERIODIC_TIME (10000)  // 0.tfp1 milliseconds
-
-
-
-
-
-#define do_ptp_server(i_eth_rx, i_eth_tx, client, num_clients, ptp_timer, ptp_timeout)      \
-  case i_eth_rx.packet_ready(): \
-       ptp_recv_and_process_packet(i_eth_rx, i_eth_tx); \
-       break;                     \
- case (int i=0;i<num_clients;i++) ptp_process_client_request(client[i], ptp_timer): \
-       break; \
-  case ptp_timer when timerafter(ptp_timeout) :> void: \
-       ptp_periodic(i_eth_tx, ptp_timeout); \
-       ptp_timeout += PTP_PERIODIC_TIME; \
-       break
-
-
-
-
-void ptp_output_test_clock(chanend ptp_link,
-                           port test_clock_port,
-                           int period);
 #endif //__gptp_h__

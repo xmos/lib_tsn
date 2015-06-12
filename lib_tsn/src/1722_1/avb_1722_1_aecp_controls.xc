@@ -1,6 +1,7 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include "avb_1722_1_aecp_controls.h"
 #include "avb.h"
+#include "avb_1722_common.h"
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_aecp.h"
 #include "misc_timer.h"
@@ -222,7 +223,7 @@ unsafe void process_aem_cmd_getset_stream_format(avb_1722_1_aecp_packet_t *unsaf
   }
   else // AECP_AEM_CMD_SET_STREAM_FORMAT
   {
-    format = AVB_SOURCE_FORMAT_MBLA_24BIT;
+    format = AVB_FORMAT_MBLA_24BIT;
     rate = sampling_rate_from_sfc(cmd->stream_format[2]);
     channels = cmd->stream_format[6];
 

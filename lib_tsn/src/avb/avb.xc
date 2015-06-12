@@ -4,7 +4,6 @@
 #include "avb_srp.h"
 #include "avb_mvrp.h"
 #include "avb_mrp.h"
-#include "avb_stream.h"
 #include "gptp_config.h"
 #include <string.h>
 #include "debug_print.h"
@@ -510,8 +509,6 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
 
   while (1) {
     select {
-    case avb[int i].initialise(void):
-      break;
     case avb[int i]._get_source_info(unsigned source_num) -> avb_source_info_t info:
       info = sources[source_num];
       break;
@@ -608,9 +605,9 @@ void avb_process_1722_control_packet(unsigned int buf0[],
           avb_1722_maap_request_addresses(AVB_NUM_SOURCES, null);
         }
 
-        if (AVB_1722_1_FAST_CONNECT_ENABLED) {
-          acmp_start_fast_connect(i_eth);
-        }
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+        acmp_start_fast_connect(i_eth);
+#endif
       }
     }
   }
@@ -634,8 +631,12 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 
     switch (etype) {
       case AVB_1722_ETHERTYPE:
+#if AVB_ENABLE_1722_1
         avb_1722_1_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth, i_avb, i_1722_1_entity);
+#endif
+#if AVB_ENABLE_1722_MAAP
         avb_1722_maap_process_packet(&buf[eth_hdr_size], len, ethernet_hdr->src_addr, i_eth);
+#endif
         break;
     }
   }

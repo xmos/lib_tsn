@@ -2,7 +2,7 @@
 #include "debug_print.h"
 #include <print.h>
 #include <xscope.h>
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include <xclib.h>
 
 #if AVB_NUM_SOURCES > 0 && (defined(AVB_1722_FORMAT_61883_6) || defined(AVB_1722_FORMAT_SAF))

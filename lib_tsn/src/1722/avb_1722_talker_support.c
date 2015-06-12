@@ -3,7 +3,7 @@
 #include <xccompat.h>
 
 #include "avb_1722_talker.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 
 void avb1722_set_buffer_vlan(int vlan,
 		unsigned char Buf0[])

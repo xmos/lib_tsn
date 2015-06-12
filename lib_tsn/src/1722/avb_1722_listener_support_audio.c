@@ -7,7 +7,7 @@
 #include <string.h>
 #include <xs1.h>
 #include <xscope.h>
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "debug_print.h"
 
 #if defined(AVB_1722_FORMAT_SAF) || defined(AVB_1722_FORMAT_61883_6)

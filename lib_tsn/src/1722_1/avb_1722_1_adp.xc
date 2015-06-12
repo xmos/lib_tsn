@@ -5,6 +5,7 @@
 #include "avb_1722_1_aecp.h"
 #include "misc_timer.h"
 #include "gptp.h"
+#include "gptp_internal.h"
 #include <string.h>
 #include "xccompat.h"
 #include <print.h>
@@ -295,7 +296,11 @@ static void avb_1722_1_create_adp_packet(int message_type, guid_t guid)
         hton_32(pkt->available_index, avb_1722_1_available_index);
         memcpy(pkt->gptp_grandmaster_id, gptp_grandmaster_id.c, 8);
         pkt->gptp_domain_number = 0;
+#if AVB_1722_1_AEM_ENABLED
+        hton_16(pkt->identify_control_index, DESCRIPTOR_INDEX_CONTROL_IDENTIFY);
+#else
         hton_16(pkt->identify_control_index, 0);
+#endif
         hton_32(pkt->association_id, AVB_1722_1_ADP_ASSOCIATION_ID);
         hton_16(pkt->interface_index, 0);
     }
@@ -332,7 +337,9 @@ void avb_1722_1_adp_discovery_periodic(client interface ethernet_tx_if i_eth, cl
         }
         case ADP_DISCOVERY_ADDED:
         {
+#if AVB_ENABLE_1722_1
             avb_entity_on_new_entity_available(avb_api, my_guid, &entities[adp_latest_entity_added_index], i_eth);
+#endif
             adp_discovery_state = ADP_DISCOVERY_WAITING;
             break;
         }

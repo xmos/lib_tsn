@@ -7,10 +7,9 @@
 #include <string.h>
 #include <limits.h>
 #include <xclib.h>
-#ifdef __avb_conf_h_exists__
-#include "avb_conf.h"
-#endif
+#include "default_avb_conf.h"
 #include "gptp.h"
+#include "gptp_internal.h"
 #include "gptp_config.h"
 #include "gptp_pdu.h"
 #include "ethernet.h"

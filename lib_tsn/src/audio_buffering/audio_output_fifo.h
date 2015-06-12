@@ -4,7 +4,7 @@
 
 #include <xccompat.h>
 #include <xc2compat.h>
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "audio_buffering.h"
 
 #ifndef AVB_MAX_AUDIO_SAMPLE_RATE

@@ -1,7 +1,7 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #ifndef __AVB_MVRP_H__
 #define __AVB_MVRP_H__
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "avb_mrp.h"
 
 /** \file avb_mvrp.h

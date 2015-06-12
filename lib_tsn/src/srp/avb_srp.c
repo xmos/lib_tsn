@@ -4,11 +4,10 @@
 #include <stddef.h>
 #include "avb.h"
 #include "avb_internal.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "avb_srp.h"
 #include "avb_mrp_pdu.h"
 #include "avb_srp_pdu.h"
-#include "avb_stream.h"
 #include "avb_1722_talker.h"
 #include <print.h>
 #include "stdlib.h"
@@ -922,10 +921,9 @@ static int encode_listener_message(char *buf,
       streamid = byterev(streamId[1]);
       memcpy(&first_value->StreamId[4], &streamid, 4);
 
-      int port_to_transmit = st->port_num;
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        debug_printf("Port %d out: MSRP_LISTENER, stream %x:%x\n", port_to_transmit, streamId[0], streamId[1]);
+        debug_printf("Port %d out: MSRP_LISTENER, stream %x:%x\n", st->port_num, streamId[0], streamId[1]);
       }
 
     }
@@ -1129,10 +1127,9 @@ static int encode_talker_message(char *buf,
       streamid = byterev(attribute_info->stream_id[1]);
       memcpy(&first_value->StreamId[4], &streamid, 4);
 
-      int port_to_transmit = st->port_num;
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        debug_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", port_to_transmit, attribute_info->stream_id[0], attribute_info->stream_id[1]);
+        debug_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", st->port_num, attribute_info->stream_id[0], attribute_info->stream_id[1]);
       }
 
       if (attribute_info->vlan_id) {

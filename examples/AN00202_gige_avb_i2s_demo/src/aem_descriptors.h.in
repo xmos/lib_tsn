@@ -3,13 +3,13 @@
 #include "gptp_config.h"
 #include "avb_1722_def.h"
 #include "avb_1722_1_adp_pdu.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 
 #define U16(data) (unsigned char)((data) >> 8), (unsigned char)((data) & 0xff)
 #define U32(data) (unsigned char)(((data) >> 24) & 0xff), (unsigned char)(((data) >> 16) & 0xff), (unsigned char)(((data) >> 8 ) & 0xff), (unsigned char)(data)
 #define U64(data) (unsigned char)(((unsigned long long)(data) >> 56ULL) & 0xff), (unsigned char)(((unsigned long long)(data) >> 48ULL) & 0xff), (unsigned char)(((unsigned long long)(data) >> 40ULL ) & 0xff), (unsigned char)(((unsigned long long)(data) >> 32ULL ) & 0xff), U32(data)
 
-#ifdef AVB_1722_1_AEM_ENABLED
+#if AVB_1722_1_AEM_ENABLED
 
 /* Entity Descriptor */
 unsigned char desc_entity[] =

@@ -6,7 +6,6 @@
 #include "avb_srp_pdu.h"
 #include "avb_1722_talker.h"
 #include "avb_mrp.h"
-#include "avb_stream.h"
 #include "avb.h"
 #include "ethernet.h"
 

@@ -2,9 +2,8 @@
 #ifndef __gptp_config_h__
 #define __gptp_config_h__
 
-#ifdef __avb_conf_h_exists__
-#include "avb_conf.h"
-#endif
+#include "default_avb_conf.h"
+#include "ethernet_conf.h"
 
 #define PTP_NUM_PORTS   (NUM_ETHERNET_MASTER_PORTS)
 

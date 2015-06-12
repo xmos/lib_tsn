@@ -2,11 +2,6 @@
 #ifndef __avb_conf_h__
 #define __avb_conf_h__
 
-/******** ETHERNET MAC CONFIGURATION PARAMETERS *************************************************/
-
-#define NUM_ETHERNET_PORTS 1
-#define NUM_ETHERNET_MASTER_PORTS 1
-
 /******** ENDPOINT AUDIO AND CLOCKING PARAMETERS ************************************************/
 
 /* Talker configuration */
@@ -14,7 +9,7 @@
 /** The total number of AVB sources (streams that are to be transmitted). */
 #define AVB_NUM_SOURCES 4
 /** The total number or Talker components (typically the number of
-  * tasks running the  :c:func:`avb_1722_talker` function). */
+  * tasks running the  `avb_1722_talker` function). */
 #define AVB_NUM_TALKER_UNITS 1
 /** The total number of media inputs (typically number of I2S input channels). */
 #define AVB_NUM_MEDIA_INPUTS 32
@@ -26,7 +21,7 @@
 /** The total number of AVB sinks (incoming streams that can be listened to) */
 #define AVB_NUM_SINKS 4
 /** The total number or listener components
-  * (typically the number of tasks running the  :c:func:`avb_1722_listener` function) */
+  * (typically the number of tasks running the `avb_1722_listener` function) */
 #define AVB_NUM_LISTENER_UNITS 1
 /** The total number of media outputs (typically the number of I2S output channels). */
 #define AVB_NUM_MEDIA_OUTPUTS 32
@@ -38,9 +33,6 @@
 #define AVB_MAX_CHANNELS_PER_TALKER_STREAM 8
 /** The maximum number of channels permitted per 1722 Listener stream */
 #define AVB_MAX_CHANNELS_PER_LISTENER_STREAM 8
-
-/** Enable combination of the media clock server and PTP server in a single core */
-#define COMBINE_MEDIA_CLOCK_AND_PTP 1
 
 /** Use 61883-6 audio format for 1722 streams */
 #define AVB_1722_FORMAT_61883_6 1
@@ -60,6 +52,8 @@
 
 /** Enable 1722.1 AVDECC on the entity */
 #define AVB_ENABLE_1722_1 1
+
+#define AVB_ENABLE_1722_MAAP 1
 
 #define AVB_1722_1_ADP_ENTITY_CAPABILITIES (AVB_1722_1_ADP_ENTITY_CAPABILITIES_AEM_SUPPORTED| \
                                             AVB_1722_1_ADP_ENTITY_CAPABILITIES_CLASS_A_SUPPORTED| \

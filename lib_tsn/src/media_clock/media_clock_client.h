@@ -5,8 +5,6 @@
 #define CLK_CTL_SET_RATE 0x1
 #define CLK_CTL_STOP     0x2
 
-#define WC_FRACTIONAL_BITS 16
-
 /** Commands that can be sent to the buffer */
 #define BUF_CTL_GET_INCOMING_COUNT 1
 #define BUF_CTL_GET_OUTGOING_COUNT 2

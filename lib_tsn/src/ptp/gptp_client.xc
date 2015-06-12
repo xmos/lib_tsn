@@ -1,7 +1,7 @@
 // Copyright (c) 2015, XMOS Ltd, All rights reserved
 #include <xs1.h>
 #include "gptp.h"
-#include "gptp_cmd.h"
+#include "gptp_internal.h"
 
 static void send_cmd(chanend c, char cmd)
 {
@@ -36,7 +36,7 @@ void ptp_get_requested_time_info(chanend c,
   }
   if (server_tile_id != get_local_tile_id())
   {
-    info.local_ts = info.local_ts - (othercore_now-thiscore_now);
+    info.local_ts = info.local_ts - (othercore_now-thiscore_now-3);
   }
 }
 
@@ -54,11 +54,10 @@ void ptp_request_time_info_mod64(chanend c)
   send_cmd(c, PTP_GET_TIME_INFO_MOD64);
 }
 
-
-void ptp_get_requested_time_info_mod64_use_timer(chanend c,
-                                                 ptp_time_info_mod64 &info,
-                                                 timer tmr)
+void ptp_get_requested_time_info_mod64(chanend c,
+                                       ptp_time_info_mod64 &info)
 {
+  timer tmr;
   signed thiscore_now,othercore_now;
   unsigned server_tile_id;
   slave {
@@ -77,14 +76,6 @@ void ptp_get_requested_time_info_mod64_use_timer(chanend c,
     // 3 = protocol instruction cycle difference
     info.local_ts = info.local_ts - (othercore_now-thiscore_now-3);
   }
-}
-
-
-void ptp_get_requested_time_info_mod64(chanend c,
-                                       ptp_time_info_mod64 &info)
-{
-  timer tmr;
-  ptp_get_requested_time_info_mod64_use_timer(c, info, tmr);
 }
 
 

@@ -3,7 +3,7 @@
 #include <xclib.h>
 #include "print.h"
 #include "i2c.h"
-#include "media_clock_server.h"
+#include "media_clock_internal.h"
 #include <stdlib.h>
 #include "debug_print.h"
 

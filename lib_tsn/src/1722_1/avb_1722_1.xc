@@ -131,16 +131,15 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
     otp_board_info_get_serial(otp_ports, serial);
   }
 
-  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
-    if (isnull(qspi_ports)) {
-      fail("Firmware upgrade enabled but QSPI ports null");
-    }
-    else if (fl_connect(qspi_ports)) {
-      fail("Could not connect to flash");
-    }
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
+  if (isnull(qspi_ports)) {
+    fail("Firmware upgrade enabled but QSPI ports null");
   }
+  else if (fl_connect(qspi_ports)) {
+    fail("Could not connect to flash");
+  }
+#endif
 
-  i_avb.initialise();
   srp_store_ethernet_interface(i_eth_tx);
   mrp_store_ethernet_interface(i_eth_tx);
 
@@ -221,13 +220,14 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
   if (!isnull(otp_ports)) {
     otp_board_info_get_serial(otp_ports, serial);
   }
-
-  if (AVB_1722_1_FIRMWARE_UPGRADE_ENABLED) {
-    if (!isnull(qspi_ports) && fl_connect(qspi_ports)) {
-      // Problem connecting to QSPI flash
-      __builtin_trap();
-    }
+#if AVB_1722_1_FIRMWARE_UPGRADE_ENABLED
+  if (isnull(qspi_ports)) {
+    fail("Firmware upgrade enabled but QSPI ports null");
   }
+  else if (fl_connect(qspi_ports)) {
+    fail("Could not connect to flash");
+  }
+#endif
 
   i_eth_cfg.get_macaddr(0, mac_addr);
 

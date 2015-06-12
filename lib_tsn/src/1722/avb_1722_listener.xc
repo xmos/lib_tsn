@@ -12,7 +12,7 @@
 #include "ethernet.h"
 #include "avb_srp.h"
 #include "avb_internal.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include <debug_print.h>
 #include "audio_output_fifo.h"
 

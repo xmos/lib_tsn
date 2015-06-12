@@ -3,7 +3,7 @@
 #include <xclib.h>
 #include "print.h"
 #include "i2c.h"
-#include "media_clock_server.h"
+#include "media_clock_internal.h"
 #include <stdlib.h>
 
 static unsigned char regaddr[9] = {0x09,0x08,0x07,0x06,0x17,0x16,0x05,0x03,0x1E};

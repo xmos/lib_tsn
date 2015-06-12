@@ -13,10 +13,10 @@
 /** A new AVDECC entity has advertised itself as available. It may be an entity starting up or
  *  a previously seen entity that had timed out.
  *
- * \param i_avb             client interface of type ``avb_interface`` into avb_manager()
+ * \param i_avb     client interface of type ``avb_interface`` into avb_manager()
  * \param my_guid   The GUID of this entity
  * \param entity    The information advertised by the remote entity
- * \param c_tx      A transmit channel end to the Ethernet server
+ * \param i_eth     a client transmit interface into the Ethernet MAC
  **/
 void avb_entity_on_new_entity_available(client interface avb_interface i_avb, const_guid_ref_t my_guid, avb_1722_1_entity_record *entity,
                                         client interface ethernet_tx_if i_eth);
@@ -54,7 +54,7 @@ void avb_talker_on_listener_disconnect_default(client interface avb_interface i_
  * \param source_num        The local id of the Talker stream source
  * \param listener_guid     The GUID of the Listener entity that is connecting
  * \param status            The status returned by the Listener
- * \param c_tx              A transmit channel end to the Ethernet server
+ * \param i_eth             a client transmit interface into the Ethernet MAC
  **/
 void avb_talker_on_listener_connect_failed(client interface avb_interface i_avb, const_guid_ref_t my_guid, int source_num,
         const_guid_ref_t listener_guid, avb_1722_1_acmp_status_t status, client interface ethernet_tx_if i_eth);

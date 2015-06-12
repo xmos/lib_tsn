@@ -3,7 +3,7 @@
 #include <print.h>
 #include "debug_print.h"
 #include "avb.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "avb_1722_common.h"
 #include "avb_1722_maap.h"
 #include "avb_1722_maap_protocol.h"

@@ -3,7 +3,7 @@
 #define _avb_1722_router_h_
 #include <xccompat.h>
 #include "ethernet.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 
 void avb_1722_enable_stream_forwarding(CLIENT_INTERFACE(ethernet_cfg_if, i_eth),
                                       unsigned int stream_id[2]);

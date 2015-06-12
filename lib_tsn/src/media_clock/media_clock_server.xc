@@ -6,14 +6,15 @@
 
 #include "avb_1722_def.h"
 #include "media_clock_client.h"
-#include "media_clock_server.h"
 #include "media_clock_internal.h"
 #include "audio_output_fifo.h"
 #include "debug_print.h"
 #include "gptp.h"
+#include "gptp_internal.h"
 
 #define DEBUG_MEDIA_CLOCK
 #define PLL_OUTPUT_TIMING_CHECK 0
+#define COMBINE_MEDIA_CLOCK_AND_PTP 1
 
 #define STABLE_THRESHOLD 32
 #define LOCK_COUNT_THRESHOLD 400
@@ -51,7 +52,7 @@ void update_stream_derived_clocks(int source_num,
 {
   for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
     if (media_clocks[i].info.active &&
-        media_clocks[i].info.clock_type == INPUT_STREAM_DERIVED &&
+        media_clocks[i].info.clock_type == DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED &&
         media_clocks[i].info.source == source_num)
       {
         update_media_clock_stream_info(i,
@@ -69,7 +70,7 @@ void inform_media_clocks_of_lock(int source_num)
 {
  for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
     if (media_clocks[i].info.active &&
-        media_clocks[i].info.clock_type == INPUT_STREAM_DERIVED &&
+        media_clocks[i].info.clock_type == DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED &&
         media_clocks[i].info.source == source_num)
       {
         inform_media_clock_of_lock(i);
@@ -310,17 +311,17 @@ static void update_media_clocks(chanend ?ptp_svr, int clk_time)
   }
 }
 
-void media_clock_server(server interface media_clock_if media_clock_ctl,
-                        chanend ?ptp_svr,
-                        chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
-                        out buffered port:32 p_fs[]
+void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
+                            chanend ?ptp_svr,
+                            chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
+                            out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
-                        ,client interface ethernet_rx_if i_eth_rx,
-                        client interface ethernet_tx_if i_eth_tx,
-                        client interface ethernet_cfg_if i_eth_cfg,
-                        chanend c_ptp[num_ptp],
-                        unsigned num_ptp,
-                        enum ptp_server_type server_type
+                            ,client interface ethernet_rx_if i_eth_rx,
+                            client interface ethernet_tx_if i_eth_tx,
+                            client interface ethernet_cfg_if i_eth_cfg,
+                            chanend c_ptp[num_ptp],
+                            unsigned num_ptp,
+                            enum ptp_server_type server_type
 #endif
 )
 {

@@ -14,7 +14,6 @@
 #include "debug_print.h"
 #include "avb_1722_1_adp.h"
 #include "gptp.h"
-#include "media_clock_server.h"
 #include "avb_1722_1.h"
 #include "avb_srp.h"
 #include "aem_descriptor_types.h"
@@ -371,16 +370,16 @@ int main(void)
   
     on tile[1]: smi(i_smi, p_smi_mdio, p_smi_mdc);
 
-    on tile[0]: media_clock_server(i_media_clock_ctl,
-                                   null,
-                                   c_buf_ctl,
-                                   AVB_NUM_LISTENER_UNITS,
-                                   p_fs,
-                                   i_eth_rx_lp[MAC_TO_MEDIA_CLOCK_PTP],
-                                   i_eth_tx_lp[MEDIA_CLOCK_PTP_TO_MAC],
-                                   i_eth_cfg[MAC_CFG_TO_MEDIA_CLOCK_PTP],
-                                   c_ptp, NUM_PTP_CHANS,
-                                   PTP_GRANDMASTER_CAPABLE);
+    on tile[0]: gptp_media_clock_server(i_media_clock_ctl,
+                                        null,
+                                        c_buf_ctl,
+                                        AVB_NUM_LISTENER_UNITS,
+                                        p_fs,
+                                        i_eth_rx_lp[MAC_TO_MEDIA_CLOCK_PTP],
+                                        i_eth_tx_lp[MEDIA_CLOCK_PTP_TO_MAC],
+                                        i_eth_cfg[MAC_CFG_TO_MEDIA_CLOCK_PTP],
+                                        c_ptp, NUM_PTP_CHANS,
+                                        PTP_GRANDMASTER_CAPABLE);
 
     on tile[0]: [[distribute]] i2c_master_single_port(i2c, 1, p_i2c, 100, 0, 1, 0);
     on tile[0]: [[distribute]] output_gpio(i_gpio, 4, p_audio_shared, gpio_pin_map);
@@ -459,7 +458,7 @@ void application_task(client interface avb_interface avb, server interface avb_1
     int map[AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES];
     for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*(channels_per_stream)+i  : j+i;
     avb.set_source_map(j, map, channels_per_stream);
-    avb.set_source_format(j, AVB_SOURCE_FORMAT_MBLA_24BIT, default_sample_rate);
+    avb.set_source_format(j, AVB_FORMAT_MBLA_24BIT, default_sample_rate);
     avb.set_source_sync(j, 0);
     avb.set_source_channels(j, channels_per_stream);
   }
@@ -470,7 +469,7 @@ void application_task(client interface avb_interface avb, server interface avb_1
     int map[AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS];
     for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*channels_per_stream+i  : j+i;
     avb.set_sink_map(j, map, channels_per_stream);
-    avb.set_sink_format(j, AVB_SOURCE_FORMAT_MBLA_24BIT, default_sample_rate);
+    avb.set_sink_format(j, AVB_FORMAT_MBLA_24BIT, default_sample_rate);
     avb.set_sink_sync(j, 0);
     avb.set_sink_channels(j, channels_per_stream);
   }

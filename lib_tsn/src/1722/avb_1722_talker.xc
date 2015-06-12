@@ -11,7 +11,7 @@
 #include "ethernet.h"
 #include "avb_srp.h"
 #include "avb_internal.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "debug_print.h"
 #include "audio_buffering.h"
 
@@ -259,7 +259,7 @@ void avb_1722_talker(chanend c_ptp,
   avb_1722_talker_init(c_talker_ctl, st, num_streams);
 
   ptp_request_time_info_mod64(c_ptp);
-  ptp_get_requested_time_info_mod64_use_timer(c_ptp, timeInfo, tmr);
+  ptp_get_requested_time_info_mod64(c_ptp, timeInfo);
 
   tmr :> t;
   t+=TIMEINFO_UPDATE_INTERVAL;
@@ -286,7 +286,7 @@ void avb_1722_talker(chanend c_ptp,
           break;
 
           // The PTP server has sent new time information
-        case ptp_get_requested_time_info_mod64_use_timer(c_ptp, timeInfo, tmr):
+        case ptp_get_requested_time_info_mod64(c_ptp, timeInfo):
           pending_timeinfo = 0;
           break;
 

@@ -10,7 +10,7 @@
 #define streaming
 #endif
 #include <xccompat.h>
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "avb_1722_def.h"
 #include "gptp.h"
 #include "audio_buffering.h"

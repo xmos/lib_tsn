@@ -117,12 +117,11 @@ unsigned int update_media_clock(chanend ptp_svr,
 	int clock_type = mclock->info.clock_type;
 
 	switch (clock_type) {
-	case LOCAL_CLOCK:
+	case DEVICE_MEDIA_CLOCK_LOCAL_CLOCK:
 		return local_wordlen_to_external_wordlen(clock_info->wordlen);
 		break;
 
-#ifndef MEDIA_CLOCK_EXCLUDE_STREAM_DERIVED
-	case INPUT_STREAM_DERIVED: {
+	case DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED: {
 		long long ierror, perror;
 
 		// If the stream info isn't valid at all, then return the default clock rate
@@ -162,21 +161,17 @@ unsigned int update_media_clock(chanend ptp_svr,
 
 			clock_info->ierror = ierror;
 
-#if PLL_TYPE_CS2300
+#if 0
 			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 32) - ((ierror / diff_local) / 4);
 #else
 			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 80)/11 - ((ierror / diff_local) * 1) / 5;
 #endif
-			xscope_longlong(MEDIA_CLOCK_WORDLEN, clock_info->wordlen);
-			xscope_longlong(MEDIA_CLOCK_IERROR, clock_info->ierror);
-			xscope_longlong(MEDIA_CLOCK_PERROR, perror);
 
 			clock_info->stream_info1 = clock_info->stream_info2;
 			clock_info->stream_info2.valid = 0;
 		}
 		break;
 	}
-#endif
 
 		break;
 	}

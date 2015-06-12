@@ -2,7 +2,7 @@
 #ifndef __AUDIO_BUFFERING_H__
 #define __AUDIO_BUFFERING_H__
 
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include <stdint.h>
 #include <xccompat.h>
 #include <string.h>

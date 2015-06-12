@@ -3,12 +3,11 @@
 #define _avb_mrp_h_
 
 #include "avb.h"
-#include "avb_conf.h"
+#include "default_avb_conf.h"
+#include "ethernet_conf.h"
 #include "xc2compat.h"
 #include "avb_mmrp_pdu.h"
 #include "avb_mrp_types.h"
-#include "avb_stream.h"
-
 
 /** \file avb_mrp.h
  *

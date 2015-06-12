@@ -347,6 +347,7 @@ static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp
     store->status = GET_1722_1_VALID_TIME(&(pkt->header));
 }
 
+#if AVB_1722_1_FAST_CONNECT_ENABLED
 void acmp_listener_store_fast_connect_info(int unique_id, guid_t *controller_guid, guid_t *talker_guid, unsigned short talker_unique_id)
 {
     if (fl_readDataPage(0, (unsigned char *)avb_1722_1_buf) == 0)
@@ -442,6 +443,7 @@ void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
         }
     }
 }
+#endif
 
 /**
  * Returns 1 if the listener unique id in a received command is within a valid range.

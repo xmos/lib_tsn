@@ -7,7 +7,7 @@
 #include "avb_mvrp.h"
 #include "ethernet.h"
 #include "avb_1722_router.h"
-
+#include "nettypes.h"
 
 // avb_mrp.c:
 extern unsigned char srp_dest_mac[6];
@@ -93,8 +93,6 @@ void avb_srp_task(client interface avb_interface i_avb,
   i_eth_cfg.add_macaddr_filter(eth_index, 0, msrp_mvrp_filter);
   i_eth_cfg.add_ethertype_filter(eth_index, AVB_SRP_ETHERTYPE);
   i_eth_cfg.add_ethertype_filter(eth_index, AVB_MVRP_ETHERTYPE);
-
-  i_avb.initialise();
 
   tmr :> periodic_timeout;
 

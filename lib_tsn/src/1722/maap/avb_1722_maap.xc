@@ -3,7 +3,7 @@
 #include <xccompat.h>
 #include <print.h>
 #include <string.h>
-#include "avb_conf.h"
+#include "default_avb_conf.h"
 #include "avb_1722_common.h"
 #include "avb_1722_maap.h"
 #include "avb_1722_maap_protocol.h"
@@ -219,8 +219,10 @@ void avb_1722_maap_periodic(client interface ethernet_tx_if i_eth, client interf
           lower_two_bytes += i;
           mac_addr[4] = (lower_two_bytes >> 8) & 0xFF;
           mac_addr[5] = lower_two_bytes & 0xFF;
+#if AVB_ENABLE_1722_MAAP
           /* User application hook */
           avb_talker_on_source_address_reserved(avb, i, mac_addr);
+#endif
         }
       }
       else
