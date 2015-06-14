@@ -13,7 +13,7 @@
 #ifndef AVB_1722_1_AEM_ENABLED
 #define AVB_1722_1_AEM_ENABLED 1
 #endif
-#elif
+#else
 #ifndef AVB_1722_1_AEM_ENABLED
 #define AVB_1722_1_AEM_ENABLED 0
 #endif
