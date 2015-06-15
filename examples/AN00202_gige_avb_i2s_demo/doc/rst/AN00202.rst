@@ -5,4 +5,80 @@
 Overview
 --------
 
-App note to follow.
+Introduction
+............
+
+The XMOS xCORE microcontroller family is an ideal platform for implementing Audio Video Bridging (AVB) endpoints.
+This application note describes how a standards-compliant endpoint can be instantiated and configured on the
+xCORE-200 Multichannel Audio platform using the AVB/TSN library and interfaced to audio codecs using an I2S master interface.
+
+The example endpoint application features:
+
+* 10/100/1000Mbps Ethernet MAC with AVB support
+* 1722 61883-6 audio Talker and Listener (simultaneous) support
+* I2S master interface supporting 8 input and 8 output channels up to 192kHz sampling rate
+* 1722 MAAP support for Talker multicast MAC address acquisition
+* 802.1Q MRP, MVRP, MSRP protocols
+* gPTP server and protocol
+* Media clock recovery and interface to PLL clock source
+* Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
+
+Block diagram
+.............
+
+.. figure:: images/hw_diagram.*
+   :scale: 100%
+   :align: center
+
+   Block diagram of the xCORE-200 Multichannel audio hardware relevant to AVB
+
+
+A Gigabit Ethernet AVB endpoint example
+.......................................
+
+Figure 2 shows the high level task and communication structure for the application.
+The example consists of many tasks running in parallel. Specifically:
+
+.. _AN00202_task_diag:
+
+.. figure:: images/task_diagram.*
+
+   Task diagram of the AVB endpoint example
+
+* The Gigabit Ethernet MAC which consists of 7 tasks and handles the RGMII interface and packet queuing.
+* The Ethernet MAC configuration task which allows client tasks to configure MAC address filtering and other parameters.
+* The AR8035 Ethernet PHY driver which configures PHY registers and periodically reads the link status.
+* The SMI task which implements the MDIO register interface to the Ethernet PHY and communicates with the PHY driver.
+* The above tasks must be placed on Tile 1 of the XE216 microcontroller.
+* The I2S master task from the XMOS I2S library which handles the I2S digital audio interface.
+* The audio buffer manager to I2S handler which receives callbacks from the I2S task, initializes the audio codecs
+  and PLL by communicating with the I2C master task (from the XMOS I2C library) and configures reset and clock frequency
+  pins via a GPIO task.
+* The audio input sample buffer task, which provides a handle to a double buffered audio buffer that shares memory between
+  the audio buffer manager task and 1722 Talker task.
+* The audio buffer manager task which performs buffering operations for input and output, then communicates free buffer
+  locations with the I2S handler via a channel.
+* The audio output sample buffer task, which provides a handle to sample FIFOs that share memory between the audio buffer
+  manager task and the 1722 Listener.
+* The 1722 Talker which packetizes audio samples from the audio input sample buffer into a 1722 stream with a presentation
+  timestamp and stream ID, then forwards them to the Ethernet MAC for transmission.
+* The 1722 Listener which receives 1722 stream packets from the Ethernet MAC, depacketizes audio samples from them,
+  then buffers the samples in an audio output FIFO. The Listener also communicates with the media clock server to maintain the
+  1722 presentation time and audio clock recovery.
+* The gPTP and media clock server task which maintains a global time reference and implements clock recovery to
+  synchronize the frequency and phase of the audio clock to the audio clock master on the network. This task also generates the
+  low frequency reference signal to the Cirrus Logic CS2100-CP PLL.
+* The 1722.1, MAAP and SRP task which combines the protocol stacks necessary to provide stream reservation and endpoint control.
+* The AVB manager task which co-ordinates the communication and setup of all the tasks above.
+* Finally, the application task, which sets up and implements application specific configuration and behavior via communication
+  with the AVB manager and 1722.1 tasks.
+
+
+Note that the application consists of 23 tasks implemented on 14 logical
+cores. Combined or distributed tasks will be scheduled as required when they
+are communicated with by the other tasks.
+
+|newpage|
+
+Makefile additions for this example
+...................................
