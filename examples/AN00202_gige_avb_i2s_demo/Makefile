@@ -18,7 +18,7 @@ INCLUDE_DIRS = src
 
 # This header file is marked as optional since it is only included for
 # a known XMOS development board
-OPTIONAL_HEADERS = avb_app_board_config.h
+OPTIONAL_HEADERS =
 
 # The flags passed to xcc when building the application
 # You can also set the following to override flags for a particular language:
