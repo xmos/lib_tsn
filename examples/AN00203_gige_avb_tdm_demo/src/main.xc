@@ -248,14 +248,14 @@ void ar8035_phy_driver(client interface smi_if smi,
   smi.write_reg(phy_address, 0x1E, 0x3C40);
   // Disable smart EEE
   smi.write_reg(phy_address, 0x0D, 3);
-  smi.write_reg(phy_address, 0x0E, 0x805D); 
+  smi.write_reg(phy_address, 0x0E, 0x805D);
   smi.write_reg(phy_address, 0x0D, 0x4003);
-  smi.write_reg(phy_address, 0x0E, 0x1000); 
+  smi.write_reg(phy_address, 0x0E, 0x1000);
   // Disable EEE auto-neg advertisement
   smi.write_reg(phy_address, 0x0D, 7);
-  smi.write_reg(phy_address, 0x0E, 0x3C); 
+  smi.write_reg(phy_address, 0x0E, 0x3C);
   smi.write_reg(phy_address, 0x0D, 0x4003);
-  smi.write_reg(phy_address, 0x0E, 0); 
+  smi.write_reg(phy_address, 0x0E, 0);
 
   smi_configure(smi, phy_address, LINK_1000_MBPS_FULL_DUPLEX, SMI_ENABLE_AUTONEG);
 
@@ -362,12 +362,12 @@ int main(void)
                                    i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
                                    c_eth_rx_hp, c_eth_tx_hp,
                                    c_rgmii_cfg,
-                                   rgmii_ports, 
+                                   rgmii_ports,
                                    ETHERNET_DISABLE_SHAPER);
 
     on tile[1].core[0]: rgmii_ethernet_mac_config(i_eth_cfg, NUM_ETH_CFG_CLIENTS, c_rgmii_cfg);
     on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
-  
+
     on tile[1]: smi(i_smi, p_smi_mdio, p_smi_mdc);
 
     on tile[0]: gptp_media_clock_server(i_media_clock_ctl,
@@ -407,7 +407,7 @@ int main(void)
                                   c_listener_ctl[0],
                                   AVB_NUM_SINKS,
                                   i_audio_out_push);
-    
+
 
     on tile[0]: {
       char mac_address[6];
@@ -437,13 +437,13 @@ int main(void)
     }
   }
 
-    return 0;
+  return 0;
 }
 
 /** The main application control task **/
 [[combinable]]
 void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity)
-{  
+{
   const unsigned default_sample_rate = 48000;
   unsigned char aem_identify_control_value = 0;
 
