@@ -162,8 +162,10 @@ unsigned int update_media_clock(chanend ptp_svr,
 			clock_info->ierror = ierror;
 
 #if 0
+			// These values were tuned for CS2300-CP PLL
 			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 32) - ((ierror / diff_local) / 4);
 #else
+			// and these for CS2100-CP PLL
 			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 80)/11 - ((ierror / diff_local) * 1) / 5;
 #endif
 
