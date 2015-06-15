@@ -2,7 +2,6 @@
 #include <xs1.h>
 #include <platform.h>
 #include <print.h>
-#include <xccompat.h>
 #include <string.h>
 #include <xscope.h>
 #include "gpio.h"
@@ -12,10 +11,7 @@
 #include "audio_clock_CS2100CP.h"
 #include "xassert.h"
 #include "debug_print.h"
-#include "avb_1722_1_adp.h"
 #include "gptp.h"
-#include "avb_1722_1.h"
-#include "avb_srp.h"
 #include "aem_descriptor_types.h"
 #include "ethernet.h"
 #include "smi.h"
