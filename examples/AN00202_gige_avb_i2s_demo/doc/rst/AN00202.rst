@@ -38,7 +38,7 @@ A Gigabit Ethernet AVB endpoint example
 ---------------------------------------
 
 Figure 2 shows the high level task and communication structure for the application.
-The example consists of many tasks running in parallel. Specifically:
+The example consists of many tasks running in parallel.
 
 .. _AN00202_task_diag:
 
@@ -46,11 +46,15 @@ The example consists of many tasks running in parallel. Specifically:
 
    Task diagram of the AVB endpoint example
 
+Specifically:
+
 * The Gigabit Ethernet MAC which consists of 7 tasks and handles the RGMII interface and packet queuing.
 * The Ethernet MAC configuration task which allows client tasks to configure MAC address filtering and other parameters.
 * The AR8035 Ethernet PHY driver which configures PHY registers and periodically reads the link status.
 * The SMI task which implements the MDIO register interface to the Ethernet PHY and communicates with the PHY driver.
-* The above tasks must be placed on Tile 1 of the XE216 microcontroller.
+
+The above tasks must be placed on Tile 1 of the XE216 microcontroller.
+
 * The I2S master task from the XMOS I2S library which handles the I2S digital audio interface.
 * The audio buffer manager to I2S handler which receives callbacks from the I2S task, initializes the audio codecs
   and PLL by communicating with the I2C master task (from the XMOS I2C library) and configures reset and clock frequency
@@ -122,7 +126,7 @@ Makefile additions for this example
 This example uses XMOS libraries which can be included in
 the project via the ``USED_MODULES`` variable in the ``Makefile``::
 
- USED_MODULES = lib_otpinfo(>=2.0.0) lib_tsn(>=7.0.0) lib_i2s(>=2.0.1)
+ USED_MODULES = lib_tsn(>=7.0.0) lib_i2s(>=2.0.1)
 
 A version number requirement is specified with the libraries to guarantee
 compatibility.
@@ -130,12 +134,12 @@ compatibility.
 The compiler flags include ``-g`` (to enable debug information) and
 ``-report`` (to give a resource usage report after compilation).
 
-The ``-fxscope`` flag is used to enable XScope output for real-time debug
+The ``-fxscope`` flag is used to enable xSCOPE output for real-time debug
 printing on the host connected to the xTAG adapter. A define ``-DRGMII=1`` is
 passed to the Ethernet library to indicate RGMII is being used and ``-lquadflash``
 is used to link the Quad SPI flash library, which is bundled with the tools::
 
-  XCC_FLAGS = -Os -save-temps -g -report -Xmapper --map -Xmapper MAPFILE -fxscope -DRGMII=1 -lquadflash
+  XCC_FLAGS = -Os -save-temps -g -report -fxscope -DRGMII=1 -lquadflash
 
 Compiler flags specific to a particular file can be specified in the Makefile as follows::
 
@@ -144,7 +148,7 @@ Compiler flags specific to a particular file can be specified in the Makefile as
 AVB endpoint configuration defines
 ..................................
 
-The ``avb_conf.h`` file provides configuration #defines for the AVB endpoint and override defaults in the
+The ``avb_conf.h`` file provides configuration #defines for the AVB endpoint and overrides defaults in the
 lib_tsn library. These can be altered to suit the particular endpoint configuration required.
 
 .. literalinclude:: avb_conf.h
@@ -179,7 +183,7 @@ connections are arrays which can connect one task to many others.
    :start-on: int main
    :end-on: i_audio_out_pull
 
-The ``par`` functionality describes several tasks running in parallel across multiple logical cores and 2 tiles.
+The ``par`` functionality describes several tasks running in parallel across multiple logical cores on 2 tiles.
 
 The Ethernet MAC and PHY configuration
 ......................................
@@ -204,7 +208,7 @@ Next, the Ethernet MAC is configured with the ingress and egress latencies in na
 These latencies are required to correct for the offset between the 802.1AS timestamp measurement plane relative
 to the reference plane, as described in IEEE 802.1AS section 8.4.3, and are required for compliant behavior.
 
-The latencies vary with the speed of the link and therefor a speed parameter is also required. These values are
+The latencies vary with the speed of the link and therefor a speed parameter is also provided. These values are
 PHY specific and must be updated if a different PHY is used. They can be obtained experimentally or from the PHY
 vendor.
 
@@ -215,7 +219,7 @@ vendor.
 A library function ``smi_phy_is_powered_down`` is used to wait until the PHY is powered on before reading or
 writing MDIO registers. The PHY is then configured via the SMI register interface. Energy Efficient Ethernet features of the PHY
 must be disabled for AVB operation. The ``smi_configure`` library function configures the PHY speed and
-auto-negotiation parameters
+auto-negotiation parameters.
 
 .. literalinclude:: main.xc
    :start-on: while (smi_phy_is_powered_down
@@ -284,7 +288,7 @@ Note that:
   - The task takes the ``server`` side of the ``i2s_callback_if``
     interface. This means that the I2S master task will make calls
     into this task.
-  - It also tasks the ``client`` side of connections to the I2C bus
+  - It also takes the ``client`` side of connections to the I2C bus
     and GPIO tasks. These allow this task to make calls to configure
     the hardware.
   - Finally, the task takes a ``streaming chanend`` argument which is an
