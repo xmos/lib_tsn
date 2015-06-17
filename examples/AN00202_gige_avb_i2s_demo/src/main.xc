@@ -17,14 +17,10 @@
 #include "smi.h"
 #include "audio_buffering.h"
 
-on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER;
-
-on tile[1]: rgmii_ports_t rgmii_ports = RGMII_PORTS_INITIALIZER;
-
-on tile[1]: port p_smi_mdio = XS1_PORT_1C;
-on tile[1]: port p_smi_mdc = XS1_PORT_1D;
-on tile[1]: port p_eth_reset = XS1_PORT_4A;
-
+// Ports and clocks used by the application
+on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
+                                                            // MAC address and serial number
+// Fixed QSPI flash ports that are used for firmware upgrade and persistent data storage
 on tile[0]: fl_QSPIPorts qspi_ports =
 {
   XS1_PORT_1B,
@@ -33,68 +29,63 @@ on tile[0]: fl_QSPIPorts qspi_ports =
   XS1_CLKBLK_1
 };
 
+on tile[1]: rgmii_ports_t rgmii_ports = RGMII_PORTS_INITIALIZER; // Fixed RGMII ports on Tile 1
+on tile[1]: port p_smi_mdio = XS1_PORT_1C;
+on tile[1]: port p_smi_mdc = XS1_PORT_1D;
+on tile[1]: port p_eth_reset = XS1_PORT_4A;
+
 on tile[1]: out port p_leds_row = XS1_PORT_4C;
 on tile[1]: out port p_leds_column = XS1_PORT_4D;
-
 on tile[0]: port p_i2c = XS1_PORT_4A;
 
-//***** AVB audio ports ****
-on tile[0]: out buffered port:32 p_fs[1] = { XS1_PORT_1A };
+// I2S ports and clocks
+on tile[0]: out buffered port:32 p_fs[1] = { XS1_PORT_1A }; // Low frequency PLL frequency reference
 on tile[0]: out buffered port:32 p_i2s_lrclk = XS1_PORT_1G;
 on tile[0]: out buffered port:32 p_i2s_bclk = XS1_PORT_1H;
 on tile[0]: in port p_i2s_mclk = XS1_PORT_1F;
-
-clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_3;
-clock clk_i2s_mclk = on tile[0]: XS1_CLKBLK_4;
-
 on tile[0]: out buffered port:32 p_aud_dout[4] = {XS1_PORT_1M, XS1_PORT_1N, XS1_PORT_1O, XS1_PORT_1P};
 on tile[0]: in buffered port:32 p_aud_din[4] = {XS1_PORT_1I, XS1_PORT_1J, XS1_PORT_1K, XS1_PORT_1L};
+on tile[0]: clock clk_i2s_bclk = XS1_CLKBLK_3;
+on tile[0]: clock clk_i2s_mclk = XS1_CLKBLK_4;
 
 on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 
-[[combinable]] void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity);
+#define CS5368_ADDR           0x4C // I2C address of the CS5368 DAC
+#define CS5368_CHIP_REV       0x00 // DAC register addresses...
+#define CS5368_GCTL_MDE       0x01
+#define CS5368_OVFL_ST        0x02
 
-//Address on I2C bus
-#define CS5368_ADDR      (0x4C)
-
-//Register Addresess
-#define CS5368_CHIP_REV      0x00
-#define CS5368_GCTL_MDE      0x01
-#define CS5368_OVFL_ST       0x02
-//Address on I2C bus
-#define CS4384_ADDR      (0x18)
-
-//Register Addresess
-#define CS4384_CHIP_REV      0x01
-#define CS4384_MODE_CTRL     0x02
-#define CS4384_PCM_CTRL      0x03
-#define CS4384_DSD_CTRL      0x04
-#define CS4384_FLT_CTRL      0x05
-#define CS4384_INV_CTRL      0x06
-#define CS4384_GRP_CTRL      0x07
-#define CS4384_RMP_MUTE      0x08
-#define CS4384_MUTE_CTRL     0x09
-#define CS4384_MIX_PR1       0x0a
-#define CS4384_VOL_A1        0x0b
-#define CS4384_VOL_B1        0x0c
-#define CS4384_MIX_PR2       0x0d
-#define CS4384_VOL_A2        0x0e
-#define CS4384_VOL_B2        0x0f
-#define CS4384_MIX_PR3       0x10
-#define CS4384_VOL_A3        0x11
-#define CS4384_VOL_B3        0x12
-#define CS4384_MIX_PR4       0x13
-#define CS4384_VOL_A4        0x14
-#define CS4384_VOL_B4        0x15
-#define CS4384_CM_MODE       0x16
-#define CS5368_CHIP_REV      0x00
-#define CS5368_GCTL_MDE      0x01
-#define CS5368_OVFL_ST       0x02
-#define CS5368_OVFL_MSK      0x03
-#define CS5368_HPF_CTRL      0x04
-#define CS5368_PWR_DN        0x06
-#define CS5368_MUTE_CTRL     0x08
-#define CS5368_SDO_EN        0x0a
+#define CS4384_ADDR           0x18 // I2C address of the CS4384 ADC
+#define CS4384_CHIP_REV       0x01 // ADC register addresses...
+#define CS4384_MODE_CTRL      0x02
+#define CS4384_PCM_CTRL       0x03
+#define CS4384_DSD_CTRL       0x04
+#define CS4384_FLT_CTRL       0x05
+#define CS4384_INV_CTRL       0x06
+#define CS4384_GRP_CTRL       0x07
+#define CS4384_RMP_MUTE       0x08
+#define CS4384_MUTE_CTRL      0x09
+#define CS4384_MIX_PR1        0x0a
+#define CS4384_VOL_A1         0x0b
+#define CS4384_VOL_B1         0x0c
+#define CS4384_MIX_PR2        0x0d
+#define CS4384_VOL_A2         0x0e
+#define CS4384_VOL_B2         0x0f
+#define CS4384_MIX_PR3        0x10
+#define CS4384_VOL_A3         0x11
+#define CS4384_VOL_B3         0x12
+#define CS4384_MIX_PR4        0x13
+#define CS4384_VOL_A4         0x14
+#define CS4384_VOL_B4         0x15
+#define CS4384_CM_MODE        0x16
+#define CS5368_CHIP_REV       0x00
+#define CS5368_GCTL_MDE       0x01
+#define CS5368_OVFL_ST        0x02
+#define CS5368_OVFL_MSK       0x03
+#define CS5368_HPF_CTRL       0x04
+#define CS5368_PWR_DN         0x06
+#define CS5368_MUTE_CTRL      0x08
+#define CS5368_SDO_EN         0x0a
 
 #pragma unsafe arrays
 [[always_inline]][[distributable]]
@@ -117,31 +108,31 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
   while (1) {
     select {
     case i2s.init(i2s_config_t &?i2s_config, tdm_config_t &?tdm_config):
-      i2s_config.mode = I2S_MODE_I2S;
-      /* I2S has 32 bits per sample. *2 as 2 channels */
-      const unsigned num_bits = 64;
-      const unsigned mclk = 512 * 48000;
-
+      // Receive the first free buffer and initial sample rate
       unsafe {
         c_audio :> double_buffer;
         p_in_frame = &double_buffer->buffer[double_buffer->active_buffer];
         c_audio :> cur_sample_rate;
       }
-
+      i2s_config.mode = I2S_MODE_I2S;
+      // I2S has 32 bits per sample. *2 as 2 channels
+      const unsigned num_bits = 64;
+      const unsigned mclk = 512 * 48000;
+      // Calculate the MCLK to BCLK ratio using the current sample rate and bits per sample
       i2s_config.mclk_bclk_ratio = mclk / ( cur_sample_rate * num_bits);
 
-      /* Set CODEC in reset */
+      // Set CODEC in reset
       dac_reset.output(0);
       adc_reset.output(0);
 
-      /* Select 48Khz family clock (24.576Mhz) */
+      // Select 48Khz family clock (24.576Mhz)
       mclk_select.output(0);
       pll_select.output(1);
 
-      /* Allow the clock to settle */
+      // Allow the clock to settle
       delay_milliseconds(2);
 
-      /* DAC out of reset */
+      // Take DAC out of reset
       dac_reset.output(1);
 
       /* Mode Control 1 (Address: 0x02) */
@@ -169,7 +160,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
        */
       i2c.write_reg(CS4384_ADDR, CS4384_MODE_CTRL, 0b10000000);
 
-      /* ADC out of reset */
+      // Take ADC out of reset
       adc_reset.output(1);
 
       unsigned adc_dif = 0x01; // I2S mode
@@ -207,7 +198,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           restart = I2S_NO_RESTART;
         }
       }
-      break;
+      break; // End of restart check
 
     case i2s.receive(size_t index, int32_t sample):
       unsafe {
@@ -228,7 +219,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           p_in_frame = new_frame;
         }
       }
-      break;
+      break; // End of send
     }
   }
 }
@@ -274,7 +265,7 @@ void ar8035_phy_driver(client interface smi_if smi,
   smi.write_reg(phy_address, 0x0E, 0);
 
   smi_configure(smi, phy_address, LINK_1000_MBPS_FULL_DUPLEX, SMI_ENABLE_AUTONEG);
-
+  // Periodically check the link status
   while (1) {
     select {
     case tmr when timerafter(t) :> t:
@@ -285,7 +276,6 @@ void ar8035_phy_driver(client interface smi_if smi,
       }
       if (new_state != link_state) {
         link_state = new_state;
-        debug_printf("Link state: %d\n", new_state);
         eth.set_link_state(0, new_state, link_speed);
       }
       t += link_poll_period_ms * XS1_TIMER_KHZ;
@@ -326,11 +316,16 @@ enum ptp_chans {
   NUM_PTP_CHANS
 };
 
+enum i2c_interfaces {
+  I2S_TO_I2C,
+  NUM_I2C_IFS
+};
+
 enum gpio_shared_audio_pins {
   GPIO_DAC_RST_N = 1,
-  GPIO_PLL_SEL = 5,     /* 1 = CS2100, 0 = Phaselink clock source */
+  GPIO_PLL_SEL = 5,     // 1 = CS2100, 0 = Phaselink clock source
   GPIO_ADC_RST_N = 6,
-  GPIO_MCLK_FSEL = 7,   /* Select frequency on Phaselink clock. 0 = 24.576MHz for 48k, 1 = 22.5792MHz for 44.1k.*/
+  GPIO_MCLK_FSEL = 7,   // Select frequency on Phaselink clock. 0 = 24.576MHz for 48k, 1 = 22.5792MHz for 44.1k.
 };
 
 static char gpio_pin_map[4] =  {
@@ -340,8 +335,12 @@ static char gpio_pin_map[4] =  {
   GPIO_MCLK_FSEL
 };
 
+[[combinable]] void application_task(client interface avb_interface avb,
+                                     server interface avb_1722_1_control_callbacks i_1722_1_entity);
+
 int main(void)
 {
+  // Ethernet interfaces and channels
   ethernet_cfg_if i_eth_cfg[NUM_ETH_CFG_CLIENTS];
   ethernet_rx_if i_eth_rx_lp[NUM_ETH_RX_LP_CLIENTS];
   ethernet_tx_if i_eth_tx_lp[NUM_ETH_TX_LP_CLIENTS];
@@ -362,10 +361,15 @@ int main(void)
   chan c_media_ctl[AVB_NUM_MEDIA_UNITS];
   interface media_clock_if i_media_clock_ctl;
 
+  // Core AVB interface and callbacks
   interface avb_interface i_avb[NUM_AVB_MANAGER_CHANS];
   interface avb_1722_1_control_callbacks i_1722_1_entity;
-  i2c_master_if i2c[1];
+
+  // I2C and GPIO interfaces
+  i2c_master_if i_i2c[1];
   interface output_gpio_if i_gpio[4];
+
+  // I2S and audio buffering interfaces
   i2s_callback_if i_i2s;
   streaming chan c_audio;
   interface push_if i_audio_in_push;
@@ -385,7 +389,7 @@ int main(void)
     on tile[1].core[0]: rgmii_ethernet_mac_config(i_eth_cfg, NUM_ETH_CFG_CLIENTS, c_rgmii_cfg);
     on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
 
-    on tile[1]: smi(i_smi, p_smi_mdio, p_smi_mdc);
+    on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
     on tile[0]: gptp_media_clock_server(i_media_clock_ctl,
                                         null,
@@ -398,7 +402,7 @@ int main(void)
                                         c_ptp, NUM_PTP_CHANS,
                                         PTP_GRANDMASTER_CAPABLE);
 
-    on tile[0]: [[distribute]] i2c_master_single_port(i2c, 1, p_i2c, 100, 0, 1, 0);
+    on tile[0]: [[distribute]] i2c_master_single_port(i_i2c, NUM_I2C_IFS, p_i2c, 100, 0, 1, 0);
     on tile[0]: [[distribute]] output_gpio(i_gpio, 4, p_audio_shared, gpio_pin_map);
 
     on tile[0]: {
@@ -414,13 +418,18 @@ int main(void)
                  clk_i2s_mclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i2c[0], i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
+    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C],
+                                                     i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
 
     on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
 
-    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER], c_eth_tx_hp, c_talker_ctl[0], AVB_NUM_SOURCES, i_audio_in_pull);
+    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
+                                c_eth_tx_hp,
+                                c_talker_ctl[0],
+                                AVB_NUM_SOURCES,
+                                i_audio_in_pull);
 
     on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
@@ -462,9 +471,10 @@ int main(void)
   return 0;
 }
 
-/** The main application control task **/
+// The main application control task
 [[combinable]]
-void application_task(client interface avb_interface avb, server interface avb_1722_1_control_callbacks i_1722_1_entity)
+void application_task(client interface avb_interface avb,
+                      server interface avb_1722_1_control_callbacks i_1722_1_entity)
 {
   const unsigned default_sample_rate = 48000;
   unsigned char aem_identify_control_value = 0;
@@ -478,7 +488,7 @@ void application_task(client interface avb_interface avb, server interface avb_1
   {
     const int channels_per_stream = AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
     int map[AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES];
-    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*(channels_per_stream)+i  : j+i;
+    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*channels_per_stream+i : j+i;
     avb.set_source_map(j, map, channels_per_stream);
     avb.set_source_format(j, AVB_FORMAT_MBLA_24BIT, default_sample_rate);
     avb.set_source_sync(j, 0);
@@ -489,7 +499,7 @@ void application_task(client interface avb_interface avb, server interface avb_1
   {
     const int channels_per_stream = AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS;
     int map[AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS];
-    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*channels_per_stream+i  : j+i;
+    for (int i = 0; i < channels_per_stream; i++) map[i] = j ? j*channels_per_stream+i : j+i;
     avb.set_sink_map(j, map, channels_per_stream);
     avb.set_sink_format(j, AVB_FORMAT_MBLA_24BIT, default_sample_rate);
     avb.set_sink_sync(j, 0);

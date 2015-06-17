@@ -28,7 +28,7 @@ OPTIONAL_HEADERS =
 # If the variable XCC_MAP_FLAGS is set it overrides the flags passed to 
 # xcc for the final link (mapping) stage.
 
-XCC_FLAGS = -Os -save-temps -g -report -Xmapper --map -Xmapper MAPFILE -fxscope  -fno-xta-info -DRGMII=1 -lquadflash
+XCC_FLAGS = -Os -save-temps -g -report -Xmapper --map -Xmapper MAPFILE -fxscope -DRGMII=1 -lquadflash
 
 XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline -O3
 

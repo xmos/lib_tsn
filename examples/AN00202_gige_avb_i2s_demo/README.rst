@@ -25,7 +25,7 @@ Required tools and libraries
 Required hardware
 .................
 
-The application note is designed to run on the XMOS xCORE-200 Multichannel Audio platform.
+The application note is designed to run on the XMOS xCORE-200 Multichannel Audio platform version 2.
 
 There is no dependency on this hardware and the firmware can be modified to run on any xCORE XE/XEF
 series device with the required external hardware.
