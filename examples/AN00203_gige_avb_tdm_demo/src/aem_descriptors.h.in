@@ -49,7 +49,7 @@ unsigned char desc_configuration_0[] =
   /* 74-> descriptor_counts */
   U16(AEM_AUDIO_UNIT_TYPE),
   U16(1),
-#if AVB_1722_1_TALKER_ENABLED
+#if AVB_1722_1_LISTENER_ENABLED
   U16(AEM_STREAM_INPUT_TYPE),
   U16(AVB_NUM_SINKS),
 #endif
@@ -64,7 +64,7 @@ unsigned char desc_configuration_0[] =
   U16(AEM_AVB_INTERFACE_TYPE),
   U16(1),
   U16(AEM_CLOCK_SOURCE_TYPE),
-  U16(1),
+  U16(2),
   U16(AEM_LOCALE_TYPE),
   U16(1),
   U16(AEM_MEMORY_OBJECT_TYPE),
@@ -398,7 +398,7 @@ unsigned char desc_stream_output_0[] =
   U16(AEM_NO_STRING),                         /* 68-69 localized_description */
   U16(0),                                     /* 70-71 clock_domain_index */
   U16(AEM_STREAM_FLAGS_CLASS_A),              /* stream_flags */
-  0x00, 0xa0, 0x02, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,     /* current_format */                           /* current_format */
+  0x00, 0xa0, 0x02, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,     /* current_format */
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
   AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
