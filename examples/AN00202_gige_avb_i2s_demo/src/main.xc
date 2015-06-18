@@ -366,7 +366,7 @@ int main(void)
   interface avb_1722_1_control_callbacks i_1722_1_entity;
 
   // I2C and GPIO interfaces
-  i2c_master_if i_i2c[1];
+  i2c_master_if i_i2c[NUM_I2C_IFS];
   interface output_gpio_if i_gpio[4];
 
   // I2S and audio buffering interfaces
