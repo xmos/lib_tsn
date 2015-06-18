@@ -23,12 +23,14 @@ void device_reboot(void)
         if (localTileId != tileId)
         {
             read_sswitch_reg(tileId, 6, pllVal);
+            pllVal &= 0x7FFFFFFF; // Mask the XS2 no reset bit
             write_sswitch_reg_no_ack(tileId, 6, pllVal);
         }
     }
 
     /* Finally reboot this tile */
     read_sswitch_reg(localTileId, 6, pllVal);
+    pllVal &= 0x7FFFFFFF;
     write_sswitch_reg_no_ack(localTileId, 6, pllVal);
 
 }
