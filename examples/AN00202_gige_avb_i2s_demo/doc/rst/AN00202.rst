@@ -304,7 +304,7 @@ construct. This represents an infinite loop that repeatedly responds to
 calls from other tasks:
 
 The calls it will respond to are defined in the
-``i2s_master_callback_if`` in ``i2s.h``. There are four callbacks:
+``i2s_callback_if`` in ``i2s.h``. There are four callbacks:
 initialization, sending a sample, receiving a sample and checking for restart.
 
 Configuring the audio hardware

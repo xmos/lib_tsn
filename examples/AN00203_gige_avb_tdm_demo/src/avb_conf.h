@@ -2,7 +2,7 @@
 #ifndef __avb_conf_h__
 #define __avb_conf_h__
 
-/******** ENDPOINT AUDIO AND CLOCKING PARAMETERS ************************************************/
+/******** Endpoint audio and clocking parameters ************************************************/
 
 /* Talker configuration */
 
@@ -48,32 +48,40 @@
 /** The maximum sample rate in Hz of audio that is to be input or output */
 #define AVB_MAX_AUDIO_SAMPLE_RATE 48000
 
+/** Enable 1722 MAAP on the device, required for Talkers */
+#define AVB_ENABLE_1722_MAAP 1
+
 /******** 1722.1 PARAMETERS *****************************************************************/
 
 /** Enable 1722.1 AVDECC on the entity */
 #define AVB_ENABLE_1722_1 1
-
-#define AVB_ENABLE_1722_MAAP 1
-
+/** The entity capability flags as reported by 1722.1 ADP */
 #define AVB_1722_1_ADP_ENTITY_CAPABILITIES (AVB_1722_1_ADP_ENTITY_CAPABILITIES_AEM_SUPPORTED| \
-                                            AVB_1722_1_ADP_ENTITY_CAPABILITIES_CLASS_A_SUPPORTED| \
-                                            AVB_1722_1_ADP_ENTITY_CAPABILITIES_GPTP_SUPPORTED| \
-                                            AVB_1722_1_ADP_ENTITY_CAPABILITIES_AEM_IDENTIFY_CONTROL_INDEX_VALID)
+                                          AVB_1722_1_ADP_ENTITY_CAPABILITIES_CLASS_A_SUPPORTED| \
+                                          AVB_1722_1_ADP_ENTITY_CAPABILITIES_GPTP_SUPPORTED| \
+                                          AVB_1722_1_ADP_ENTITY_CAPABILITIES_EFU_MODE| \
+                                          AVB_1722_1_ADP_ENTITY_CAPABILITIES_ADDRESS_ACCESS_SUPPORTED| \
+                                          AVB_1722_1_ADP_ENTITY_CAPABILITIES_AEM_IDENTIFY_CONTROL_INDEX_VALID)
 
+/** The model ID of the device as reported by 1722.1 ADP and AEM */
 #define AVB_1722_1_ADP_MODEL_ID 0x1234
 
+/** The list of AEM control descriptor IDs */
 enum aem_control_indices {
     DESCRIPTOR_INDEX_CONTROL_IDENTIFY = 0,
 };
-
-#define AVB_1722_1_FIRMWARE_UPGRADE_ENABLED 0
-
+/** Enable 1722.1 Entity Firmware Update functionality on the entity. */
+#define AVB_1722_1_FIRMWARE_UPGRADE_ENABLED 1
+/** Enable 1722.1 ACMP fast connect functionality on the entity. */
 #define AVB_1722_1_FAST_CONNECT_ENABLED 0
-
 /** Enable 1722.1 Controller functionality on the entity. */
 #define AVB_1722_1_CONTROLLER_ENABLED 0
 
+/******** Flash parameters *****************************************************************/
+
+/** The maximum size in bytes of an XCore program image */
 #define FLASH_MAX_UPGRADE_IMAGE_SIZE (128 * 1024)
+/** The page size of the flash used */
 #define FLASH_PAGE_SIZE (256)
 
 #endif
