@@ -1,6 +1,10 @@
 TSN library change log
 ======================
 
+7.0.1
+-----
+  * xCORE-200 MC audio board XN link name changed to new format to support tools v14.0.4
+
 7.0.0
 -----
   * Library changed to new structure and tools 14 compatibility added

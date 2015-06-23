@@ -22,4 +22,4 @@ XCC_FLAGS_avb_1722_talker_support_audio.c = $(XCC_FLAGS) -O3
 XCC_FLAGS_audio_buffering.xc = $(XCC_FLAGS) -O3
 XCC_FLAGS_avb_1722_talker.xc = $(XCC_FLAGS) -O3
 
-VERSION = 7.0.0
+VERSION = 7.0.1

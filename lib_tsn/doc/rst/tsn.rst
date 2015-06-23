@@ -723,7 +723,6 @@ Converting Timestamps
 Known Issues
 ------------
 
-* Firmware images made with xTIMEcomposer 14.0.3 will corrupt the factory boot image on firmware upgrade
-  due to a bug in the quad flash library.
+There are no known issues with this library.
 
 .. include:: ../../../CHANGELOG.rst
