@@ -7,7 +7,7 @@
     <Declaration>tileref usb_tile</Declaration>
   </Declarations>
   <Packages>
-    <Package id="0" Type="XS2-EnA-512-FB236">
+    <Package id="0" Type="XS2-UEnA-512-FB236">
       <Nodes>
         <Node Id="0" InPackageId="0" Type="XS2-L16A-512" OscillatorSrc="1" SystemFrequency="500MHz">
           <Boot>
