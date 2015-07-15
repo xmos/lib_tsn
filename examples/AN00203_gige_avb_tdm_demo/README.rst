@@ -3,7 +3,7 @@ Gigabit Ethernet AVB endpoint example using TDM master
 
 .. appnote:: AN00203
 
-.. version:: 1.0.1
+.. version:: 1.0.2
 
 Summary
 -------
