@@ -16,9 +16,7 @@
 #include "ethernet.h"
 #include "smi.h"
 #include "audio_buffering.h"
-
-#define RX_BUFSIZE_WORDS 10000
-#define TX_BUFSIZE_WORDS 10000
+#include "avb_conf.h"
 
 // Ports and clocks used by the application
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
@@ -253,8 +251,8 @@ void LAN8710_phy_driver(client interface smi_if smi,
   tmr :> t;
 
  // Set the latency accross the PHY
- eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 0);
- eth.set_egress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 0);
+ eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 500);
+ eth.set_egress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 50);
 
   while (smi_phy_is_powered_down(smi, phy_address));
 

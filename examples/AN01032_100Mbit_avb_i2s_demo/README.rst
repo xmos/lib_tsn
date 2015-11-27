@@ -1,36 +1,48 @@
-Gigabit Ethernet AVB endpoint example using I2S master
+100Mbit Ethernet AVB endpoint example using I2S master
 ======================================================
 
-.. appnote:: AN00202
+.. appnote:: AN01032
 
-.. version:: 1.0.2
+.. version:: 1.0.0
 
 Summary
 -------
 
-This application note demonstrates a Gigabit Ethernet AVB endpoint that streams uncompressed audio
+This application note demonstrates an Ethernet AVB endpoint that streams uncompressed audio
 over an Ethernet AVB network with guaranteed Quality of Service, low latency and time synchronization.
 It shows how to interface with a high performance audio codec via the I2S library.
 
 The application is configured to provide a single Talker and Listener stream of 8 audio channels
 at up to 192kHz sampling rate.
 
-The example also shows plug-and-play multichannel recording and playback with Apple Mac hardware running OS X 10.10.
+The example also shows plug-and-play multichannel recording and playback with Apple Mac hardware running OS X 10.10.5
 
 Required tools and libraries
 ............................
 
-.. appdeps::
+The code in this application note is known to work on version 14.1.1 of the xTIMEcomposer tools suite, it
+may work on other versions.
+
+The application depends on the following libraries:
+
+    - lib_tsn (>=7.0.0)
+    - lib_i2s (>=2.0.1)
 
 Required hardware
 .................
 
-The application note is designed to run on the XMOS xCORE-200 Multichannel Audio platform version 2.
+The application note is designed to run on the following hardware : 
+    
+    - XMOS xCORE-General purpose SliceKit (XP-SKC-XL216 - 1v1);
 
-There is no dependency on this hardware and the firmware can be modified to run on any xCORE XE/XEF
-series device with the required external hardware.
+    - XMOS Ethernet Slice (XA-SK-E100 - 1V1);
 
-The firmware was interoperability tested with a Late 2013 MacBook Pro running OS X version 10.10.3.
+    - XMOS Audio-pll Slice (XA-SK-AUDIO-PLL - 1v0).
+
+
+The described hardware setup is used for example purposes only.  The firmware can be modified to run on any xCORE-200 series device with the required external hardware.
+
+The firmware was interoperability tested with a Early 2011 MacBook Pro running OS X version 10.10.5.
 
 Prerequisites
 .............

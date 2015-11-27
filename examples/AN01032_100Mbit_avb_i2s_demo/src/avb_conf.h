@@ -84,4 +84,10 @@ enum aem_control_indices {
 /** The page size of the flash used */
 #define FLASH_PAGE_SIZE (256)
 
+/******** Ethenet MAC parameters ***********************************************************/
+
+/** The size of the receive and transmit buffers in words*/
+#define RX_BUFSIZE_WORDS 1600 
+#define TX_BUFSIZE_WORDS 1600
+
 #endif

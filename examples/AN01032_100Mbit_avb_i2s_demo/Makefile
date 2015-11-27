@@ -28,13 +28,15 @@ OPTIONAL_HEADERS =
 # If the variable XCC_MAP_FLAGS is set it overrides the flags passed to
 # xcc for the final link (mapping) stage.
 
-XCC_FLAGS = -Os -save-temps -g -report -fxscope -DRGMII=1 -lquadflash
+XCC_FLAGS = -Os -save-temps -g -report -fxscope -lquadflash
 
 XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline -O3
 
 # The USED_MODULES variable lists other module used by the application.
 
 USED_MODULES = lib_tsn(>=7.0.0) lib_i2s(>=2.0.1)
+
+VERBOSE=0
 
 #=============================================================================
 # The following part of the Makefile includes the common build infrastructure
