@@ -1,0 +1,543 @@
+.. include:: ../../README.rst
+
+|newpage|
+
+Overview
+--------
+
+Introduction
+............
+
+The XMOS xCORE microcontroller family is an ideal platform for implementing Audio Video Bridging (AVB) endpoints.
+This application note describes how a standards-compliant endpoint can be instantiated and configured on the
+xCORE-200 General Purpose SliceKIT using the AVB/TSN library and interfaced to audio codecs using an I2S master interface.
+
+The example endpoint application features:
+
+* 10/100Mbps Ethernet MAC with AVB support
+* 1722 61883-6 audio Talker and Listener (simultaneous) support
+* I2S master interface supporting 4 input and 4 output channels up to 24 bit 192kHz
+* 1722 MAAP support for Talker multicast MAC address acquisition
+* 802.1Q MRP, MVRP, MSRP protocols
+* gPTP server and protocol
+* Audio clock recovery and interface to PLL clock generator
+* Support for 1722.1 AVDECC: ADP, AECP (AEM) and ACMP
+* Firmware update via 1722.1 EFU
+
+Block diagram
+.............
+
+.. figure:: images/hw_diagram.*
+   :scale: 70%
+   :align: center
+
+   Block diagram of the xCORE-200 General Purpose SliceKIT hardware relevant to AVB
+
+
+Ethernet AVB endpoint example
+-----------------------------
+
+Figure 2 shows the high level task and communication structure for the application.
+The example consists of many tasks running in parallel.
+
+.. _AN01032_task_diag:
+
+.. figure:: images/task_diagram.*
+
+   Task diagram of the AVB endpoint example
+
+Specifically:
+
+* The Ethernet MAC which consists of 4 tasks and handles the MII interface, filtering, and packet queuing.
+* The LAN8710 Ethernet PHY driver which configures PHY registers and periodically reads the link status.
+* The SMI task which implements the MDIO register interface to the Ethernet PHY and communicates with the PHY driver.
+* The I2S master task from the XMOS I2S library which handles the I2S digital audio interface.
+* The audio buffer manager to I2S handler which receives callbacks from the I2S task, initializes the audio codecs
+  and PLL by communicating with the I2C master task (from the XMOS I2C library) and configures reset and clock frequency
+  pins via a GPIO task.
+* The audio input sample buffer task, which provides a handle to a double buffered audio buffer that shares memory between
+  the audio buffer manager task and 1722 Talker task.
+* The audio buffer manager task which performs buffering operations for input and output, then communicates free buffer
+  locations with the I2S handler via a channel.
+* The audio output sample buffer task, which provides a handle to sample FIFOs that share memory between the audio buffer
+  manager task and the 1722 Listener.
+* The 1722 Talker which packetizes audio samples from the audio input sample buffer into a 1722 stream with a presentation
+  timestamp and stream ID, then forwards them to the Ethernet MAC for transmission.
+* The 1722 Listener which receives 1722 stream packets from the Ethernet MAC, depacketizes audio samples from them,
+  then buffers the samples in an audio output FIFO. The Listener also communicates with the media clock server to maintain the
+  1722 presentation time and audio clock recovery.
+* The gPTP and media clock server task which maintains a global time reference and implements clock recovery to
+  synchronize the frequency and phase of the audio clock to the audio clock master on the network. This task also generates the
+  low frequency reference signal to the Cirrus Logic CS2100-CP PLL.
+* The 1722.1, MAAP and SRP task which combines the protocol stacks necessary to provide stream reservation and endpoint control.
+* The AVB manager task which co-ordinates the communication and setup of all the tasks above.
+* Finally, the application task, which sets up and implements application specific configuration and behavior via communication
+  with the AVB manager and 1722.1 tasks.
+
+
+Note that the application consists of 18 tasks implemented on 11 logical
+cores. Combined or distributed tasks will be scheduled as required when they
+are communicated with by the other tasks.
+
+Example directory structure description
+.......................................
+
+.. table:: Key application files
+
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | File                              | Description                                                             |
+  +===================================+=========================================================================+
+  | ``Makefile``                      | An XMOS application makefile containing board target, used modules      |
+  |                                   | (libraries) and compiler flags                                          |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``app_build_info``                | Application specific build step, used to pre-process 1722.1 descriptors |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/1722_1_callbacks.xc``       | Callback functions that are executed on 1722.1 connection events        |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/SLICEKIT-XL216.xn``         | XN target file for the xCORE-200 General Purpose SliceKIT. Describes    |
+  |                                   | system frequency, oscillator values and QSPI flash type                 |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/aem_descriptors.h.in``      | Header file containing 1722.1 AEM descriptors and templates for the AVB |
+  |                                   | endpoint. Pre-processed by a Python script to generate the actual header|
+  |                                   | file.                                                                   |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/aem_entity_strings.h.in``   | Header file containing 1722.1 AEM descriptor strings for the AVB        |
+  |                                   | endpoint. Pre-processed by a Python script to generate the actual header|
+  |                                   | file.                                                                   |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/generate.py``               | Python script for the pre-processing of the AEM descriptors             |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/avb_conf.h``                | Main configuration header file for application and TSN library          |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/config.xscope``             | XScope configuration file containing probes and printing parameters     |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/debug_conf.h``              | Configuration parameters for the lib_logging debug printing library     |
+  +-----------------------------------+-------------------------------------------------------------------------+
+  | ``src/main.xc``                   | Application code and multicore main() function                          |
+  +-----------------------------------+-------------------------------------------------------------------------+
+
+|newpage|
+
+Makefile additions for this example
+...................................
+
+This example uses XMOS libraries which can be included in
+the project via the ``USED_MODULES`` variable in the ``Makefile``::
+
+ USED_MODULES = lib_tsn(>=7.0.0) lib_i2s(>=2.0.1)
+
+A version number requirement is specified with the libraries to guarantee
+compatibility.
+
+The compiler flags include ``-g`` (to enable debug information) and
+``-report`` (to give a resource usage report after compilation).
+
+The ``-fxscope`` flag is used to enable xSCOPE output for real-time debug
+printing on the host connected to the xTAG adapter. A define ``-lquadflash``
+is used to link the Quad SPI flash library, which is bundled with the tools::
+
+  XCC_FLAGS = -Os -save-temps -g -report -fxscope -lquadflash
+
+Compiler flags specific to a particular file can be specified in the Makefile as follows::
+
+  XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline -O3
+
+AVB endpoint configuration defines
+..................................
+
+The ``avb_conf.h`` file provides configuration #defines for the AVB endpoint and overrides defaults in the
+lib_tsn library. These can be altered to suit the particular endpoint configuration required.
+
+.. literalinclude:: avb_conf.h
+   :start-on: Endpoint audio and clocking
+   :end-on: TX_BUFSIZE_WORDS
+
+
+Declaring resources used by the application
+...........................................
+
+The example uses several hardware ports and clocks to drive and read I/O. These are declared at the beginning of ``main.xc``
+
+.. literalinclude:: main.xc
+   :start-on: Ports and clocks
+   :end-on: p_CODEC_RST_N
+
+These ports are mapped to external pins on the xCORE-200 device. Some ports can be moved if required to support
+a different hardware portmap on another board.
+
+The application main() function
+...............................
+
+The source code below is taken from the main function of the example application file ``main.xc``.
+
+The declarations before the ``par`` create the connections between the tasks (see :ref:`AN01032_task_diag`). Tasks are connected by
+passing one of these declared variables to both tasks. Some of the connections are arrays which can connect one task to many others.
+
+.. literalinclude:: main.xc
+   :start-on: int main
+   :end-on: i_audio_out_pull
+
+The ``par`` functionality describes several tasks running in parallel across multiple logical cores on 2 tiles.
+
+The Ethernet MAC and PHY configuration
+......................................
+
+The first three tasks are related to the Ethernet MAC and its configuration.  The ``mii_ethernet_rt_mac`` task consumes four xCORE
+logical cores internally and the ``LAN8710_phy_driver`` and ``smi`` tasks are combined onto a single spare core on tile 1.
+
+.. literalinclude:: main.xc
+   :start-on: mii_ethernet_rt_mac
+   :end-on: smi(
+
+The ``LAN8710_phy_driver`` task is defined within the application and is intended to be changed if a different
+Ethernet PHY is used.
+
+.. literalinclude:: main.xc
+   :start-on: void LAN8710_phy_driver
+   :end-on:  tmr :> t;
+
+Next, the Ethernet MAC is configured with the ingress and egress latencies in nanoseconds through the PHY.
+These latencies are required to correct for the offset between the 802.1AS timestamp measurement plane relative
+to the reference plane, as described in IEEE 802.1AS section 8.4.3, and are required for compliant behavior.
+
+The latencies vary with the speed of the link and therefor a speed parameter is also provided. These values are
+PHY specific and must be updated if a different PHY is used. They can be obtained experimentally or from the PHY
+vendor.
+
+.. literalinclude:: main.xc
+   :start-on: eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX
+   :end-on: eth.set_egress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX
+
+A library function ``smi_phy_is_powered_down`` is used to wait until the PHY is powered on before reading or
+writing MDIO registers. The PHY is then configured via the SMI register interface. Energy Efficient Ethernet features of the PHY
+must be disabled for AVB operation. The ``smi_configure`` library function configures the PHY speed and
+auto-negotiation parameters.
+
+.. literalinclude:: main.xc
+   :start-on: while (smi_phy_is_powered_down
+   :end-on: SMI_ENABLE_AUTONEG
+
+Finally, the task periodically polls the Ethernet link state (up/down) using the SMI library function
+``smi_get_link_state``. Since link speed is not provided by a standard PHY register, a LAN8710 specific
+register must be read to obtain it. If the state has changed, the task communicates with the MAC to
+inform it of the change. This information is then proxied through the Ethernet MAC to the AVB stack.
+
+.. literalinclude:: main.xc
+   :start-on: // Periodically check the link status
+   :end-on: XS1_TIMER_KHZ
+
+Configuring GPIO
+................
+
+Tile 0 implements the AVB endpoint functionality and thus the non-Ethernet I/O must reside on the ports on this tile. An I2C bus is used to configure the codecs and PLL on the multichannel audio board. The I2C clock and data have been placed on 1-bit ports, so the standard I2C master can be used.  However, the I2C can also be placed on a shared multi-bit port.  In this case the single port implementation should be used.  The I2C interface is instantiated by the ``i2c_master`` task, which takes the ports and bus speed (100Kbps) as parameters, and provides an array of interfaces to allow access to the I2C interface from multiple tasks.
+
+.. literalinclude:: main.xc
+   :lines: 393
+
+The task is marked with the ``[[distributable]]`` attribute which means that it does not consume
+a logical core and is scheduled on the core that the client interface is used.
+
+The I2S master task
+...................
+
+Before the I2S master interface from ``lib_i2s`` is instantiated in its own logical core in the ``par``, the core is set into
+high priority scheduling which guarantees 100 MIPS and enables up to 192 kHz I2S operation. The master clock
+input from the PLL is configured to clock a clock block used by the I2S task.
+
+.. literalinclude:: main.xc
+   :start-on: set_core_high_priority_on
+   :end-on: clk_i2s_mclk)
+
+The I2S ports and clocks are passed as parameters to the ``i2s_master`` function.
+
+.. literalinclude:: main.xc
+   :start-on: i2s_master
+   :end-on: clk_i2s_mclk)
+
+The buffer manager to I2S handler task
+......................................
+
+The ``i2s_master`` task is connected to the ``buffer_manager_to_i2s`` task
+which is defined in the application. The connection between the
+tasks will make 'callbacks' from the ``i2s_master`` task to the
+application. The prototype of the I2S handling task is as below:
+
+.. literalinclude:: main.xc
+   :start-on: [[always_inline]][[distributable]]
+   :end-on: p_LEDS)
+
+Note that:
+
+  - The task takes the ``server`` side of the ``i2s_callback_if``
+    interface. This means that the I2S master task will make calls
+    into this task.
+  - It also takes the ``client`` side of connections to the I2C bus
+    and GPIO tasks. These allow this task to make calls to configure
+    the hardware.
+  - The task takes a ``streaming chanend`` argument which is an
+    un-typed channel connection to the buffer manager task for
+    sending/receiving samples.
+  - The task is marked as ``[[distributable]]`` - this means that
+    the task will only be implementing callbacks and can be run
+    on the same logical core as the task making the calls.
+  - It is also marked as ``[[always_inline]]`` to guarantee performance.
+
+The task implements the callbacks via a 'while(1)-select'
+construct. This represents an infinite loop that repeatedly responds to
+calls from other tasks:
+
+The calls it will respond to are defined in the
+``i2s_callback_if`` in ``i2s.h``. There are four callbacks:
+initialization, sending a sample, receiving a sample and checking for restart.
+
+Configuring the audio hardware
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``init`` callback occurs when the I2S bus initializes. At this
+point the task will configure the audio hardware and buffering.
+The I2S mode and clock ratio fields of the ``i2s_config`` structure are first set up
+(see the I2S library documentation for more details).
+
+The section of code following this makes calls on the I2C interface to
+configure the codecs on the board.
+
+.. literalinclude:: main.xc
+  :start-on: i2s.init
+  :end-on: i2s_config.mclk_bclk_ratio
+
+Communicating audio samples to/from the audio buffer manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The send and receive callbacks from I2S will pass samples to and from
+the audio buffer manager task. An array in the ``audio_frame_t`` structure is
+used to store the incoming samples. When the last sample in the frame is requested the task does
+a channel exchange with the buffer manager task to swap to a unused buffer.
+
+.. literalinclude:: main.xc
+  :start-on: i2s.send
+  :end-on: // End of send
+
+Changing sample rate
+~~~~~~~~~~~~~~~~~~~~
+
+The audio buffer manager task indicates to the I2S task that a sample rate change has been
+requested via a positive integer in element 8 of the output sample array. The I2S task must
+consume any unused audio buffers in the ``c_audio`` channel before indicating that it wishes
+to restart I2S. The new MCLK to BCLK ratio is calculated when the ``init`` callback occurs after
+restart.
+
+.. literalinclude:: main.xc
+  :start-on: i2s.restart_check
+  :end-on: // End of restart check
+
+|newpage|
+
+Setting the Ethernet MAC address
+................................
+
+A unique Ethernet MAC address is required for every device on an Ethernet network. XMOS has
+preprogrammed the OTP memory on the xCORE-200 General Purpose SliceKITs to contain a unique
+MAC address in the XMOS OUI-24 range.
+
+This MAC address can be read using the XMOS ``lib_otpinfo`` library and setup in the MAC using
+the ``set_macaddr`` interface function on the MAC configuration interface as follows.
+
+.. literalinclude:: main.xc
+  :start-on: char mac_address
+  :end-on: .set_macaddr(
+
+Customers designing their own hardware must use their own MAC address range assigned by the IEEE.
+XMOS provides the ``xburn`` utility to program unique MAC addresses into OTP via JTAG. See the tools
+user guide for more information.
+
+MAC addresses may be read via a different method, such as from flash memory, but this is outside the
+scope of this application note.
+
+Configuring the AVB endpoint
+............................
+
+The main application control task, as prototyped below, is responsible for initializing the AVB
+stack via the core AVB API and receiving control callbacks via 1722.1.
+
+.. literalinclude:: main.xc
+  :start-on: // The main application control task
+  :end-on: i_1722_1_entity)
+
+Setting up the media clock
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Firstly, the audio clock is configured to a default of 48 kHz and set to type ``INPUT_STREAM_DERIVED``.
+This means that the audio clock will be a slaved to an audio clock master and recovered from a Listener
+stream (stream #0). The clock is then enabled.
+
+.. literalinclude:: main.xc
+  :start-on: unsigned default_sample_rate
+  :end-on: DEVICE_MEDIA_CLOCK_STATE_ENABLED
+
+Configuring the Talker and Listener streams
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A Talker (source) and Listener (sink) stream is setup to use 4 channel, 24-bit MBLA formats and a one-to-one channel
+mapping is configured to map stream channel 0 to I2S channel 0 and so on.
+
+The streams are also configured to use the media clock defined above.
+
+.. literalinclude:: main.xc
+  :start-on: AVB_NUM_SOURCES; j++)
+  :end-on: set_sink_channels
+
+Reacting to 1722.1 control commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A callback interface ``avb_1722_1_control_callbacks`` is used to implement custom functionality on receipt
+of a 1722.1 control command. Currently supported commands via this interface are GET_CONTROL, SET_CONTROL,
+GET_SIGNAL_SELECTOR and SET_SIGNAL_SELECTOR.
+
+When the 1722.1 stack receives one these commands from a Controller, it will cause an event to be fired
+on the relevant case statement. It is the responsibility of the application to process the index of the
+control and return the correct status code to the 1722.1 stack, which will in turn respond to the Controller.
+
+For example, when a SET_CONTROL command is received with index 0, the application looks up this value and
+understands that this is the Identify control. It then reads the current identify control value, sets it in the
+values array and returns a status code of ``SUCCESS`` to indicate that the operation was successful.
+
+.. literalinclude:: main.xc
+  :start-on: case i_1722_1_entity.set_control_value
+  :end-on: return_status = AECP_AEM_STATUS_BAD_ARGUMENTS;
+
+The example does a debug print on receipt of this control, but can be modified to any custom behavior
+as required.
+
+|appendix|
+|newpage|
+
+Demo hardware setup and requirements
+------------------------------------
+
+The application note is designed to run on the XMOS xCORE-General Purpose Slice, Audio-PLL and Ethernet Slice.
+
+.. figure:: images/xCORE-200-GPSliceKit.*
+   :scale: 70%
+   :align: center
+   
+   xCORE-200 General Purpose SliceKIT
+
+A full overview of the hardware and its features is provide in the xCORE-200 General Purpose SliceKIT Hardware Manual.
+
+This example firmware is a fully compliant AVB endpoint that will interoperate with other compliant, third-party
+endpoints. An early 2011 MacBook Pro running OS X version 10.10.5 is used to demonstrate this capability. An
+official Apple Thunderbolt to Gigabit Ethernet adapter is required if the Mac does not have a built-in Ethernet port.
+
+All Apple Macs with a Thunderbolt port are AVB enabled.
+
+|newpage|
+
+Importing, building and running the example
+-------------------------------------------
+
+To import and build the example, open xTIMEcomposer Studio and
+follow these steps:
+
+#. Choose :menuitem:`File,Import`.
+
+#. Choose :menuitem:`General,Existing Projects into Workspace` and
+   click **Next**.
+
+#. Click **Browse** next to **`Select archive file`** and select
+   the firmware .zip file associated with this application note.
+
+#. Make sure that all projects are ticked in the
+   `Projects` list.
+
+#. Click **Finish**.
+
+#. Open the **Edit** perspective, select the ``AN01032_100Mbit_avb_i2S_demo`` project in the Project Explorer
+   and click the **Build** icon in the main toolbar.
+
+#. One or more **Import Wizard** windows may appear. Click **Finish** to automatically download and import
+   the library dependencies for this example.
+
+#. The example will now build. Build information can be seen in the **Console** tab and will print `Build Complete`
+   when finished.
+
+Once built there will be a ``bin`` directory within the project which
+contains the binary for the xCORE device. The xCORE binary has a XMOS standard
+.xe extension.
+
+To run the example, a *Run Configuration* needs to be set up:
+
+#. Select the :menuitem:`Run,Run Configurations..` menu.
+
+#. Right click on the :menuitem:`xCORE application` group in the left hand pane and
+   :menuitem:`New`.
+
+#. Select the :menuitem:`Run on: hardware` option and from the target list select the xTAG connected to the
+   xCORE-200 General Purpose SliceKIT.
+
+#. Within the :menuitem:`Target I/O options` section, the :menuitem:`xSCOPE (via xCONNECT/UART)` option should be
+   selected.
+
+#. By clicking on the :menuitem:`Run` icon (a green arrow) in the **Edit** perspective of the xTIMEcomposer,
+   or by clicking the :menuitem:`Run` button in the run configuration dialog, the program will run on hardware.
+
+Once running the the console tab will show debug output messages from the AVB endpoint.
+
+|newpage|
+
+Apple Mac OS X AVB setup
+------------------------
+
+To enumerate the XMOS AVB device as an audio device under OS X 10.10:
+
+#. Connect the xCORE-200 General Purpose SliceKIT to the Mac via the Ethernet port or Thunderbolt to Ethernet adapter.
+#. Open the *Audio MIDI Setup* utility.
+#. In the menu bar, select :menuitem:`Window,Show Network Device Browser`.
+
+    .. image:: images/show_browser.*
+       :scale: 65%
+       :align: center
+
+#. The endpoint will enumerate in this list as *xCORE-200 General Purpose SliceKIT*. Select the checkbox to the left of the entry to connect
+   the device.
+
+    .. image:: images/device_browser.*
+       :scale: 75%
+       :align: center
+
+#. On successful connection, the device will appear as an 4 in/ 4 out Audio Device in the *Audio MIDI Setup* window.
+
+    .. image:: images/audio_devices.*
+       :scale: 85%
+       :align: center
+
+#. To enable audio streaming to/from a device, right click on the device in the left pane and select *Use this device for sound input* and
+   *Use this device for sound output*.
+
+    .. image:: images/use_device.*
+       :scale: 65%
+       :align: center
+
+#. Multichannel audio can now be played and recorded via the endpoint.
+
+|newpage|
+
+References
+----------
+
+.. nopoints::
+
+  * XMOS Tools User Guide
+
+    http://www.xmos.com/published/xtimecomposer-user-guide
+
+  * XMOS xCORE Programming Guide
+
+    http://www.xmos.com/published/xmos-programming-guide
+
+  * xCore-200 General-purpose sliceKIT Board Hardware Manual  
+
+    http://www.xmos.com/
+
+  * XMOS Software Libraries
+
+    http://www.xmos.com/support/libraries
