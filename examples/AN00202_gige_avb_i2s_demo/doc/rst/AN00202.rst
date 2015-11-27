@@ -109,6 +109,8 @@ Example directory structure description
   |                                   | endpoint. Pre-processed by a Python script to generate the actual header|
   |                                   | file.                                                                   |
   +-----------------------------------+-------------------------------------------------------------------------+
+  |  ``src/generate.py``              | Python script for the pre-processing of the AEM descriptors             |
+  +-----------------------------------+-------------------------------------------------------------------------+
   | ``src/avb_conf.h``                | Main configuration header file for application and TSN library          |
   +-----------------------------------+-------------------------------------------------------------------------+
   | ``src/config.xscope``             | XScope configuration file containing probes and printing parameters     |
