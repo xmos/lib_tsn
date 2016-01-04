@@ -20,6 +20,9 @@ TSN library change log
   * Unimplemented 1722.1 commands now return the correct NOT_IMPLEMENTED status response
   * Resolved bug in 1722.1 ACMP disconnection caused by stream info not being zeroed
 
+Legacy release history
+----------------------
+
 6.3.1
 -----
   * Bug fix for excessive Talker AVTP presentation time being absorbed in the FIFOs for a short period at start
