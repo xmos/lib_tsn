@@ -3,22 +3,49 @@ TSN library change log
 
 7.0.1
 -----
-  * xCORE-200 MC audio board XN link name changed to new format to support tools v14.0.4
+
+  * xCORE-200 MC audio board XN link name changed to new format to support tools
+    v14.0.4
 
 7.0.0
 -----
+
   * Library changed to new structure and tools 14 compatibility added
-  * Support added for new version 3 of Ethernet library and Gigabit Ethernet on xCORE-200
+  * Support added for new version 3 of Ethernet library and Gigabit Ethernet on
+    xCORE-200
   * Support added for new version 2 of I2S/TDM library
-  * Audio buffering performance improvements for higher channel count applications
-  * Support added for 1722.1 Enitity Firmware Upgrade (EFU) using new Quad SPI flash library
+  * Audio buffering performance improvements for higher channel count
+    applications
+  * Support added for 1722.1 Enitity Firmware Upgrade (EFU) using new Quad SPI
+    flash library
   * Support added for 1722.1 ACMP Fast Connect
-  * Support added for 1722.1 AECP sample rate change via GET/SET_SAMPLING_RATE and GET/SET_STREAM_FORMAT commands
+  * Support added for 1722.1 AECP sample rate change via GET/SET_SAMPLING_RATE
+    and GET/SET_STREAM_FORMAT commands
   * Support added for 1722.1 AECP GET/SET_SIGNAL_SELECTOR commands
-  * Current value fields in 1722.1 descriptors are now updated to reflect the current set value
+  * Current value fields in 1722.1 descriptors are now updated to reflect the
+    current set value
   * Bug fix for gPTP number of lost reponses not being reset on link up event
-  * Unimplemented 1722.1 commands now return the correct NOT_IMPLEMENTED status response
-  * Resolved bug in 1722.1 ACMP disconnection caused by stream info not being zeroed
+  * Unimplemented 1722.1 commands now return the correct NOT_IMPLEMENTED status
+    response
+  * Resolved bug in 1722.1 ACMP disconnection caused by stream info not being
+    zeroed
+
+  * Changes to dependencies:
+
+    - lib_gpio: Added dependency 1.0.0
+
+    - lib_otpinfo: Added dependency 2.0.0
+
+    - lib_ethernet: Added dependency 3.0.3
+
+    - lib_i2c: Added dependency 3.1.1
+
+    - lib_locks: Added dependency 2.0.1
+
+    - lib_xassert: Added dependency 2.0.0
+
+    - lib_logging: Added dependency 2.0.0
+
 
 Legacy release history
 ----------------------
