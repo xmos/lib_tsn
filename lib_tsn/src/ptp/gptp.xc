@@ -1,4 +1,4 @@
-// Copyright (c) 2015, XMOS Ltd, All rights reserved
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 /* This module implements the 802.1as gptp timing protocol.
    It is a restricted version of the protocol that can only handle
    endpoints with one port. As such it is optimized (particularly for

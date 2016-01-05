@@ -1,4 +1,4 @@
-// Copyright (c) 2015, XMOS Ltd, All rights reserved
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 #ifndef _avb_mmrp_pdu_h_
 #define _avb_mmrp_pdu_h_
 #include "avb_mrp_pdu.h"

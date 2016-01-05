@@ -1,4 +1,4 @@
-// Copyright (c) 2015, XMOS Ltd, All rights reserved
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 #ifndef ETHERNET_WRAPPERS_H_
 #define ETHERNET_WRAPPERS_H_
 

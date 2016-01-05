@@ -1,4 +1,4 @@
-// Copyright (c) 2015, XMOS Ltd, All rights reserved
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_talker.h
  * \brief IEC 61883-6/AVB1722 Talker definitions

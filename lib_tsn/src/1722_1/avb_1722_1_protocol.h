@@ -1,4 +1,4 @@
-// Copyright (c) 2015, XMOS Ltd, All rights reserved
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 #ifndef AVB_1722_1_PROTOCOL_H_
 #define AVB_1722_1_PROTOCOL_H_
 
