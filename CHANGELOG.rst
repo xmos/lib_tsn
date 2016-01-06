@@ -1,6 +1,11 @@
 TSN library change log
 ======================
 
+7.0.2
+-----
+
+  * Update to source code license and copyright
+
 7.0.1
 -----
 
