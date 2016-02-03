@@ -1104,7 +1104,7 @@
 		</profile>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="AN00202_gige_avb_i2s_demo.null.249322235" name="AN00202_gige_avb_i2s_demo"/>
+		<project id="AN01032_100Mbit_avb_i2s_demo.null.249322235" name="AN01032_100Mbit_avb_i2s_demo"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>
