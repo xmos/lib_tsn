@@ -11,7 +11,8 @@ enum ptp_cmd_t {
   PTP_GET_TIME_INFO_MOD64,
   PTP_GET_GRANDMASTER,
   PTP_GET_STATE,
-  PTP_GET_PDELAY
+  PTP_GET_PDELAY,
+  PTP_SET_PRIORITY
 };
 
 typedef enum ptp_port_role_t {

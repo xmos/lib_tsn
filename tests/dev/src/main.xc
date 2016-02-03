@@ -82,8 +82,33 @@ void lan8710a_phy_driver(client interface smi_if smi,
   }
 }
 
+#define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
+#define PRIORITY_CHANGE_DELAY_TICKS 1000000000
+
 void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_eth_tx_hp)
 {
+  timer tmr;
+  int priority_change_time;
+  unsigned char priority_current;
+
+  priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
+  tmr :> priority_change_time;
+  priority_change_time += PRIORITY_CHANGE_DELAY_TICKS;
+
+  while (1) {
+    select {
+      case tmr when timerafter(priority_change_time) :> void:
+        if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
+          priority_current = 100;
+        else
+          priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
+
+        debug_printf("PTP set priority %d\n", priority_current);
+        ptp_set_priority(c_ptp, priority_current, 248);
+        priority_change_time += PRIORITY_CHANGE_DELAY_TICKS;
+        break;
+    }
+  }
 }
 
 #define ETH_RX_BUFFER_SIZE_WORDS 1600
@@ -120,9 +145,14 @@ int main(void)
         if (otp_board_info_get_mac(otp_ports, 0, mac_address) == 0)
           fail("no MAC address programmed in OTP");
 
+        /* force PTP slave by using a high MAC address */
+        mac_address[3] = 0xFF;
+
         i_cfg[CFG_TO_PTP].set_macaddr(0, mac_address);
         i_cfg[CFG_TO_PTP].get_macaddr(0, mac_address);
-        debug_printf("MAC[3] 0x%x\n", mac_address[3]);
+        debug_printf("MAC %x:%x:%x:%x:%x:%x\n",
+          mac_address[0], mac_address[1], mac_address[2],
+          mac_address[3], mac_address[4], mac_address[5]);
 
         ptp_server(i_rx[ETH_TO_PTP], i_tx[ETH_TO_PTP], i_cfg[CFG_TO_PTP],
           c_ptp, NUM_PTP_CHANS, PTP_GRANDMASTER_CAPABLE);

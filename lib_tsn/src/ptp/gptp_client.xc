@@ -112,6 +112,15 @@ ptp_port_role_t ptp_get_state(chanend ptp_server)
   return state;
 }
 
+void ptp_set_priority(chanend ptp_server, unsigned char priority1, unsigned char priority2)
+{
+  send_cmd(ptp_server, PTP_SET_PRIORITY);
+  slave
+  {
+      ptp_server <: priority1;
+      ptp_server <: priority2;
+  }
+}
 
 void ptp_get_propagation_delay(chanend ptp_server, unsigned *pdelay)
 {

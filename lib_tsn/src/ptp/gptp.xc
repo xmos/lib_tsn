@@ -48,8 +48,8 @@ static int ptp_last_gm_freq_change = 0;
 static int ptp_gm_timebase_ind = 0;
 static n64_t my_port_id;
 static n80_t master_port_id;
-static u8_t ptp_priority1;
-static u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
+u8_t ptp_priority1;
+u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
 
 /* Timing variables */
 static unsigned last_received_announce_time_valid[PTP_NUM_PORTS];
@@ -82,6 +82,7 @@ static int periodic_counter[PTP_NUM_PORTS];
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
 #define DEBUG_PRINT_AS_CAPABLE 0
+#define DEBUG_PRINT_ALL_ROLE_CHANGES 0
 
 ptp_port_role_t ptp_current_state()
 {
@@ -241,6 +242,13 @@ static void set_new_role(enum ptp_port_role_t new_role,
                          int port_num) {
 
   unsigned t = get_local_time();
+
+#if DEBUG_PRINT_ALL_ROLE_CHANGES
+  if (new_role == PTP_DISABLED)
+    debug_printf("PTP Port %d Role disabled\n", port_num);
+  else if (new_role == PTP_UNCERTAIN)
+    debug_printf("PTP Port %d Role uncertain\n", port_num);
+#endif
 
   if (new_role == PTP_SLAVE) {
 

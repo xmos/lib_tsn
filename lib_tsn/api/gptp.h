@@ -108,6 +108,8 @@ void ptp_get_time_info(chanend ptp_server,
 void ptp_get_time_info_mod64(NULLABLE_RESOURCE(chanend,ptp_server),
                               REFERENCE_PARAM(ptp_time_info_mod64, info));
 
+void ptp_set_priority(chanend ptp_server, unsigned char priority1, unsigned char priority2);
+
 // Asynchronous PTP client functions
 // --------------------------------
 
