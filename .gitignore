@@ -1,3 +1,7 @@
+.*.swp
+tests/dev/.cproject
+tests/dev/.project
+.settings
 **/.build*/*
 bin/
 _build/
