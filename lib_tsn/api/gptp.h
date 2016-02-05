@@ -110,6 +110,10 @@ void ptp_get_time_info_mod64(NULLABLE_RESOURCE(chanend,ptp_server),
 
 void ptp_set_priority(chanend ptp_server, unsigned char priority1, unsigned char priority2);
 
+void ptp_set_master_rate(chanend ptp_server, signed adjust);
+
+void ptp_reset_port(chanend ptp_server, int port_num);
+
 // Asynchronous PTP client functions
 // --------------------------------
 

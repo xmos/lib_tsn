@@ -31,6 +31,7 @@ extern unsigned ptp_reference_local_ts;
 extern ptp_timestamp ptp_reference_ptp_ts;
 extern signed int g_ptp_adjust;
 extern signed int g_inv_ptp_adjust;
+extern signed ptp_adjust_master;
 extern u8_t ptp_priority1;
 extern u8_t ptp_priority2;
 
@@ -154,10 +155,26 @@ void ptp_process_client_request(chanend c, timer ptp_timer)
       {
         c :> ptp_priority1;
         c :> ptp_priority2;
-        for (int i=0; i < PTP_NUM_PORTS; i++) {
-          ptp_reset(i);
-        }
       }
+      debug_printf("PTP set priority %d/%d\n", ptp_priority1, ptp_priority2);
+      break;
+    }
+    case PTP_SET_MASTER_RATE: {
+      master
+      {
+        c :> ptp_adjust_master;
+      }
+      debug_printf("PTP set master rate %d\n", ptp_adjust_master);
+      break;
+    }
+    case PTP_RESET_PORT: {
+      int port_num;
+      master
+      {
+        c :> port_num;
+      }
+      debug_printf("PTP reset port %d\n", port_num);
+      ptp_reset(port_num);
       break;
     }
   }

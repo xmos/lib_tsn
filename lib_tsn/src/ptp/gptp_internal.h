@@ -12,7 +12,9 @@ enum ptp_cmd_t {
   PTP_GET_GRANDMASTER,
   PTP_GET_STATE,
   PTP_GET_PDELAY,
-  PTP_SET_PRIORITY
+  PTP_SET_PRIORITY,
+  PTP_SET_MASTER_RATE,
+  PTP_RESET_PORT,
 };
 
 typedef enum ptp_port_role_t {

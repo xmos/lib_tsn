@@ -32,6 +32,7 @@
 static int g_ptp_adjust_valid = 0;
 signed g_ptp_adjust = 0;
 signed g_inv_ptp_adjust = 0;
+signed ptp_adjust_master = 0;
 
 /* The average path delay (over the last PDELAY_AVG_WINDOW pdelay_reqs)
    between the foreign master port and our slave port in nanoseconds (ptp time)
@@ -273,7 +274,8 @@ static void set_new_role(enum ptp_port_role_t new_role,
     // Our internal precision is 2^30, we need to scale to (2^41 * 1/g_ptp_adjust) per the standard
     ptp_last_gm_freq_change = g_inv_ptp_adjust << 11;
     ptp_gm_timebase_ind++;
-    g_ptp_adjust = 0;
+    g_ptp_adjust = ptp_adjust_master;
+    g_ptp_adjust_valid = 1;
     g_inv_ptp_adjust = 0;
 
     ptp_reference_local_ts =

@@ -122,6 +122,24 @@ void ptp_set_priority(chanend ptp_server, unsigned char priority1, unsigned char
   }
 }
 
+void ptp_set_master_rate(chanend ptp_server, signed adjust)
+{
+  send_cmd(ptp_server, PTP_SET_MASTER_RATE);
+  slave
+  {
+    ptp_server <: adjust;
+  }
+}
+
+void ptp_reset_port(chanend ptp_server, int port_num)
+{
+  send_cmd(ptp_server, PTP_RESET_PORT);
+  slave
+  {
+    ptp_server <: port_num;
+  }
+}
+
 void ptp_get_propagation_delay(chanend ptp_server, unsigned *pdelay)
 {
   send_cmd(ptp_server, PTP_GET_PDELAY);
