@@ -6,6 +6,7 @@
 #include "smi.h"
 #include "ethernet.h"
 #include "gptp.h"
+#include "simple_talker.h"
 
 port p_eth_rxclk  = PORT_ETH_RXCLK;
 port p_eth_rxd    = PORT_ETH_RXD;
@@ -84,28 +85,73 @@ void lan8710a_phy_driver(client interface smi_if smi,
 
 #define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
 #define PRIORITY_CHANGE_DELAY_TICKS 1000000000
+#define TIMEINFO_UPDATE_INTERVAL_TICKS 100000000
+#define AUDIO_PACKET_RATE_HZ 48000
 
 void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_eth_tx_hp)
 {
-  timer tmr;
-  int priority_change_time;
+  timer tmr1, tmr2, tmr3;
+  int t_priority_change, t_audio_packet, t_timeinfo_update;
   unsigned char priority_current;
+  unsigned char packet_buf[1500];
+  int packet_size;
+  ptp_time_info_mod64 time_info;
+  unsigned audio_packet_count;
+  int pending_timeinfo;
+  simple_talker_config_t talker_config;
+  unsigned char own_mac_addr[6];
 
   priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
-  tmr :> priority_change_time;
-  priority_change_time += PRIORITY_CHANGE_DELAY_TICKS;
+  tmr1 :> t_priority_change;
+  t_priority_change += PRIORITY_CHANGE_DELAY_TICKS;
+
+  ptp_set_master_rate(c_ptp, 100000);
+
+  tmr2 :> t_audio_packet;
+  /* approximate rate - only integer division */
+  t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
+
+  i_cfg.get_macaddr(0, own_mac_addr);
+  talker_config = simple_talker_init(own_mac_addr);
+  audio_packet_count = 0;
+
+  ptp_get_time_info_mod64(c_ptp, time_info);
+  pending_timeinfo = 0;
 
   while (1) {
     select {
-      case tmr when timerafter(priority_change_time) :> void:
+      case tmr1 when timerafter(t_priority_change) :> void:
         if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
           priority_current = 100;
         else
           priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
 
-        debug_printf("PTP set priority %d\n", priority_current);
         ptp_set_priority(c_ptp, priority_current, 248);
-        priority_change_time += PRIORITY_CHANGE_DELAY_TICKS;
+        ptp_reset_port(c_ptp, 0);
+        t_priority_change += PRIORITY_CHANGE_DELAY_TICKS;
+        break;
+
+      case tmr2 when timerafter(t_audio_packet) :> void:
+        packet_size = simple_talker_create_packet(talker_config, packet_buf, sizeof(packet_buf),
+          time_info, t_audio_packet, audio_packet_count);
+        if (packet_size > 0) {
+          ethernet_send_hp_packet(c_eth_tx_hp, packet_buf, packet_size, ETHERNET_ALL_INTERFACES);
+        }
+        t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
+        audio_packet_count++;
+        break;
+
+      case tmr3 when timerafter(t_timeinfo_update) :> void:
+        if (!pending_timeinfo) {
+          ptp_request_time_info_mod64(c_ptp);
+          pending_timeinfo = 1;
+        }
+        t_timeinfo_update += TIMEINFO_UPDATE_INTERVAL_TICKS;
+        debug_printf("audio_packet_count:%d\n", audio_packet_count);
+        break;
+
+      case ptp_get_requested_time_info_mod64(c_ptp, time_info):
+        pending_timeinfo = 0;
         break;
     }
   }

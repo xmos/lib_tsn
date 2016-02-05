@@ -253,7 +253,8 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   if (new_role == PTP_SLAVE) {
 
-    debug_printf("PTP Port %d Role: Slave\n", port_num);
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Slave\n", port_num);
 
     ptp_port_info[port_num].delay_info.valid = 0;
     g_ptp_adjust = 0;
@@ -267,7 +268,8 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   if (new_role == PTP_MASTER) {
 
-    debug_printf("PTP Port %d Role: Master\n", port_num);
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Master\n", port_num);
 
     // Now we are the master so no rate matching is needed, but record the last rate for the
     // follow up TLV
