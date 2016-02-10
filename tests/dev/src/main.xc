@@ -25,6 +25,8 @@ port p_smi_mdc    = PORT_ETH_MDC;
 
 otp_ports_t otp_ports = on tile[0]: OTP_PORTS_INITIALIZER;
 
+#define ETHERNET_BUFFER_ALIGNMENT 2
+
 enum eth_clients {
   ETH_TO_PTP,
   NUM_ETH_CLIENTS
@@ -93,9 +95,10 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
   timer tmr1, tmr2, tmr3;
   int t_priority_change, t_audio_packet, t_timeinfo_update;
   unsigned char priority_current;
-  unsigned char packet_buf[1500];
+  unsigned char packet_buf[1500 + ETHERNET_BUFFER_ALIGNMENT];
   int packet_size;
   ptp_time_info_mod64 time_info;
+  unsigned audio_sample_count;
   unsigned audio_packet_count;
   int pending_timeinfo;
   simple_talker_config_t talker_config;
@@ -112,7 +115,8 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
   t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
 
   i_cfg.get_macaddr(0, own_mac_addr);
-  talker_config = simple_talker_init(own_mac_addr);
+  talker_config = simple_talker_init(packet_buf, sizeof(packet_buf), own_mac_addr);
+  audio_sample_count = 0;
   audio_packet_count = 0;
 
   ptp_get_time_info_mod64(c_ptp, time_info);
@@ -133,12 +137,13 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
 
       case tmr2 when timerafter(t_audio_packet) :> void:
         packet_size = simple_talker_create_packet(talker_config, packet_buf, sizeof(packet_buf),
-          time_info, t_audio_packet, audio_packet_count);
+          time_info, t_audio_packet, (audio_sample_count & 0xFFFFFF) << 8);
         if (packet_size > 0) {
-          ethernet_send_hp_packet(c_eth_tx_hp, packet_buf, packet_size, ETHERNET_ALL_INTERFACES);
+          ethernet_send_hp_packet(c_eth_tx_hp, &packet_buf[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
+          audio_packet_count++;
         }
         t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
-        audio_packet_count++;
+        audio_sample_count++;
         break;
 
       case tmr3 when timerafter(t_timeinfo_update) :> void:
@@ -147,7 +152,6 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
           pending_timeinfo = 1;
         }
         t_timeinfo_update += TIMEINFO_UPDATE_INTERVAL_TICKS;
-        debug_printf("audio_packet_count:%d\n", audio_packet_count);
         break;
 
       case ptp_get_requested_time_info_mod64(c_ptp, time_info):
