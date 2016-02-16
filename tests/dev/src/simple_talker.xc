@@ -12,7 +12,7 @@ static struct simple_talker_config
 } configs[1];
 
 simple_talker_config_t simple_talker_init(unsigned char packet_buf[], int packet_buf_size,
-  const unsigned char src_mac_addr[6])
+  const unsigned char src_mac_addr[6], const unsigned char stream_id[8])
 {
   avb1722_Talker_StreamConfig_t *sc;
   unsigned tmp;
@@ -27,8 +27,8 @@ simple_talker_config_t simple_talker_init(unsigned char packet_buf[], int packet
   sc->destMACAdrs[4] = 0xFF;
   sc->destMACAdrs[5] = 0xFF;
   memcpy(sc->srcMACAdrs, src_mac_addr, 6);
-  sc->streamId[1] = ntoh_32(sc->srcMACAdrs);
-  sc->streamId[0] = ((unsigned)sc->srcMACAdrs[4] << 24) | ((unsigned)sc->srcMACAdrs[5] << 16);
+  sc->streamId[1] = ((unsigned)src_mac_addr[0] << 24) | ((unsigned)src_mac_addr[1] << 16) | ((unsigned)src_mac_addr[2] << 8) | (unsigned)src_mac_addr[3];
+  sc->streamId[0] = ((unsigned)src_mac_addr[4] << 24) | ((unsigned)src_mac_addr[5] << 16);
   sc->streamId[0] |= 0; /* ext term */
   sc->num_channels = 1;
   sc->map[0] = 0;

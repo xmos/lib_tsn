@@ -7,6 +7,7 @@
 #include "ethernet.h"
 #include "gptp.h"
 #include "simple_talker.h"
+#include "simple_controller.h"
 
 port p_eth_rxclk  = PORT_ETH_RXCLK;
 port p_eth_rxd    = PORT_ETH_RXD;
@@ -29,6 +30,7 @@ otp_ports_t otp_ports = on tile[0]: OTP_PORTS_INITIALIZER;
 
 enum eth_clients {
   ETH_TO_PTP,
+  ETH_TO_1722_1,
   NUM_ETH_CLIENTS
 };
 
@@ -88,14 +90,18 @@ void lan8710a_phy_driver(client interface smi_if smi,
 #define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
 #define PRIORITY_CHANGE_DELAY_TICKS 1000000000
 #define TIMEINFO_UPDATE_INTERVAL_TICKS 100000000
+#define CONTROLLER_PERIODIC_INTERVAL_TICKS 100000000
 #define AUDIO_PACKET_RATE_HZ 48000
 
-void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_eth_tx_hp)
+void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_tx_hp,
+  client ethernet_rx_if i_rx, client ethernet_tx_if i_tx)
 {
-  timer tmr1, tmr2, tmr3;
-  int t_priority_change, t_audio_packet, t_timeinfo_update;
+  timer tmr1, tmr2, tmr3, tmr4;
+  int t_priority_change, t_audio_packet, t_timeinfo_update, t_controller_periodic;
   unsigned char priority_current;
-  unsigned char packet_buf[1500 + ETHERNET_BUFFER_ALIGNMENT];
+  unsigned char packet_buf_talker[1500 + ETHERNET_BUFFER_ALIGNMENT];
+  unsigned char packet_buf_controller_rx[1500];
+  ethernet_packet_info_t packet_info;
   int packet_size;
   ptp_time_info_mod64 time_info;
   unsigned audio_sample_count;
@@ -103,6 +109,7 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
   int pending_timeinfo;
   simple_talker_config_t talker_config;
   unsigned char own_mac_addr[6];
+  unsigned char stream_id[8];
 
   priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
   tmr1 :> t_priority_change;
@@ -115,7 +122,12 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
   t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
 
   i_cfg.get_macaddr(0, own_mac_addr);
-  talker_config = simple_talker_init(packet_buf, sizeof(packet_buf), own_mac_addr);
+
+  simple_controller_init(i_cfg, i_rx, own_mac_addr, stream_id);
+  tmr4 :> t_controller_periodic;
+  t_controller_periodic += CONTROLLER_PERIODIC_INTERVAL_TICKS;
+
+  talker_config = simple_talker_init(packet_buf_talker, sizeof(packet_buf_talker), own_mac_addr, stream_id);
   audio_sample_count = 0;
   audio_packet_count = 0;
 
@@ -136,14 +148,17 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
         break;
 
       case tmr2 when timerafter(t_audio_packet) :> void:
-        packet_size = simple_talker_create_packet(talker_config, packet_buf, sizeof(packet_buf),
+        packet_size = simple_talker_create_packet(talker_config, packet_buf_talker, sizeof(packet_buf_talker),
           time_info, t_audio_packet, (audio_sample_count & 0xFFFFFF) << 8);
         if (packet_size > 0) {
-          ethernet_send_hp_packet(c_eth_tx_hp, &packet_buf[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
+          ethernet_send_hp_packet(c_tx_hp, &packet_buf_talker[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
           audio_packet_count++;
         }
         t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
         audio_sample_count++;
+        if ((audio_sample_count & 32767) == 0) {
+          debug_printf("%d\n", audio_sample_count);
+        }
         break;
 
       case tmr3 when timerafter(t_timeinfo_update) :> void:
@@ -156,6 +171,16 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_e
 
       case ptp_get_requested_time_info_mod64(c_ptp, time_info):
         pending_timeinfo = 0;
+        break;
+
+      case tmr4 when timerafter(t_controller_periodic) :> void:
+        simple_controller_periodic(i_tx);
+        t_controller_periodic += CONTROLLER_PERIODIC_INTERVAL_TICKS;
+        break;
+
+      case i_rx.packet_ready():
+        i_rx.get_packet(packet_info, packet_buf_controller_rx, sizeof(packet_buf_controller_rx));
+        simple_controller_packet_received(packet_buf_controller_rx, packet_info);
         break;
     }
   }
@@ -195,6 +220,9 @@ int main(void)
         if (otp_board_info_get_mac(otp_ports, 0, mac_address) == 0)
           fail("no MAC address programmed in OTP");
 
+        /* be non XMOS to avoid ADP database lookup in listener */
+        mac_address[1] = 0x23;
+
         /* force PTP slave by using a high MAC address */
         mac_address[3] = 0xFF;
 
@@ -204,11 +232,14 @@ int main(void)
           mac_address[0], mac_address[1], mac_address[2],
           mac_address[3], mac_address[4], mac_address[5]);
 
-        ptp_server(i_rx[ETH_TO_PTP], i_tx[ETH_TO_PTP], i_cfg[CFG_TO_PTP],
-          c_ptp, NUM_PTP_CHANS, PTP_GRANDMASTER_CAPABLE);
-    }
+        par {
+          ptp_server(i_rx[ETH_TO_PTP], i_tx[ETH_TO_PTP], i_cfg[CFG_TO_PTP],
+            c_ptp, NUM_PTP_CHANS, PTP_GRANDMASTER_CAPABLE);
 
-    on tile[0]: test_app(i_cfg[MAC_CFG_TO_APP], c_ptp[PTP_TO_APP], c_tx_hp);
+          test_app(i_cfg[MAC_CFG_TO_APP], c_ptp[PTP_TO_APP], c_tx_hp,
+            i_rx[ETH_TO_1722_1], i_tx[ETH_TO_1722_1]);
+        }
+    }
   }
 
   return 0;

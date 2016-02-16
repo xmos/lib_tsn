@@ -330,7 +330,7 @@ void avb_1722_1_controller_disconnect_talker(int listener_id, CLIENT_INTERFACE(e
     }
 }
 
-static void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, avb_1722_1_acmp_packet_t* pkt)
+void store_rcvd_cmd_resp(avb_1722_1_acmp_cmd_resp* store, const avb_1722_1_acmp_packet_t* pkt)
 {
     get_64(store->stream_id.c, pkt->stream_id);
     get_64(store->controller_guid.c, pkt->controller_guid);
