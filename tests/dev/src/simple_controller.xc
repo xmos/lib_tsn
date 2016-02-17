@@ -44,7 +44,7 @@ char state_str[][40] = {
 static void transition(enum simple_controller_state new_state)
 {
 #if DEBUG_STATE
-  debug_printf("1722.1: %s -> %s\n", state_str[state], state_str[new_state]);
+  debug_printf("Controller %s -> %s\n", state_str[state], state_str[new_state]);
 #endif
   state = new_state;
 }

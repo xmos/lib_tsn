@@ -4,6 +4,7 @@
 #include "gptp.h"
 #include "avb_1722_talker.h"
 #include "avb.h"
+#include "test_conf.h"
 #include "simple_talker.h"
 
 static struct simple_talker_config
@@ -68,5 +69,9 @@ int simple_talker_create_packet(simple_talker_config_t config,
 
   packet_size = avb1722_create_packet(packet_buf, configs[config].sc, time_info, &frame, 0);
 
+#if TALKER
   return packet_size;
+#else
+  return 0;
+#endif
 }

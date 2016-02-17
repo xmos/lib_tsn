@@ -31,7 +31,7 @@ extern unsigned ptp_reference_local_ts;
 extern ptp_timestamp ptp_reference_ptp_ts;
 extern signed int g_ptp_adjust;
 extern signed int g_inv_ptp_adjust;
-extern signed ptp_adjust_master;
+extern signed int ptp_adjust_master;
 extern u8_t ptp_priority1;
 extern u8_t ptp_priority2;
 

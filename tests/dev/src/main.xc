@@ -6,6 +6,7 @@
 #include "smi.h"
 #include "ethernet.h"
 #include "gptp.h"
+#include "test_conf.h"
 #include "simple_talker.h"
 #include "simple_controller.h"
 
@@ -27,6 +28,9 @@ port p_smi_mdc    = PORT_ETH_MDC;
 otp_ports_t otp_ports = on tile[0]: OTP_PORTS_INITIALIZER;
 
 #define ETHERNET_BUFFER_ALIGNMENT 2
+#define AUDIO_PACKET_RATE_HZ 48000
+#define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
+#define ONE_SECOND (XS1_TIMER_HZ)
 
 enum eth_clients {
   ETH_TO_PTP,
@@ -87,17 +91,10 @@ void lan8710a_phy_driver(client interface smi_if smi,
   }
 }
 
-#define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
-#define PRIORITY_CHANGE_DELAY_TICKS 1000000000
-#define TIMEINFO_UPDATE_INTERVAL_TICKS 100000000
-#define CONTROLLER_PERIODIC_INTERVAL_TICKS 100000000
-#define AUDIO_PACKET_RATE_HZ 48000
-
 void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_tx_hp,
   client ethernet_rx_if i_rx, client ethernet_tx_if i_tx)
 {
-  timer tmr1, tmr2, tmr3, tmr4;
-  int t_priority_change, t_audio_packet, t_timeinfo_update, t_controller_periodic;
+  timer tmr, tmr2;
   unsigned char priority_current;
   unsigned char packet_buf_talker[1500 + ETHERNET_BUFFER_ALIGNMENT];
   unsigned char packet_buf_controller_rx[1500];
@@ -110,22 +107,16 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
   simple_talker_config_t talker_config;
   unsigned char own_mac_addr[6];
   unsigned char stream_id[8];
+  unsigned periodic_count;
+  int t, t2;
 
   priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
-  tmr1 :> t_priority_change;
-  t_priority_change += PRIORITY_CHANGE_DELAY_TICKS;
 
-  ptp_set_master_rate(c_ptp, 100000);
-
-  tmr2 :> t_audio_packet;
-  /* approximate rate - only integer division */
-  t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
+  ptp_set_master_rate(c_ptp, PTP_MASTER_RATE);
 
   i_cfg.get_macaddr(0, own_mac_addr);
 
   simple_controller_init(i_cfg, i_rx, own_mac_addr, stream_id);
-  tmr4 :> t_controller_periodic;
-  t_controller_periodic += CONTROLLER_PERIODIC_INTERVAL_TICKS;
 
   talker_config = simple_talker_init(packet_buf_talker, sizeof(packet_buf_talker), own_mac_addr, stream_id);
   audio_sample_count = 0;
@@ -134,54 +125,69 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
   ptp_get_time_info_mod64(c_ptp, time_info);
   pending_timeinfo = 0;
 
+  tmr :> t;
+  t += ONE_SECOND;
+  periodic_count = 0;
+
+  tmr2 :> t2;
+  t2 += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;  /* approximate rate - only integer division */
+
   while (1) {
     select {
-      case tmr1 when timerafter(t_priority_change) :> void:
-        if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
-          priority_current = 100;
-        else
-          priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
-
-        ptp_set_priority(c_ptp, priority_current, 248);
-        ptp_reset_port(c_ptp, 0);
-        t_priority_change += PRIORITY_CHANGE_DELAY_TICKS;
-        break;
-
-      case tmr2 when timerafter(t_audio_packet) :> void:
-        packet_size = simple_talker_create_packet(talker_config, packet_buf_talker, sizeof(packet_buf_talker),
-          time_info, t_audio_packet, (audio_sample_count & 0xFFFFFF) << 8);
-        if (packet_size > 0) {
-          ethernet_send_hp_packet(c_tx_hp, &packet_buf_talker[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
-          audio_packet_count++;
-        }
-        t_audio_packet += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
-        audio_sample_count++;
-        if ((audio_sample_count & 32767) == 0) {
-          debug_printf("%d\n", audio_sample_count);
-        }
-        break;
-
-      case tmr3 when timerafter(t_timeinfo_update) :> void:
-        if (!pending_timeinfo) {
-          ptp_request_time_info_mod64(c_ptp);
-          pending_timeinfo = 1;
-        }
-        t_timeinfo_update += TIMEINFO_UPDATE_INTERVAL_TICKS;
-        break;
-
       case ptp_get_requested_time_info_mod64(c_ptp, time_info):
         pending_timeinfo = 0;
-        break;
-
-      case tmr4 when timerafter(t_controller_periodic) :> void:
-        simple_controller_periodic(i_tx);
-        t_controller_periodic += CONTROLLER_PERIODIC_INTERVAL_TICKS;
         break;
 
       case i_rx.packet_ready():
         i_rx.get_packet(packet_info, packet_buf_controller_rx, sizeof(packet_buf_controller_rx));
         simple_controller_packet_received(packet_buf_controller_rx, packet_info);
         break;
+
+      case tmr when timerafter(t) :> void: {
+        if (periodic_count % PTP_CHANGE_INTERVAL_SEC == PTP_CHANGE_INTERVAL_SEC - 1) {
+          if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
+            priority_current = 100;
+          else
+            priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
+
+          ptp_set_priority(c_ptp, priority_current, 248);
+          ptp_reset_port(c_ptp, 0);
+        }
+
+        simple_controller_periodic(i_tx);
+
+        if (!pending_timeinfo) {
+          /* keep timeinfo request after any other PTP commands
+           * so it's always completed before other commands are sent
+           * PTP server doesn't maintain intermediate state and would
+           * trap with a pending timeinfo request
+           */
+          ptp_request_time_info_mod64(c_ptp);
+          pending_timeinfo = 1;
+        }
+
+        periodic_count++;
+        t += ONE_SECOND;
+        break;
+      }
+
+      case tmr2 when timerafter(t2) :> void: {
+        packet_size = simple_talker_create_packet(talker_config, packet_buf_talker, sizeof(packet_buf_talker),
+          time_info, t2, (audio_sample_count & 0xFFFFFF) << 8);
+
+        if (packet_size > 0) {
+          ethernet_send_hp_packet(c_tx_hp, &packet_buf_talker[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
+          audio_packet_count++;
+        }
+
+        audio_sample_count++;
+        if ((audio_sample_count & 65535) == 0) {
+          debug_printf("1722T last sample value %d (%d packets sent)\n", audio_sample_count, audio_packet_count);
+        }
+
+        t2 += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
+        break;
+      }
     }
   }
 }
@@ -220,7 +226,7 @@ int main(void)
         if (otp_board_info_get_mac(otp_ports, 0, mac_address) == 0)
           fail("no MAC address programmed in OTP");
 
-        /* be non XMOS to avoid ADP database lookup in listener */
+        /* be non-XMOS to avoid ADP database lookup in listener */
         mac_address[1] = 0x23;
 
         /* force PTP slave by using a high MAC address */

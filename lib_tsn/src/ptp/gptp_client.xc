@@ -122,7 +122,7 @@ void ptp_set_priority(chanend ptp_server, unsigned char priority1, unsigned char
   }
 }
 
-void ptp_set_master_rate(chanend ptp_server, signed adjust)
+void ptp_set_master_rate(chanend ptp_server, signed int adjust)
 {
   send_cmd(ptp_server, PTP_SET_MASTER_RATE);
   slave

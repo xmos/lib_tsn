@@ -29,3 +29,4 @@ Doxyfile-e
 examples/AN01032_100Mbit_avb_i2s_demo/.settings/
 *.pptx
 examples/AN01032_100Mbit_avb_i2s_demo/doc/pdf/
+.externalToolBuilders
