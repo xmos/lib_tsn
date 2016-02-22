@@ -1,4 +1,5 @@
 // Copyright (c) 2016, XMOS Ltd, All rights reserved
+
 #include <platform.h>
 #include "xassert.h"
 #include "debug_print.h"
@@ -6,9 +7,7 @@
 #include "smi.h"
 #include "ethernet.h"
 #include "gptp.h"
-#include "test_conf.h"
-#include "simple_talker.h"
-#include "simple_controller.h"
+#include "test.h"
 
 port p_eth_rxclk  = PORT_ETH_RXCLK;
 port p_eth_rxd    = PORT_ETH_RXD;
@@ -27,10 +26,7 @@ port p_smi_mdc    = PORT_ETH_MDC;
 
 otp_ports_t otp_ports = on tile[0]: OTP_PORTS_INITIALIZER;
 
-#define ETHERNET_BUFFER_ALIGNMENT 2
-#define AUDIO_PACKET_RATE_HZ 48000
-#define PTP_DEFAULT_GM_CAPABLE_PRIORITY1 250
-#define ONE_SECOND (XS1_TIMER_HZ)
+#define DEBUG_RUNNING_PACKET_COUNTER 0
 
 enum eth_clients {
   ETH_TO_PTP,
@@ -41,7 +37,7 @@ enum eth_clients {
 enum cfg_clients {
   CFG_TO_PTP,
   CFG_TO_PHY_DRIVER,
-  MAC_CFG_TO_APP,
+  CFG_TO_APP,
   NUM_CFG_CLIENTS
 };
 
@@ -91,107 +87,6 @@ void lan8710a_phy_driver(client interface smi_if smi,
   }
 }
 
-void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_tx_hp,
-  client ethernet_rx_if i_rx, client ethernet_tx_if i_tx)
-{
-  timer tmr, tmr2;
-  unsigned char priority_current;
-  unsigned char packet_buf_talker[1500 + ETHERNET_BUFFER_ALIGNMENT];
-  unsigned char packet_buf_controller_rx[1500];
-  ethernet_packet_info_t packet_info;
-  int packet_size;
-  ptp_time_info_mod64 time_info;
-  unsigned audio_sample_count;
-  unsigned audio_packet_count;
-  int pending_timeinfo;
-  simple_talker_config_t talker_config;
-  unsigned char own_mac_addr[6];
-  unsigned char stream_id[8];
-  unsigned periodic_count;
-  int t, t2;
-
-  priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
-
-  ptp_set_master_rate(c_ptp, PTP_MASTER_RATE);
-
-  i_cfg.get_macaddr(0, own_mac_addr);
-
-  simple_controller_init(i_cfg, i_rx, own_mac_addr, stream_id);
-
-  talker_config = simple_talker_init(packet_buf_talker, sizeof(packet_buf_talker), own_mac_addr, stream_id);
-  audio_sample_count = 0;
-  audio_packet_count = 0;
-
-  ptp_get_time_info_mod64(c_ptp, time_info);
-  pending_timeinfo = 0;
-
-  tmr :> t;
-  t += ONE_SECOND;
-  periodic_count = 0;
-
-  tmr2 :> t2;
-  t2 += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;  /* approximate rate - only integer division */
-
-  while (1) {
-    select {
-      case ptp_get_requested_time_info_mod64(c_ptp, time_info):
-        pending_timeinfo = 0;
-        break;
-
-      case i_rx.packet_ready():
-        i_rx.get_packet(packet_info, packet_buf_controller_rx, sizeof(packet_buf_controller_rx));
-        simple_controller_packet_received(packet_buf_controller_rx, packet_info);
-        break;
-
-      case tmr when timerafter(t) :> void: {
-        if (periodic_count % PTP_CHANGE_INTERVAL_SEC == PTP_CHANGE_INTERVAL_SEC - 1) {
-          if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
-            priority_current = 100;
-          else
-            priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
-
-          ptp_set_priority(c_ptp, priority_current, 248);
-          ptp_reset_port(c_ptp, 0);
-        }
-
-        simple_controller_periodic(i_tx);
-
-        if (!pending_timeinfo) {
-          /* keep timeinfo request after any other PTP commands
-           * so it's always completed before other commands are sent
-           * PTP server doesn't maintain intermediate state and would
-           * trap with a pending timeinfo request
-           */
-          ptp_request_time_info_mod64(c_ptp);
-          pending_timeinfo = 1;
-        }
-
-        periodic_count++;
-        t += ONE_SECOND;
-        break;
-      }
-
-      case tmr2 when timerafter(t2) :> void: {
-        packet_size = simple_talker_create_packet(talker_config, packet_buf_talker, sizeof(packet_buf_talker),
-          time_info, t2, (audio_sample_count & 0xFFFFFF) << 8);
-
-        if (packet_size > 0) {
-          ethernet_send_hp_packet(c_tx_hp, &packet_buf_talker[ETHERNET_BUFFER_ALIGNMENT], packet_size, ETHERNET_ALL_INTERFACES);
-          audio_packet_count++;
-        }
-
-        audio_sample_count++;
-        if ((audio_sample_count & 65535) == 0) {
-          debug_printf("1722T last sample value %d (%d packets sent)\n", audio_sample_count, audio_packet_count);
-        }
-
-        t2 += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;
-        break;
-      }
-    }
-  }
-}
-
 #define ETH_RX_BUFFER_SIZE_WORDS 1600
 #define ETH_TX_BUFFER_SIZE_WORDS 1600
 
@@ -222,7 +117,15 @@ int main(void)
     on tile[1]: lan8710a_phy_driver(i_smi, i_cfg[CFG_TO_PHY_DRIVER], p_eth_rst);
 
     on tile[0]: {
+      c_ptp[PTP_TO_APP] :> int mac_addr_ready;
+      ptp_server(i_rx[ETH_TO_PTP], i_tx[ETH_TO_PTP], i_cfg[CFG_TO_PTP],
+        c_ptp, NUM_PTP_CHANS, PTP_GRANDMASTER_CAPABLE);
+    }
+
+    on tile[0]: {
         char mac_address[6];
+        struct test_conf test_conf;
+
         if (otp_board_info_get_mac(otp_ports, 0, mac_address) == 0)
           fail("no MAC address programmed in OTP");
 
@@ -232,19 +135,21 @@ int main(void)
         /* force PTP slave by using a high MAC address */
         mac_address[3] = 0xFF;
 
-        i_cfg[CFG_TO_PTP].set_macaddr(0, mac_address);
-        i_cfg[CFG_TO_PTP].get_macaddr(0, mac_address);
+        i_cfg[CFG_TO_APP].set_macaddr(0, mac_address);
+        i_cfg[CFG_TO_APP].get_macaddr(0, mac_address);
         debug_printf("MAC %x:%x:%x:%x:%x:%x\n",
           mac_address[0], mac_address[1], mac_address[2],
           mac_address[3], mac_address[4], mac_address[5]);
 
-        par {
-          ptp_server(i_rx[ETH_TO_PTP], i_tx[ETH_TO_PTP], i_cfg[CFG_TO_PTP],
-            c_ptp, NUM_PTP_CHANS, PTP_GRANDMASTER_CAPABLE);
+        c_ptp[PTP_TO_APP] <: 0;  /* MAC address ready, PTP can start */
 
-          test_app(i_cfg[MAC_CFG_TO_APP], c_ptp[PTP_TO_APP], c_tx_hp,
-            i_rx[ETH_TO_1722_1], i_tx[ETH_TO_1722_1]);
-        }
+        test_conf.disable_talker = 0;
+        test_conf.ptp_change_interval_sec = 5;
+        test_conf.talker_timestamp_delay_sec = 1;
+        test_conf.ptp_master_rate = 1000000; /* may require touching gptp_client.xc */
+                                             /* to take effect (as of tools 14.2.0) */
+        test_app(i_cfg[CFG_TO_APP], c_ptp[PTP_TO_APP], c_tx_hp,
+          i_rx[ETH_TO_1722_1], i_tx[ETH_TO_1722_1], test_conf);
     }
   }
 

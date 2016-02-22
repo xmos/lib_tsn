@@ -4,20 +4,21 @@
 #include "gptp.h"
 #include "avb_1722_talker.h"
 #include "avb.h"
-#include "test_conf.h"
 #include "simple_talker.h"
 
 static struct simple_talker_config
 {
   avb1722_Talker_StreamConfig_t sc;
+  int enabled;
 } configs[1];
 
 simple_talker_config_t simple_talker_init(unsigned char packet_buf[], int packet_buf_size,
-  const unsigned char src_mac_addr[6], const unsigned char stream_id[8])
+  const unsigned char src_mac_addr[6], const unsigned char stream_id[8], int enabled)
 {
   avb1722_Talker_StreamConfig_t *sc;
   unsigned tmp;
 
+  configs[0].enabled = enabled;
   sc = &configs[0].sc;
 
   sc->active = 2;
@@ -69,9 +70,8 @@ int simple_talker_create_packet(simple_talker_config_t config,
 
   packet_size = avb1722_create_packet(packet_buf, configs[config].sc, time_info, &frame, 0);
 
-#if TALKER
-  return packet_size;
-#else
-  return 0;
-#endif
+  if (configs[config].enabled)
+    return packet_size;
+  else
+    return 0;
 }
