@@ -144,8 +144,9 @@ int main(void)
         c_ptp[PTP_TO_APP] <: 0;  /* MAC address ready, PTP can start */
 
         test_conf.disable_talker = 0;
-        test_conf.ptp_change_interval_sec = 5;
-        test_conf.talker_timestamp_delay_sec = 1;
+        test_conf.ptp_change_interval_min_sec = 4;
+        test_conf.ptp_change_interval_max_sec = 12;
+        test_conf.talker_timestamp_delay_max_sec = 3;
         test_conf.ptp_master_rate = 1000000; /* may require touching gptp_client.xc */
                                              /* to take effect (as of tools 14.2.0) */
         test_app(i_cfg[CFG_TO_APP], c_ptp[PTP_TO_APP], c_tx_hp,

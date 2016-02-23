@@ -24,6 +24,8 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
   ethernet_packet_info_t packet_info;
   int packet_size;
   ptp_time_info_mod64 time_info, time_info_returned;
+  int talker_timestamp_delay;
+  int ptp_change_interval;
   unsigned audio_sample_count;
   unsigned audio_packet_count;
   int pending_timeinfo;
@@ -31,7 +33,7 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
   simple_talker_config_t talker_config;
   unsigned char own_mac_addr[6];
   unsigned char stream_id[8];
-  unsigned periodic_count;
+  int ptp_change_count;
   int t, t2;
 
   priority_current = PTP_DEFAULT_GM_CAPABLE_PRIORITY1;
@@ -52,7 +54,9 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
 
   tmr :> t;
   t += ONE_SECOND;
-  periodic_count = 0;
+  ptp_change_interval = test_conf.ptp_change_interval_min_sec;
+  ptp_change_count = 0;
+  talker_timestamp_delay = 0;
 
   tmr2 :> t2;
   t2 += XS1_TIMER_HZ / AUDIO_PACKET_RATE_HZ;  /* approximate rate - only integer division */
@@ -76,7 +80,7 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
         break;
 
       case tmr when timerafter(t) :> void: {
-        if (periodic_count % test_conf.ptp_change_interval_sec == test_conf.ptp_change_interval_sec - 1) {
+        if (ptp_change_count == ptp_change_interval) {
           if (priority_current == PTP_DEFAULT_GM_CAPABLE_PRIORITY1)
             priority_current = 100;
           else
@@ -84,7 +88,20 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
 
           ptp_set_priority(c_ptp, priority_current, 248);
           ptp_reset_port(c_ptp, 0);
-          time_info_countdown = test_conf.talker_timestamp_delay_sec;
+          time_info_countdown = talker_timestamp_delay;
+
+          ptp_change_interval++;
+          if (ptp_change_interval > test_conf.ptp_change_interval_max_sec)
+            ptp_change_interval = test_conf.ptp_change_interval_min_sec;
+
+          talker_timestamp_delay++;
+          if (talker_timestamp_delay > test_conf.talker_timestamp_delay_max_sec)
+            talker_timestamp_delay = 0;
+
+          debug_printf("test: PTP change interval %d sec, talker timestamp delay %d sec\n",
+            ptp_change_interval, talker_timestamp_delay);
+          
+          ptp_change_count = 0;
         }
 
         simple_controller_periodic(i_tx);
@@ -99,7 +116,7 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
           pending_timeinfo = 1;
         }
 
-        periodic_count++;
+        ptp_change_count++;
         t += ONE_SECOND;
         break;
       }
@@ -126,6 +143,3 @@ void test_app(client ethernet_cfg_if i_cfg, chanend c_ptp, streaming chanend c_t
     }
   }
 }
-
-
-
