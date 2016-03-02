@@ -77,9 +77,8 @@ static transaction configure_stream(chanend avb1722_tx_config,
   stream.current_samples_in_packet = 0;
 
   stream.initial = 1;
-  stream.dbc_at_start_of_last_packet = 0;
+  stream.dbc_at_start_of_last_packet = -1; /* so first sample of first packet is DBC 0 */
   stream.active = 1;
-  stream.transmit_ok = 1;
   stream.sequence_number = 0;
 #if NUM_ETHERNET_PORTS > 1
   stream.txport = AVB1722_PORT_UNINITIALIZED;
