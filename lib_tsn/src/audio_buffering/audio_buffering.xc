@@ -86,9 +86,9 @@ void audio_input_sample_buffer(server push_if i_push, server pull_if i_pull)
 [[distributable]]
 void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull)
 {
-  audio_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS];
+  audio_output_fifo_data_t ofifo_data[AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR];
   struct output_finfo inf;
-  init_audio_output_fifos(inf, ofifo_data, AVB_NUM_MEDIA_OUTPUTS);
+  init_audio_output_fifos(inf, ofifo_data, AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR);
 
   while (1) {
     select {
@@ -106,12 +106,31 @@ void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull)
   }
 }
 
+unsigned sample_out_buf[256] =
+{
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+
 #pragma unsafe arrays
 void audio_buffer_manager(streaming chanend c_audio,
                          client push_if audio_input_buf,
                          client pull_if audio_output_buf,
-                         chanend c_media_ctl,
-                         const audio_io_t audio_io_type)
+                         chanend c_media_ctl)
 {
   unsafe {
     buffer_handle_t h_in = audio_input_buf.get_handle();
@@ -120,7 +139,7 @@ void audio_buffer_manager(streaming chanend c_audio,
     buffer_handle_t h_out = audio_output_buf.get_handle();
     audio_output_fifo_t *unsafe output_sample_buf = (audio_output_fifo_t *unsafe)((struct output_finfo *)h_out)->p_buffer;
     media_ctl_register(c_media_ctl, AVB_NUM_MEDIA_INPUTS,
-                      output_sample_buf, AVB_NUM_MEDIA_OUTPUTS, 0);
+                      output_sample_buf, AVB_NUM_MEDIA_OUTPUTS / AVB_CHANNEL_COALESCENCE_FACTOR, 0);
     unsigned ctl_command;
     unsigned sample_rate;
 
@@ -132,21 +151,15 @@ void audio_buffer_manager(streaming chanend c_audio,
       int done = 0;
       unsigned timestamp = 0;
       int channel = 0;
-      int32_t sample_out_buf[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+///      int32_t sample_out_buf[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
       unsigned tmp;
       unsigned restart = 0;
 
       c_audio <: input_sample_buf;
       c_audio <: sample_rate;
 
-      if (audio_io_type == AUDIO_I2S_IO) {
-        c_audio <: (int32_t *unsafe)&sample_out_buf;
-      }
-      else {
-        for (int i=0; i < 2; i++) {
-          c_audio <: (int32_t *unsafe)&sample_out_buf;
-        }
-      }
+      c_audio <: (int32_t *unsafe)&sample_out_buf;
+      c_audio <: (int32_t *unsafe)&sample_out_buf;
 
       while (!done) {
         select {
@@ -158,38 +171,22 @@ void audio_buffer_manager(streaming chanend c_audio,
 
           case c_media_ctl :> ctl_command :
             c_media_ctl :> sample_rate;
-            sample_out_buf[8] = 1;
+///            sample_out_buf[8] = 1;
             done = 1;
             soutct(c_audio, XS1_CT_END);
             break;
 
           default:
-            unsafe {
-              if (audio_io_type == AUDIO_I2S_IO) {
-                #pragma loop unroll
-                for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
-                                                                    timestamp);
-                }
-                #pragma loop unroll
-                for (int i=1;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
-                                                                    timestamp);
-                }
-                c_audio <: (int32_t *unsafe)&sample_out_buf;
-              }
-              else {
-                #pragma loop unroll
-                for (int i=0;i<AVB_NUM_SINKS;i++) { // FIXME: This should be number of TDM lines
-                  int index = channel + (i*8);
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, index,
-                                                                    timestamp);
-                }
-                c_audio <: (int32_t *unsafe)&sample_out_buf;
-                channel++;
-                if (channel == 8) channel = 0;
-              }
+            for( int ii = 0; ii < AVB_NUM_MEDIA_OUTPUTS / AVB_CHANNEL_COALESCENCE_FACTOR; ++ii )
+            {
+                audio_output_fifo_pull
+                (
+                    sample_out_buf + ii * AVB_CHANNEL_COALESCENCE_FACTOR,
+                    h_out, ii,
+                    timestamp
+                );
             }
+            c_audio <: (unsigned *unsafe) &sample_out_buf;
             break;
         }
       }

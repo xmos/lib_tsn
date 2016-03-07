@@ -32,14 +32,14 @@ static transaction configure_stream(chanend c,
 	c :> s.rate;
 	c :> s.num_channels;
 
-	for(int i=0;i<s.num_channels;i++) {
-		c :> s.map[i];
-		if (s.map[i] >= 0)
-		{
-      unsafe {
-        enable_audio_output_fifo(h, s.map[i], media_clock);
+	for(int i=0;i<s.num_channels;i++)
+	{
+       c :> s.map[i];
+        if (s.map[i] >= 0 && (s.map[i] & (AVB_CHANNEL_COALESCENCE_FACTOR-1)) == 0 ) {
+        unsafe {
+          enable_audio_output_fifo(h, s.map[i]/AVB_CHANNEL_COALESCENCE_FACTOR, media_clock);
+        }
       }
-		}
 	}
 
 	s.active = 1;
@@ -78,7 +78,15 @@ static transaction adjust_stream(chanend c,
 			c :> count;
 			for(int i=0;i<count;i++) {
 				c :> volume;
-				if (i < s.num_channels) audio_output_fifo_set_volume(h, s.map[i], volume);
+                if (s.map[i] >= 0 && (s.map[i] & (AVB_CHANNEL_COALESCENCE_FACTOR-1)) == 0 ) {
+				  if (i < s.num_channels)
+				    AVBa_audio_output_fifo_set_volume
+				    (
+				        h,
+				        s.map[i] / AVB_CHANNEL_COALESCENCE_FACTOR,
+				        volume
+				    );
+			  }
 			}
 #endif
 		}
@@ -91,10 +99,10 @@ static void disable_stream(avb_1722_stream_info_t &s,
                            buffer_handle_t h)
 {
 	for(int i=0;i<s.num_channels;i++) {
-		if (s.map[i] >= 0)
+        if (s.map[i] >= 0 && (s.map[i] & (AVB_CHANNEL_COALESCENCE_FACTOR-1)) == 0 )
 		{
       unsafe {
-        disable_audio_output_fifo(h, s.map[i]);
+        disable_audio_output_fifo(h, s.map[i] / AVB_CHANNEL_COALESCENCE_FACTOR);
       }
 		}
 	}
@@ -142,7 +150,7 @@ void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      timeInfo,
                                      stream_id,
                                      st.notified_buf_ctl,
-                                     h);
+                                     h, stream_id );
   }
 }
 

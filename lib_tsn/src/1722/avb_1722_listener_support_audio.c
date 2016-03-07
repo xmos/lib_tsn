@@ -23,7 +23,8 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
                                      ptp_time_info_mod64* timeInfo,
                                      int index,
                                      int *notified_buf_ctl,
-                                     buffer_handle_t h)
+                                     buffer_handle_t h,
+                                     int stream_id )
 {
   int pktDataLength, dbc_value;
   AVB_DataHeader_t *pAVBHdr;
@@ -33,11 +34,13 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
   pAVBHdr = (AVB_DataHeader_t *) &(Buf[avb_ethernet_hdr_size]);
   pAVB1722Hdr = (AVB_AVB1722_CIP_Header_t *) &(Buf[avb_ethernet_hdr_size + AVB_TP_HDR_SIZE]);
   unsigned char *sample_ptr;
-  int i;
   int num_channels = stream_info->num_channels;
-  audio_output_fifo_t *map = &stream_info->map[0];
   int stride;
   int dbc_diff;
+
+    #if AVB_CHANNEL_COALESCENCE_FACTOR == 1
+    audio_output_fifo_t *map = &stream_info->map[0];
+    #endif
 
   // sanity check on number bytes in payload
   if (numBytes <= avb_ethernet_hdr_size + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE)
@@ -145,23 +148,34 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     }
     sample_num = (syt_interval - (dbc_value & (syt_interval-1))) & (syt_interval-1);
     // register timestamp
-    for (int i=0; i<num_channels; i++)
-    {
-      if (map[i] >= 0)
-      {
-        audio_output_fifo_set_ptp_timestamp(h, map[i], AVBTP_TIMESTAMP(pAVBHdr), sample_num);
-      }
-    }
+        #if AVB_CHANNEL_COALESCENCE_FACTOR == 1
+        for( int i = 0; i < num_channels; i++ ) {
+            if( map[i] >= 0 ) {
+                audio_output_fifo_set_ptp_timestamp(
+                    h, map[i],
+                    AVBTP_TIMESTAMP(pAVBHdr),
+                    sample_num
+                );
+            }
+        }
+        #else
+        audio_output_fifo_set_ptp_timestamp(
+            h, stream_id,
+            AVBTP_TIMESTAMP(pAVBHdr),
+            sample_num
+        );
+        #endif
   }
 
-  for (i=0; i<num_channels; i++)
-  {
-    if (map[i] >= 0)
-    {
-      audio_output_fifo_maintain(h, map[i], buf_ctl, notified_buf_ctl);
+    #if AVB_CHANNEL_COALESCENCE_FACTOR == 1
+    for( int i = 0; i < num_channels; i++ ) {
+        if( map[i] >= 0 ) {
+            audio_output_fifo_maintain( h, map[i], buf_ctl, notified_buf_ctl );
+        }
     }
-  }
-
+    #else
+    audio_output_fifo_maintain( h, stream_id, buf_ctl, notified_buf_ctl );
+    #endif
 
   // now send the samples
   sample_ptr = (unsigned char *) &Buf[(avb_ethernet_hdr_size +
@@ -177,15 +191,26 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
     num_channels :
     num_channels_in_payload;
 
-  for(i=0; i<num_channels; i++)
-  {
-    if (map[i] >= 0)
-    {
-      audio_output_fifo_strided_push(h, map[i], (unsigned int *) sample_ptr,
-                                   stride, num_samples_in_payload);
+    #if AVB_CHANNEL_COALESCENCE_FACTOR == 1
+    for( int i = 0; i < num_channels; i++ ) {
+        if( map[i] >= 0 ) {
+            audio_output_fifo_push(
+                h, map[i],
+                (unsigned int *) sample_ptr,
+                num_channels_in_payload,
+                num_samples_in_payload / num_channels_in_payload
+            );
+        }
+        sample_ptr += 4;
     }
-    sample_ptr += 4;
-  }
+    #else
+    audio_output_fifo_push(
+        h, stream_id,
+        (unsigned int *) sample_ptr,
+        num_channels_in_payload,
+        num_samples_in_payload / num_channels_in_payload
+    );
+    #endif
 
   return(1);
 }

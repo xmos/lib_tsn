@@ -34,6 +34,8 @@
 /** The maximum number of channels permitted per 1722 Listener stream */
 #define AVB_MAX_CHANNELS_PER_LISTENER_STREAM 8
 
+#define AVB_CHANNEL_COALESCENCE_FACTOR 1
+
 /** Use 61883-6 audio format for 1722 streams */
 #define AVB_1722_FORMAT_61883_6 1
 
