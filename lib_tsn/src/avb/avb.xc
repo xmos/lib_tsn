@@ -37,7 +37,7 @@ static int max_listener_stream_id = 0;
 static avb_source_info_t sources[AVB_NUM_SOURCES];
 static avb_sink_info_t sinks[AVB_NUM_SINKS];
 static media_info_t inputs[AVB_NUM_MEDIA_INPUTS];
-static media_info_t outputs[AVB_NUM_MEDIA_OUTPUTS];
+static media_info_t outputs[AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR];
 
 static void register_talkers(chanend (&?c_talker_ctl)[], unsigned char mac_addr[6])
 {
@@ -143,7 +143,7 @@ static void init_media_clock_server(client interface media_clock_if
                                     media_clock_ctl)
 {
   if (!isnull(media_clock_ctl)) {
-    for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i++) {
+    for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS / AVB_CHANNEL_COALESCENCE_FACTOR;i++) {
       media_clock_ctl.set_buf_fifo(i, outputs[i].fifo);
     }
   }

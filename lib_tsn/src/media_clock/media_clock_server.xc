@@ -65,7 +65,6 @@ void update_stream_derived_clocks(int source_num,
   }
 }
 
-
 void inform_media_clocks_of_lock(int source_num)
 {
  for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
@@ -79,9 +78,8 @@ void inform_media_clocks_of_lock(int source_num)
 }
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
-static buf_info_t buf_info[AVB_NUM_MEDIA_OUTPUTS];
 
-
+static buf_info_t buf_info[AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR];
 
 static void init_buffers(void)
 {
@@ -91,10 +89,9 @@ static void init_buffers(void)
 int get_buf_info(int fifo)
 {
   int stream_num = -1;
-  for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i++)
+  for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR;i++)
     if (buf_info[i].fifo == fifo)
       stream_num = i;
-
   return stream_num;
 }
 
@@ -153,8 +150,7 @@ static void manage_buffer(buf_info_t &b,
 #else
   ptp_get_time_info_mod64(ptp_svr, timeInfo);
 #endif
-  ptp_outgoing_actual = local_timestamp_to_ptp_mod32(outgoing_timestamp_local,
-                                                     timeInfo);
+  ptp_outgoing_actual = local_timestamp_to_ptp_mod32(outgoing_timestamp_local, timeInfo);
 
   diff = (signed) ptp_outgoing_actual - (signed) presentation_timestamp;
 
@@ -164,8 +160,6 @@ static void manage_buffer(buf_info_t &b,
                                presentation_timestamp,
                                fifo_locked,
                                fill);
-
-
 
   if (wordLength == 0) {
       // clock not locked yet
@@ -234,7 +228,6 @@ static void manage_buffer(buf_info_t &b,
   b.prev_diff = sample_diff;
 }
 
-
 #endif // (AVB_NUM_MEDIA_OUTPUTS != 0)
 
 #define INITIAL_MEDIA_CLOCK_OUTPUT_DELAY 100000
@@ -262,8 +255,7 @@ static void init_media_clock(media_clock_t &clk,
   p <: 0 @ ptime;
   tmr :> time;
   clk.wordTime = ptime + INITIAL_MEDIA_CLOCK_OUTPUT_DELAY;
-  clk.next_event =
-    time +
+  clk.next_event = time +
     INITIAL_MEDIA_CLOCK_OUTPUT_DELAY +
     EVENT_AFTER_PORT_OUTPUT_DELAY;
 }
@@ -324,6 +316,8 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
                             enum ptp_server_type server_type
 #endif
 )
+
+
 {
   timer tmr;
   int ptp_timeout;
@@ -334,7 +328,7 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
   unsigned char buf_ctl_cmd;
 #endif
   timer clk_timers[AVB_NUM_MEDIA_CLOCKS];
-  unsigned fifo_init_count = AVB_NUM_MEDIA_OUTPUTS;
+  unsigned fifo_init_count = AVB_NUM_MEDIA_OUTPUTS/AVB_CHANNEL_COALESCENCE_FACTOR;
 
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP

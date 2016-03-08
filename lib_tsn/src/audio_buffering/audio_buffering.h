@@ -50,17 +50,11 @@ void audio_input_sample_buffer(server push_if i_push, server pull_if i_pull);
 [[distributable]]
 void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull);
 
-typedef enum audio_io_t
-{
-  AUDIO_I2S_IO,
-  AUDIO_TDM_IO
-} audio_io_t;
-
 void audio_buffer_manager(streaming chanend c_audio,
                            client push_if audio_input_buf,
                            client pull_if audio_output_buf,
-                           chanend c_media_ctrl,
-                           const audio_io_t audio_io_type);
+                           chanend c_media_ctrl);
+
 unsafe void media_ctl_register(chanend media_ctl,
                         unsigned num_in,
                         audio_output_fifo_t *unsafe output_fifos,
