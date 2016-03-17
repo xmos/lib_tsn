@@ -82,6 +82,7 @@ static int periodic_counter[PTP_NUM_PORTS];
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
 #define DEBUG_PRINT_AS_CAPABLE 0
+#define DEBUG_PRINT_PDELAY_CLAMP 0
 
 ptp_port_role_t ptp_current_state()
 {
@@ -466,8 +467,10 @@ static void update_path_delay(ptp_timestamp &master_ingress_ts,
   delay = round_trip / 2;
 
   if (delay < 0) {
-    port_info.delay_info.valid = 0;
-    return;
+#if DEBUG_PRINT_PDELAY_CLAMP
+    debug_printf("Clamp negative pdelay %d\n", delay);
+#endif
+    delay = 0;
   }
 
   if (port_info.delay_info.valid) {
