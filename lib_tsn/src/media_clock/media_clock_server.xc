@@ -23,6 +23,11 @@
 #define MIN_FILL_LEVEL 5
 #define MAX_SAMPLES_PER_1722_PACKET (AVB_MAX_AUDIO_SAMPLE_RATE/AVB1722_PACKET_RATE)
 
+// Force unlocking if there is a large step change of word length during "debouncing" period
+// (improve handling of grandmaster transitions)
+#define UNLOCK_ON_LARGE_DIFF_CHANGE 0
+#define LOST_LOCK_THRESHOLD_LARGE 10000
+
 static media_clock_t media_clocks[AVB_NUM_MEDIA_CLOCKS];
 
 void clk_ctl_set_rate(chanend clk_ctl, int wordLength)
@@ -213,13 +218,24 @@ static void manage_buffer(buf_info_t &b,
         media_clocks[b.media_clock].info.lock_counter++;
       }
   } else if (fifo_locked &&
-           b.lock_count == LOCK_COUNT_THRESHOLD &&
+           ((b.lock_count == LOCK_COUNT_THRESHOLD &&
            (sample_diff > LOST_LOCK_THRESHOLD ||
             sample_diff < -LOST_LOCK_THRESHOLD ||
             fill < MIN_FILL_LEVEL))
+#if UNLOCK_ON_LARGE_DIFF_CHANGE
+           || (sample_diff > LOST_LOCK_THRESHOLD_LARGE || sample_diff < -LOST_LOCK_THRESHOLD_LARGE)
+#endif
+           ))
   {
 #ifdef DEBUG_MEDIA_CLOCK
-      debug_printf("Media output %d lost lock\n", index);
+      if (b.lock_count == LOCK_COUNT_THRESHOLD)
+        debug_printf("Media output %d lost lock\n", index);
+#if UNLOCK_ON_LARGE_DIFF_CHANGE
+      else if (sample_diff > LOST_LOCK_THRESHOLD_LARGE || sample_diff < -LOST_LOCK_THRESHOLD_LARGE) 
+        debug_printf("Media output %d lost lock (large change)\n", index);
+#endif
+      else
+        debug_printf("Media output %d lost lock (discontinuity)\n", index);
 #endif
       buf_ctl <: index;
       buf_ctl <: BUF_CTL_RESET;
