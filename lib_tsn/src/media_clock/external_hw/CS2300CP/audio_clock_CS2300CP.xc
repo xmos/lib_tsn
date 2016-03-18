@@ -19,6 +19,9 @@ void audio_clock_CS2300CP_init(client interface i2c_master_if i2c)
 
   // this is the muiltiplier in the PLL, which takes the PLL reference clock and
   // multiplies it up to the MCLK frequency.
+  // example: PLL_TO_WORD_MULTIPLIER = 100
+  //          CS2300 ratio 25600 in 20.12 format
+  //          25600 = 512 (mclks_per_wordclk) x 100 (PLL_TO_WORD_MULTIPLIER) / 2
   mult[0] = ((PLL_TO_WORD_MULTIPLIER << 11) * mclks_per_wordclk);
   regdata[0] = (mult,char[])[0];
   regdata[1] = (mult,char[])[1];

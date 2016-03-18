@@ -4,8 +4,12 @@ TSN library change log
 7.0.3
 -----
 
+  * Bug fix in in media clock word length calculation (#17259)
+  * Resolved bug where media clock generation could lock up if PTP grandmaster
+    transition happenned while entering media clock lock state (#17258)
   * Resolved bug where 1722 timestamp valid set incorrectly with respect to
     running DBC counter (#17226)
+  * Clamping negative pDelay value to zero rather than discarding it (#17054)
 
 7.0.2
 -----
