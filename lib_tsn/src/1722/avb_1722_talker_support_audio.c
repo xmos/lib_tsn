@@ -153,6 +153,8 @@ int avb1722_create_packet(unsigned char Buf0[],
         audio_frame_t *frame,
         int stream)
 {
+    unsigned int presentation_time = stream_info->timestamp;
+    int timestamp_valid = stream_info->timestamp_valid;
     int num_channels = stream_info->num_channels;
     int current_samples_in_packet = stream_info->current_samples_in_packet;
     int stream_id0 = stream_info->streamId[0];
@@ -167,6 +169,7 @@ int avb1722_create_packet(unsigned char Buf0[],
 
     int stride = num_channels;
     unsigned ptp_ts = 0;
+    int dbc;
     int pkt_data_length;
 
     dest += (current_samples_in_packet * stride);
@@ -178,6 +181,9 @@ int avb1722_create_packet(unsigned char Buf0[],
         samples_per_channel += 1;
     }
 
+    // Find the DBC for the current stream
+    dbc = stream_info->dbc_at_start_of_last_packet;
+
     for (int i = 0; i < num_channels; i++) {
         unsigned sample = (frame->samples[map[i]] >> 8) | AVB1722_audioSampleType;
         sample = byterev(sample);
@@ -185,14 +191,19 @@ int avb1722_create_packet(unsigned char Buf0[],
         dest += 1;
     }
 
+    unsigned this_dbc = dbc + current_samples_in_packet;
+    unsigned int ts_this_dbc = ((this_dbc & (stream_info->ts_interval-1)) == 0);
+
+    if (ts_this_dbc) {
+        timestamp_valid = 1;
+        presentation_time = frame->timestamp;
+    }
+
     current_samples_in_packet++;
 
     // samples_per_channel is the number of times we need to call this function
     // i.e. the number of audio frames we need to iterate through to get a full packet worth of samples
     if (current_samples_in_packet == samples_per_channel) {
-        int timestamp_valid = 0;
-        int dbc = stream_info->dbc_at_start_of_last_packet + 1;
-
         stream_info->rem += stream_info->samples_per_packet_fractional;
         if (samples_per_channel > stream_info->samples_per_packet_base) {
             stream_info->rem &= 0xffff;
@@ -202,33 +213,28 @@ int avb1722_create_packet(unsigned char Buf0[],
 
         pkt_data_length = AVB_CIP_HDR_SIZE + (total_samples_in_packet << 2);
 
-        // timestamp is valid in packets that contain a sample aligned to SYT_INTERVAL (i.e. DBC of K x SYT_INTERVAL)
-        // DBC of current packet is DBC of last packet plus 1, call that d
-        // current packet DBCs are d, d+1, ..., d+n-1, where n is number of samples in current packet
-        // SYT interval starts at floor((d+n-1)/SYT_INTERVAL)*SYT_INTERVAL = s
-        // for this to fall within current packet, we need s >= d
-        // see 1722 section 6.3.4 (IEC 61883-6 timing and synchronization)
-        timestamp_valid =
-          ((dbc + current_samples_in_packet - 1) / stream_info->ts_interval * stream_info->ts_interval) >= dbc;
+        AVB1722_CIP_HeaderGen(Buf, dbc & 0xFF);
 
-        AVB1722_CIP_HeaderGen(Buf, dbc & 0xff);
+        dbc += samples_per_channel;
+        stream_info->dbc_at_start_of_last_packet = dbc;
 
         // perform required updates to header
         if (timestamp_valid) {
-            ptp_ts = local_timestamp_to_ptp_mod32(frame->timestamp, timeInfo);
+            ptp_ts = local_timestamp_to_ptp_mod32(presentation_time, timeInfo);
             ptp_ts = ptp_ts + stream_info->presentation_delay;
         }
 
         // Update timestamp value and valid flag.
         AVB1722_AVBTP_HeaderGen(Buf, timestamp_valid, ptp_ts, pkt_data_length, stream_info->sequence_number, stream_id0);
 
-        stream_info->dbc_at_start_of_last_packet = dbc + current_samples_in_packet - 1;
         stream_info->sequence_number++;
         stream_info->current_samples_in_packet = 0;
-
+        stream_info->timestamp_valid = 0;
         return (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + pkt_data_length);
     }
 
+    stream_info->timestamp_valid = timestamp_valid;
+    stream_info->timestamp = presentation_time;
     stream_info->current_samples_in_packet = current_samples_in_packet;
 
     return 0;
