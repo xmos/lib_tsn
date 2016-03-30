@@ -46,6 +46,10 @@ typedef struct avb1722_Talker_StreamConfig_t
 
   unsigned int current_samples_in_packet;
 
+  unsigned int timestamp_valid;
+
+  unsigned int timestamp;
+
   //! Data Block Count (count of samples transmitted in the stream)
   //! From 61883: "A data block contains all data arriving at the transmitter within
   //! an audio sample period. The data block contains all the data which make up an event
