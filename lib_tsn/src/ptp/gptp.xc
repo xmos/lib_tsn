@@ -32,7 +32,7 @@
 static int g_ptp_adjust_valid = 0;
 signed g_ptp_adjust = 0;
 signed g_inv_ptp_adjust = 0;
-signed ptp_adjust_master = 0;
+signed g_ptp_adjust_master = 0;
 
 /* The average path delay (over the last PDELAY_AVG_WINDOW pdelay_reqs)
    between the foreign master port and our slave port in nanoseconds (ptp time)
@@ -245,10 +245,14 @@ static void set_new_role(enum ptp_port_role_t new_role,
   unsigned t = get_local_time();
 
 #if DEBUG_PRINT_ALL_ROLE_CHANGES
-  if (new_role == PTP_DISABLED)
-    debug_printf("PTP Port %d Role disabled\n", port_num);
-  else if (new_role == PTP_UNCERTAIN)
-    debug_printf("PTP Port %d Role uncertain\n", port_num);
+  if (new_role == PTP_DISABLED) {
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Disabled\n", port_num);
+  }
+  else if (new_role == PTP_UNCERTAIN) {
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Uncertain\n", port_num);
+  }
 #endif
 
   if (new_role == PTP_SLAVE) {
@@ -276,7 +280,7 @@ static void set_new_role(enum ptp_port_role_t new_role,
     // Our internal precision is 2^30, we need to scale to (2^41 * 1/g_ptp_adjust) per the standard
     ptp_last_gm_freq_change = g_inv_ptp_adjust << 11;
     ptp_gm_timebase_ind++;
-    g_ptp_adjust = ptp_adjust_master;
+    g_ptp_adjust = g_ptp_adjust_master;
     g_ptp_adjust_valid = 1;
     g_inv_ptp_adjust = 0;
 
