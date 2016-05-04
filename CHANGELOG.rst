@@ -1,6 +1,12 @@
 TSN library change log
 ======================
 
+7.0.3
+-----
+
+  * Resolved bug where 1722 timestamp valid set incorrectly with respect to
+    running DBC counter (#17226)
+
 7.0.2
 -----
 
