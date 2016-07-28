@@ -384,7 +384,7 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
         if ((now - media_clocks[i].next_event) > media_clocks[i].baseLength) {
           static int count = 0;
           count++;
-          if (x==3)
+          if (count==3)
             printstrln("ERROR: failed to drive PLL freq signal in time");
         }
 #endif
