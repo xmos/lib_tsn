@@ -8,10 +8,10 @@
 #ifndef _AVB_COMMON_H_
 #define _AVB_COMMON_H_ 1
 
-short ntoh_16(unsigned char x[2]);
+short ntoh_16(const unsigned char x[2]);
 int ntoh_32(unsigned char x[4]) ;
-void get_64(unsigned char g[8], unsigned char c[8]);
-void set_64(unsigned char g[8], unsigned char c[8]);
+void get_64(unsigned char g[8], const unsigned char c[8]);
+void set_64(unsigned char g[8], const unsigned char c[8]);
 
 void hton_16(unsigned char x[2], unsigned short v);
 

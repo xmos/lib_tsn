@@ -32,6 +32,7 @@
 static int g_ptp_adjust_valid = 0;
 signed g_ptp_adjust = 0;
 signed g_inv_ptp_adjust = 0;
+signed g_ptp_adjust_master = 0;
 
 /* The average path delay (over the last PDELAY_AVG_WINDOW pdelay_reqs)
    between the foreign master port and our slave port in nanoseconds (ptp time)
@@ -48,8 +49,8 @@ static int ptp_last_gm_freq_change = 0;
 static int ptp_gm_timebase_ind = 0;
 static n64_t my_port_id;
 static n80_t master_port_id;
-static u8_t ptp_priority1;
-static u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
+u8_t ptp_priority1;
+u8_t ptp_priority2 = PTP_DEFAULT_PRIORITY2;
 
 /* Timing variables */
 static unsigned last_received_announce_time_valid[PTP_NUM_PORTS];
@@ -82,6 +83,7 @@ static int periodic_counter[PTP_NUM_PORTS];
 #define DEBUG_PRINT 0
 #define DEBUG_PRINT_ANNOUNCE 0
 #define DEBUG_PRINT_AS_CAPABLE 0
+#define DEBUG_PRINT_ALL_ROLE_CHANGES 0
 
 ptp_port_role_t ptp_current_state()
 {
@@ -242,9 +244,21 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   unsigned t = get_local_time();
 
+#if DEBUG_PRINT_ALL_ROLE_CHANGES
+  if (new_role == PTP_DISABLED) {
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Disabled\n", port_num);
+  }
+  else if (new_role == PTP_UNCERTAIN) {
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Uncertain\n", port_num);
+  }
+#endif
+
   if (new_role == PTP_SLAVE) {
 
-    debug_printf("PTP Port %d Role: Slave\n", port_num);
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Slave\n", port_num);
 
     ptp_port_info[port_num].delay_info.valid = 0;
     g_ptp_adjust = 0;
@@ -258,14 +272,16 @@ static void set_new_role(enum ptp_port_role_t new_role,
 
   if (new_role == PTP_MASTER) {
 
-    debug_printf("PTP Port %d Role: Master\n", port_num);
+    if (ptp_port_info[port_num].role_state != new_role)
+      debug_printf("PTP Port %d Role: Master\n", port_num);
 
     // Now we are the master so no rate matching is needed, but record the last rate for the
     // follow up TLV
     // Our internal precision is 2^30, we need to scale to (2^41 * 1/g_ptp_adjust) per the standard
     ptp_last_gm_freq_change = g_inv_ptp_adjust << 11;
     ptp_gm_timebase_ind++;
-    g_ptp_adjust = 0;
+    g_ptp_adjust = g_ptp_adjust_master;
+    g_ptp_adjust_valid = 1;
     g_inv_ptp_adjust = 0;
 
     ptp_reference_local_ts =
