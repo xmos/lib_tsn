@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
 #ifndef __AVB_1722_MAAP_H_
 #define __AVB_1722_MAAP_H_
 #include <xccompat.h>

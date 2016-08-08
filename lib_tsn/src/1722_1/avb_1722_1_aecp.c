@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
 #include "avb.h"
 #include "avb_1722_common.h"
 #include "avb_1722_1_common.h"

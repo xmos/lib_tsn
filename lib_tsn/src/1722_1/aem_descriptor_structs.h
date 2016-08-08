@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2013-2016, XMOS Ltd, All rights reserved
 #include <inttypes.h>
 
 typedef struct aem_desc_audio_unit_t

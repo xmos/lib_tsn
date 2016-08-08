@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
 #include <string.h>
 #include <print.h>
 #include "quadflashlib.h"

@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2015-2016, XMOS Ltd, All rights reserved
 #include "audio_buffering.h"
 #include <xs1.h>
 #include <string.h>

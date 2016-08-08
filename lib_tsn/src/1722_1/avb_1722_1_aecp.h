@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
 #ifndef AVB_1722_1_AECP_H_
 #define AVB_1722_1_AECP_H_
 
