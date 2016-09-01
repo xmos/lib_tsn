@@ -373,7 +373,9 @@ void acmp_listener_store_fast_connect_info(int unique_id, guid_t *controller_gui
 
         fl_writeDataPage(0, (unsigned char *)avb_1722_1_buf);
 
-        debug_printf("\nWrote fast connect for %d\n", unique_id);
+        unsigned long long tguid = talker_guid->l;
+        debug_printf("\nWrote fast connect info for Listener %d connected to Talker %d with GUID 0x%x%x\n"
+            , unique_id, talker_unique_id, (unsigned) (tguid >> 32), (unsigned) tguid);
     }
     else {
         debug_printf("Couldn't read from data partition page 0\n");
@@ -397,7 +399,8 @@ void acmp_listener_erase_fast_connect_info(int unique_id)
 
             fl_writeDataPage(0, (unsigned char *)avb_1722_1_buf);
 
-            debug_printf("Erased fast connect for %d\n", unique_id);
+            debug_printf("Erased fast connect for Listener %d\n", unique_id);
+
         }
     }
 }
@@ -413,18 +416,53 @@ static int acmp_listener_read_fast_connect_info(unsigned char buffer[256])
     }
 }
 
-void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
+/* Call this function repeatedly to check if the Talker is active that the Listener should connect to
+ * When the active Talker is detected send ACMP_CMD_CONNECT_TX_COMMAND to connect the Listener to the streams
+ * advertised by the Talker
+ * This implements the spec: IEEE 1722 standard page 274:
+ * Fast connect mode attempts to re-establish the connection by the AVDECC Listener sending a CONNECT_TX_COMMAND to the AVDECC Talker.
+ * This command follows the normal timeout periods and retry for the protocol.
+ * However, on a second timeout, since this was not initiated by an AVDECC Controller Entity, the AVDECC Listener does not send a message to the AVDECC Controller.
+ * Instead, the AVDECC Listener shall start using ADP discovery to listen for the AVDECC Talker to appear on the network and will retry the connection again at that time."
+ */
+int acmp_execute_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth)) {
+
+    unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
+
+    if(avb_1722_1_entity_database_find(&acmp_listener_rcvd_cmd_resp.talker_guid) != AVB_1722_1_MAX_ENTITIES) {
+       // Talker is active
+
+       debug_printf("Fast Connect: Found Talker %d with GUID 0x%x%x\n"
+                    ,acmp_listener_rcvd_cmd_resp.talker_unique_id, (unsigned) (tguid >> 32), (unsigned) tguid);
+
+       unsigned long long lguid = acmp_listener_rcvd_cmd_resp.listener_guid.l;
+       debug_printf("Issuing fast connect for Listener 0x%x%x by sending ACMP_CMD_CONNECT_TX_COMMAND\n", (unsigned) (lguid >> 32), (unsigned) lguid);
+
+       acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
+        
+       acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
+       return 1;
+    } 
+    return 0;
+}
+
+// Return 1 if fast connect info was found.
+int acmp_start_fast_connect()
 {
     unsigned char flash_buf[256];
+
+    debug_printf("Fast Connect: Starting...\n");
 
     if (acmp_listener_read_fast_connect_info(flash_buf) == 0)
     {
         avb_1722_1_acmp_fast_connect_persist_state *info = (avb_1722_1_acmp_fast_connect_persist_state*) &flash_buf[0];
 
         if (flash_buf[3] == 0xFF) {
-            debug_printf("no data in flash\n");
-            return;
+            debug_printf("Fast Connect: ERROR: no valid data in flash\n");
+            return 0;
         }
+
+        debug_printf("Fast Connect: Finished reading fast connect information from flash:\n");
 
         for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++)
         {
@@ -437,10 +475,18 @@ void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
                 acmp_listener_rcvd_cmd_resp.listener_unique_id = i;
                 acmp_listener_rcvd_cmd_resp.flags = AVB_1722_1_ACMP_FLAGS_FAST_CONNECT;
 
-                debug_printf("Issuing fast connect for %d\n", i);
-                acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
+                unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
+                unsigned long long lguid = acmp_listener_rcvd_cmd_resp.listener_guid.l;
+
+                debug_printf("Talker GUID:      0x%x%x\n",(unsigned) (tguid >> 32), (unsigned) tguid);
+                debug_printf("Listener GUID:    0x%x%x\n",(unsigned) (lguid >> 32), (unsigned) lguid);
+                debug_printf("Listener index:   %d\n", i);
             }
         }
+        return 1;
+    } else {
+        debug_printf("Fast Connect: ERROR: Flash Data partition does not exist\n");
+        return 0;
     }
 }
 #endif
@@ -480,8 +526,11 @@ avb_1722_1_acmp_status_t acmp_listener_get_state(void)
 
     acmp_listener_rcvd_cmd_resp.stream_id = acmp_listener_streams[unique_id].stream_id;
     memcpy(acmp_listener_rcvd_cmd_resp.stream_dest_mac, acmp_listener_streams[unique_id].destination_mac, 6);
-    acmp_listener_rcvd_cmd_resp.talker_guid = acmp_listener_streams[unique_id].talker_guid;
-    acmp_listener_rcvd_cmd_resp.talker_unique_id = acmp_listener_streams[unique_id].talker_unique_id;
+    if(acmp_listener_rcvd_cmd_resp.flags != AVB_1722_1_ACMP_FLAGS_FAST_CONNECT) { // don't overwrite fast connect info for talker
+      acmp_listener_rcvd_cmd_resp.talker_guid = acmp_listener_streams[unique_id].talker_guid;
+      acmp_listener_rcvd_cmd_resp.talker_unique_id = acmp_listener_streams[unique_id].talker_unique_id;
+    }
+
     acmp_listener_rcvd_cmd_resp.connection_count = acmp_listener_streams[unique_id].connected;
     if (acmp_listener_rcvd_cmd_resp.stream_id.l)
     {
@@ -674,7 +723,9 @@ static void process_avb_1722_1_acmp_listener_packet(unsigned char message_type, 
     if (compare_guid(pkt->listener_guid, &my_guid)==0) return;
     if (acmp_listener_state != ACMP_LISTENER_WAITING) return;
 
-    store_rcvd_cmd_resp(&acmp_listener_rcvd_cmd_resp, pkt);
+    if(acmp_listener_rcvd_cmd_resp.flags != AVB_1722_1_ACMP_FLAGS_FAST_CONNECT) { // don't overwrite fast connect info for talker
+      store_rcvd_cmd_resp(&acmp_listener_rcvd_cmd_resp, pkt);
+    }
 
     switch (message_type)
     {

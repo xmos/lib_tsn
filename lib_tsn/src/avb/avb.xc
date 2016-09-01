@@ -586,6 +586,9 @@ void set_avb_source_volumes(unsigned sink_num, int volumes[], int count)
 }
 #endif
 
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+  int fast_connect_info_valid=0;
+#endif
 
 void avb_process_1722_control_packet(unsigned int buf0[],
                                      unsigned nbytes,
@@ -606,7 +609,9 @@ void avb_process_1722_control_packet(unsigned int buf0[],
         }
 
 #if AVB_1722_1_FAST_CONNECT_ENABLED
-        acmp_start_fast_connect(i_eth);
+        if(!fast_connect_info_valid) {
+          fast_connect_info_valid = acmp_start_fast_connect();
+        }
 #endif
       }
     }

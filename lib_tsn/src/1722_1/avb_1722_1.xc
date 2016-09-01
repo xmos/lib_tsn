@@ -112,6 +112,11 @@ void avb_1722_1_periodic(client interface ethernet_tx_if i_eth, chanend c_ptp, c
 extern unsigned char srp_dest_mac[6];
 extern unsigned char mvrp_dest_mac[6];
 
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+extern int fast_connect_info_valid;
+extern avb_1722_1_acmp_cmd_resp acmp_listener_rcvd_cmd_resp;
+#endif
+
 [[combinable]]
 void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
                               client interface avb_1722_1_control_callbacks i_1722_1_entity,
@@ -123,6 +128,14 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
                               otp_ports_t &?otp_ports) {
   unsigned periodic_timeout;
   timer tmr;
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+  unsigned fast_connect_finished=0;
+  unsigned fast_connect_seconds=0;
+  unsigned fast_connect_timeout=0;
+  unsigned t_fc;
+  timer tmr_fc;
+  tmr_fc :> t_fc;
+#endif
   unsigned int buf[(ETHERNET_MAX_PACKET_SIZE+3)>>2];
   unsigned char mac_addr[6];
   unsigned int serial = 0x12345678;
@@ -198,9 +211,33 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
         periodic_timeout = time_now + PERIODIC_POLL_TIME;
         break;
       }
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+      // The following logic is implemented in accordance with chapter 8.2.2.1.1 Fast Connect in IEEE Std 1722.1-2013.
+      // If valid fast connect information was read from the flash (fast_connect_info_valid), 
+      // the logic will try for 30 seconds to connect the local Listener to a previously connected remote Talker.
+      // Timer period is 2 * CONNECT_TX_COMMAND timeout periods (4 seconds) according to page 274 in IEEE Std 1722.1-2013:
+      // The AVDECC Entity may also run its own timer and retry the connection after waiting two CONNECT_TX_COMMAND timeout periods.
+      case (fast_connect_info_valid && !fast_connect_timeout && !fast_connect_finished) => tmr_fc when timerafter(t_fc+(2*ACMP_TIMEOUT_CONNECT_TX_COMMAND*XS1_TIMER_KHZ)) :> t_fc:
+      {
+
+        fast_connect_finished = acmp_execute_fast_connect(i_eth_tx);
+
+        fast_connect_seconds += 2*ACMP_TIMEOUT_CONNECT_TX_COMMAND/1000;
+        if(fast_connect_seconds > 30) {
+          fast_connect_timeout = 1;
+          unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
+          debug_printf("Fast Connect: ERROR. Talker with GUID 0x%x%x not detected after %d seconds\n"
+                    ,(unsigned) (tguid >> 32), (unsigned) tguid, fast_connect_seconds);
+          debug_printf("Aborting Fast Connect\n");
+          acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
+        }
+        break;
+      }
+#endif
     }
   }
 }
+
 
 [[combinable]]
 void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
@@ -213,6 +250,14 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
                               chanend c_ptp) {
   unsigned periodic_timeout;
   timer tmr;
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+  unsigned fast_connect_finished=0;
+  unsigned fast_connect_seconds=0;
+  unsigned fast_connect_timeout=0;
+  unsigned t_fc;
+  timer tmr_fc;
+  tmr_fc :> t_fc;
+#endif
   unsigned int buf[(ETHERNET_MAX_PACKET_SIZE+3)>>2];
   unsigned char mac_addr[6];
   unsigned int serial = 0x12345678;
@@ -249,6 +294,8 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
 
   tmr :> periodic_timeout;
 
+  printstrln("avb_1722_1_maap_task starting\n");
+
   while (1) {
     select {
       // Receive and process any incoming AVB packets (802.1Qat, 1722_MAAP)
@@ -269,6 +316,29 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
         periodic_timeout += PERIODIC_POLL_TIME;
         break;
       }
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+      // The following logic is implemented in accordance with chapter 8.2.2.1.1 Fast Connect in in IEEE Std 1722.1-2013.
+      // If valid fast connect information was read from the flash (fast_connect_info_valid), 
+      // the logic will try for 30 seconds to connect the local Listener to a previously connected remote Talker.
+      // Timer period is 2 * CONNECT_TX_COMMAND timeout periods (4 seconds) according to page 274 in IEEE Std 1722.1-2013:
+      // The AVDECC Entity may also run its own timer and retry the connection after waiting two CONNECT_TX_COMMAND timeout periods.
+      case (fast_connect_info_valid && !fast_connect_timeout && !fast_connect_finished) => tmr_fc when timerafter(t_fc+(2*ACMP_TIMEOUT_CONNECT_TX_COMMAND*XS1_TIMER_KHZ)) :> t_fc:
+      {
+
+        fast_connect_finished = acmp_execute_fast_connect(i_eth_tx);
+
+        fast_connect_seconds += 2*ACMP_TIMEOUT_CONNECT_TX_COMMAND/1000;
+        if(fast_connect_seconds > 30) {
+          fast_connect_timeout = 1;
+          unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
+          debug_printf("Fast Connect: ERROR. Talker with GUID 0x%x%x not detected after %d seconds\n"
+                    ,(unsigned) (tguid >> 32), (unsigned) tguid, fast_connect_seconds);
+          debug_printf("Aborting Fast Connect\n");
+          acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
+        }
+        break;
+      }
+#endif
     }
   }
 }
