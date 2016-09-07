@@ -610,7 +610,7 @@ void avb_process_1722_control_packet(unsigned int buf0[],
 
 #if AVB_1722_1_FAST_CONNECT_ENABLED
         if(!fast_connect_info_valid) {
-          fast_connect_info_valid = acmp_start_fast_connect();
+          fast_connect_info_valid = acmp_start_fast_connect(i_eth);
         }
 #endif
       }

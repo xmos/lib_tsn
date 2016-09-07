@@ -114,7 +114,7 @@ extern unsigned char mvrp_dest_mac[6];
 
 #if AVB_1722_1_FAST_CONNECT_ENABLED
 extern int fast_connect_info_valid;
-extern avb_1722_1_acmp_cmd_resp acmp_listener_rcvd_cmd_resp;
+extern avb_1722_1_acmp_fast_connect_persist_state fast_connect_info;
 #endif
 
 [[combinable]]
@@ -219,17 +219,34 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
       // The AVDECC Entity may also run its own timer and retry the connection after waiting two CONNECT_TX_COMMAND timeout periods.
       case (fast_connect_info_valid && !fast_connect_timeout && !fast_connect_finished) => tmr_fc when timerafter(t_fc+(2*ACMP_TIMEOUT_CONNECT_TX_COMMAND*XS1_TIMER_KHZ)) :> t_fc:
       {
+        int active_talkers=0;
+        for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++) {
+          if(!fast_connect_info.talkers[i].talker_active) {
+            acmp_execute_fast_connect(i_eth_tx, i);
+          } else {
+            active_talkers++;
+          }
+        }
 
-        fast_connect_finished = acmp_execute_fast_connect(i_eth_tx);
+        if(active_talkers == AVB_1722_1_MAX_LISTENERS) {
+          // all talkers active
+          fast_connect_finished = 1;
+          break;
+        }
 
         fast_connect_seconds += 2*ACMP_TIMEOUT_CONNECT_TX_COMMAND/1000;
         if(fast_connect_seconds > 30) {
           fast_connect_timeout = 1;
-          unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
-          debug_printf("Fast Connect: ERROR. Talker with GUID 0x%x%x not detected after %d seconds\n"
-                    ,(unsigned) (tguid >> 32), (unsigned) tguid, fast_connect_seconds);
+
+          debug_printf("Fast Connect: ERROR. The following Connections could not be re-restablished after %d seconds:\n", fast_connect_seconds);
+
+          for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++) {
+            unsigned long long tguid = fast_connect_info.talkers[i].talker_guid.l;
+            debug_printf("   Listener %d to Talker with GUID 0x%x%x\n"
+                    , i, (unsigned) (tguid >> 32), (unsigned) tguid);
+          };
+
           debug_printf("Aborting Fast Connect\n");
-          acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
         }
         break;
       }
@@ -237,6 +254,7 @@ void avb_1722_1_maap_srp_task(client interface avb_interface i_avb,
     }
   }
 }
+
 
 
 [[combinable]]
@@ -317,24 +335,41 @@ void avb_1722_1_maap_task(otp_ports_t &?otp_ports,
         break;
       }
 #if AVB_1722_1_FAST_CONNECT_ENABLED
-      // The following logic is implemented in accordance with chapter 8.2.2.1.1 Fast Connect in in IEEE Std 1722.1-2013.
+      // The following logic is implemented in accordance with chapter 8.2.2.1.1 Fast Connect in IEEE Std 1722.1-2013.
       // If valid fast connect information was read from the flash (fast_connect_info_valid), 
       // the logic will try for 30 seconds to connect the local Listener to a previously connected remote Talker.
       // Timer period is 2 * CONNECT_TX_COMMAND timeout periods (4 seconds) according to page 274 in IEEE Std 1722.1-2013:
       // The AVDECC Entity may also run its own timer and retry the connection after waiting two CONNECT_TX_COMMAND timeout periods.
       case (fast_connect_info_valid && !fast_connect_timeout && !fast_connect_finished) => tmr_fc when timerafter(t_fc+(2*ACMP_TIMEOUT_CONNECT_TX_COMMAND*XS1_TIMER_KHZ)) :> t_fc:
       {
+        int active_talkers=0;
+        for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++) {
+          if(!fast_connect_info.talkers[i].talker_active) {
+            acmp_execute_fast_connect(i_eth_tx, i);
+          } else {
+            active_talkers++;
+          }
+        }
 
-        fast_connect_finished = acmp_execute_fast_connect(i_eth_tx);
+        if(active_talkers == AVB_1722_1_MAX_LISTENERS) {
+          // all talkers active
+          fast_connect_finished = 1;
+          break;
+        }
 
         fast_connect_seconds += 2*ACMP_TIMEOUT_CONNECT_TX_COMMAND/1000;
         if(fast_connect_seconds > 30) {
           fast_connect_timeout = 1;
-          unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
-          debug_printf("Fast Connect: ERROR. Talker with GUID 0x%x%x not detected after %d seconds\n"
-                    ,(unsigned) (tguid >> 32), (unsigned) tguid, fast_connect_seconds);
+
+          debug_printf("Fast Connect: ERROR. The following Connections could not be re-restablished after %d seconds:\n", fast_connect_seconds);
+
+          for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++) {
+            unsigned long long tguid = fast_connect_info.talkers[i].talker_guid.l;
+            debug_printf("   Listener %d to Talker with GUID 0x%x%x\n"
+                    , i, (unsigned) (tguid >> 32), (unsigned) tguid);
+          };
+
           debug_printf("Aborting Fast Connect\n");
-          acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
         }
         break;
       }

@@ -180,8 +180,8 @@ void acmp_add_inflight(int entity_type, unsigned int message_type, unsigned shor
 
 void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
-int acmp_start_fast_connect();
-int acmp_execute_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+int acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+void acmp_execute_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth), int ti);
 
 #ifdef __XC__
 extern "C" {

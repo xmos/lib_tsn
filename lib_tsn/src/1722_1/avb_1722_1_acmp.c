@@ -54,6 +54,10 @@ avb_1722_1_acmp_cmd_resp acmp_talker_rcvd_cmd_resp;
 // Listener's rcvdCmdResp
 avb_1722_1_acmp_cmd_resp acmp_listener_rcvd_cmd_resp;
 
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+avb_1722_1_acmp_fast_connect_persist_state fast_connect_info;
+#endif
+
 short sequence_id[2];
 
 void acmp_zero_listener_stream_info(int unique_id);
@@ -370,6 +374,7 @@ void acmp_listener_store_fast_connect_info(int unique_id, guid_t *controller_gui
         memcpy(&info->talkers[unique_id].controller_guid, controller_guid, sizeof(guid_t));
         memcpy(&info->talkers[unique_id].talker_guid, talker_guid, sizeof(guid_t));
         info->talkers[unique_id].talker_unique_id = talker_unique_id;
+        info->talkers[unique_id].talker_active = 0;
 
         fl_writeDataPage(0, (unsigned char *)avb_1722_1_buf);
 
@@ -425,29 +430,35 @@ static int acmp_listener_read_fast_connect_info(unsigned char buffer[256])
  * However, on a second timeout, since this was not initiated by an AVDECC Controller Entity, the AVDECC Listener does not send a message to the AVDECC Controller.
  * Instead, the AVDECC Listener shall start using ADP discovery to listen for the AVDECC Talker to appear on the network and will retry the connection again at that time."
  */
-int acmp_execute_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth)) {
+void acmp_execute_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth), int ti) {
 
-    unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
+    if(avb_1722_1_entity_database_find(&fast_connect_info.talkers[ti].talker_guid) != AVB_1722_1_MAX_ENTITIES) {   
+       // update tthe acmp_listener_rcvd_cmd_resp
+       memcpy(&acmp_listener_rcvd_cmd_resp.controller_guid, &fast_connect_info.talkers[ti].controller_guid, sizeof(guid_t));
+       memcpy(&acmp_listener_rcvd_cmd_resp.talker_guid, &fast_connect_info.talkers[ti].talker_guid, sizeof(guid_t));
+       memcpy(&acmp_listener_rcvd_cmd_resp.listener_guid, &my_guid, sizeof(guid_t));
+       acmp_listener_rcvd_cmd_resp.talker_unique_id = fast_connect_info.talkers[ti].talker_unique_id;
+       acmp_listener_rcvd_cmd_resp.listener_unique_id = ti;
+       acmp_listener_rcvd_cmd_resp.flags = AVB_1722_1_ACMP_FLAGS_FAST_CONNECT;
 
-    if(avb_1722_1_entity_database_find(&acmp_listener_rcvd_cmd_resp.talker_guid) != AVB_1722_1_MAX_ENTITIES) {
+       fast_connect_info.talkers[ti].talker_active = 1; // set flag 
+
        // Talker is active
-
+       unsigned long long tguid = fast_connect_info.talkers[ti].talker_guid.l;
        debug_printf("Fast Connect: Found Talker %d with GUID 0x%x%x\n"
-                    ,acmp_listener_rcvd_cmd_resp.talker_unique_id, (unsigned) (tguid >> 32), (unsigned) tguid);
+                    ,fast_connect_info.talkers[ti].talker_unique_id, (unsigned) (tguid >> 32), (unsigned) tguid);
 
        unsigned long long lguid = acmp_listener_rcvd_cmd_resp.listener_guid.l;
        debug_printf("Issuing fast connect for Listener 0x%x%x by sending ACMP_CMD_CONNECT_TX_COMMAND\n", (unsigned) (lguid >> 32), (unsigned) lguid);
 
+       // send command
        acmp_send_command(LISTENER, ACMP_CMD_CONNECT_TX_COMMAND, &acmp_listener_rcvd_cmd_resp, FALSE, -1, i_eth);
         
-       acmp_listener_rcvd_cmd_resp.flags = 0; // reset flag
-       return 1;
     } 
-    return 0;
 }
 
 // Return 1 if fast connect info was found.
-int acmp_start_fast_connect()
+int acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth))
 {
     unsigned char flash_buf[256];
 
@@ -455,7 +466,8 @@ int acmp_start_fast_connect()
 
     if (acmp_listener_read_fast_connect_info(flash_buf) == 0)
     {
-        avb_1722_1_acmp_fast_connect_persist_state *info = (avb_1722_1_acmp_fast_connect_persist_state*) &flash_buf[0];
+        // update fast_connect_info
+        memcpy(&fast_connect_info, flash_buf, sizeof(avb_1722_1_acmp_fast_connect_persist_state));
 
         if (flash_buf[3] == 0xFF) {
             debug_printf("Fast Connect: ERROR: no valid data in flash\n");
@@ -466,28 +478,29 @@ int acmp_start_fast_connect()
 
         for (int i=0; i < AVB_1722_1_MAX_LISTENERS; i++)
         {
-            if ((info->info_present_bitfield >> i) & 1)
+            if ((fast_connect_info.info_present_bitfield >> i) & 1)
             {
-                memcpy(&acmp_listener_rcvd_cmd_resp.controller_guid, &info->talkers[i].controller_guid, sizeof(guid_t));
-                memcpy(&acmp_listener_rcvd_cmd_resp.talker_guid, &info->talkers[i].talker_guid, sizeof(guid_t));
-                memcpy(&acmp_listener_rcvd_cmd_resp.listener_guid, &my_guid, sizeof(guid_t));
-                acmp_listener_rcvd_cmd_resp.talker_unique_id = info->talkers[i].talker_unique_id;
-                acmp_listener_rcvd_cmd_resp.listener_unique_id = i;
-                acmp_listener_rcvd_cmd_resp.flags = AVB_1722_1_ACMP_FLAGS_FAST_CONNECT;
 
-                unsigned long long tguid = acmp_listener_rcvd_cmd_resp.talker_guid.l;
-                unsigned long long lguid = acmp_listener_rcvd_cmd_resp.listener_guid.l;
+                unsigned long long tguid = fast_connect_info.talkers[i].talker_guid.l;
+                unsigned long long lguid = my_guid.l;
+                debug_printf("  Talker GUID:      0x%x%x\n",(unsigned) (tguid >> 32), (unsigned) tguid);
+                debug_printf("  Listener GUID:    0x%x%x\n",(unsigned) (lguid >> 32), (unsigned) lguid);
+                debug_printf("  Listener index:   %d\n", i);
 
-                debug_printf("Talker GUID:      0x%x%x\n",(unsigned) (tguid >> 32), (unsigned) tguid);
-                debug_printf("Listener GUID:    0x%x%x\n",(unsigned) (lguid >> 32), (unsigned) lguid);
-                debug_printf("Listener index:   %d\n", i);
+                // first excution of 
+                acmp_execute_fast_connect(i_eth, i);
+
+                return 1;
+            } else {
+                debug_printf("  Fast connect info is invalid\n");
+                return 0;
             }
         }
-        return 1;
     } else {
         debug_printf("Fast Connect: ERROR: Flash Data partition does not exist\n");
         return 0;
     }
+    return 0;
 }
 #endif
 
@@ -526,10 +539,8 @@ avb_1722_1_acmp_status_t acmp_listener_get_state(void)
 
     acmp_listener_rcvd_cmd_resp.stream_id = acmp_listener_streams[unique_id].stream_id;
     memcpy(acmp_listener_rcvd_cmd_resp.stream_dest_mac, acmp_listener_streams[unique_id].destination_mac, 6);
-    if(acmp_listener_rcvd_cmd_resp.flags != AVB_1722_1_ACMP_FLAGS_FAST_CONNECT) { // don't overwrite fast connect info for talker
-      acmp_listener_rcvd_cmd_resp.talker_guid = acmp_listener_streams[unique_id].talker_guid;
-      acmp_listener_rcvd_cmd_resp.talker_unique_id = acmp_listener_streams[unique_id].talker_unique_id;
-    }
+    acmp_listener_rcvd_cmd_resp.talker_guid = acmp_listener_streams[unique_id].talker_guid;
+    acmp_listener_rcvd_cmd_resp.talker_unique_id = acmp_listener_streams[unique_id].talker_unique_id;
 
     acmp_listener_rcvd_cmd_resp.connection_count = acmp_listener_streams[unique_id].connected;
     if (acmp_listener_rcvd_cmd_resp.stream_id.l)
@@ -723,9 +734,7 @@ static void process_avb_1722_1_acmp_listener_packet(unsigned char message_type, 
     if (compare_guid(pkt->listener_guid, &my_guid)==0) return;
     if (acmp_listener_state != ACMP_LISTENER_WAITING) return;
 
-    if(acmp_listener_rcvd_cmd_resp.flags != AVB_1722_1_ACMP_FLAGS_FAST_CONNECT) { // don't overwrite fast connect info for talker
-      store_rcvd_cmd_resp(&acmp_listener_rcvd_cmd_resp, pkt);
-    }
+    store_rcvd_cmd_resp(&acmp_listener_rcvd_cmd_resp, pkt);
 
     switch (message_type)
     {
