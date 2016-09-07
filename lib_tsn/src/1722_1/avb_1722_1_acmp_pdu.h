@@ -70,11 +70,12 @@ typedef struct {
 	guid_t controller_guid;
 	guid_t talker_guid;
 	unsigned short talker_unique_id;
-	unsigned short padding;
+	unsigned short talker_active;
 } avb_1722_1_acmp_fast_connect_talker_info;
 
 typedef struct {
 	unsigned int info_present_bitfield;
+	// TODO: Why is this not AVB_1722_1_MAX_TALKERS. Each listener can be connected to multiple talkers
 	avb_1722_1_acmp_fast_connect_talker_info talkers[AVB_1722_1_MAX_LISTENERS];
 } avb_1722_1_acmp_fast_connect_persist_state;
 
