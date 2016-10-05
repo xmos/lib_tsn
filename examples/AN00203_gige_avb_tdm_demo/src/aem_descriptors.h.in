@@ -360,7 +360,7 @@ unsigned char desc_stream_input_0[] =
   "Input Stream 0",                           /* 4-67 object_name */
   U16(AEM_NO_STRING),                         /* 68-69 localized_description */
   U16(0),                                     /* 70-71 clock_domain_index */
-  U16(AEM_STREAM_FLAGS_CLASS_A),              /* stream_flags */
+  U16(AEM_STREAM_FLAGS_CLASS_A | AEM_STREAM_FLAGS_CLOCK_SYNC_SOURCE),  /* stream_flags */
   0x00, 0xa0, 0x02, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,    /* current_format */
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt

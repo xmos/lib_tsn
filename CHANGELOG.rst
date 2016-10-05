@@ -10,6 +10,8 @@ TSN library change log
   * Resolved bug where 1722 timestamp valid set incorrectly with respect to
     running DBC counter (#17226)
   * Clamping negative pDelay value to zero rather than discarding it (#17054)
+  * Set CLOCK_SYNC_SOURCE flag in input stream descriptor (#17039)
+  * Update to source code license
 
 7.0.2
 -----
