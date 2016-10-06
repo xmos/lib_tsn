@@ -3,6 +3,7 @@
 #include "avb_1722_1_common.h"
 #include "avb_1722_1_adp.h"
 #include "avb_1722_1_aecp.h"
+#include "avb_1722_1_acmp.h"
 #include "misc_timer.h"
 #include "gptp.h"
 #include "gptp_internal.h"
@@ -256,6 +257,14 @@ void process_avb_1722_1_adp_packet(avb_1722_1_adp_packet_t &pkt, client interfac
         {
             if (avb_1722_1_entity_database_add(pkt))
             {
+#if AVB_1722_1_FAST_CONNECT_ENABLED
+                guid_t guid;
+                get_64(guid.c, pkt.entity_guid);
+
+                debug_printf("ADP new entity GUID %x...%x\n", guid.c[7], guid.c[0]);
+
+                acmp_fast_connect_discovered_entity(guid, i_eth);
+#endif
                 /* We only indicate ADP_DISCOVERY_ADDED state if a new (unseen) entity was added,
                  * and not if an existing entity was updated
                  */

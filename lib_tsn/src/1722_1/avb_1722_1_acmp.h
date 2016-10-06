@@ -181,6 +181,7 @@ void acmp_add_inflight(int entity_type, unsigned int message_type, unsigned shor
 void acmp_controller_connect_disconnect(int message_type, const_guid_ref_t talker_guid, const_guid_ref_t listener_guid, int talker_id, int listener_id, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
 void acmp_start_fast_connect(CLIENT_INTERFACE(ethernet_tx_if, i_eth));
+void acmp_fast_connect_discovered_entity(const_guid_ref_t discovered_guid, CLIENT_INTERFACE(ethernet_tx_if, i_eth));
 
 #ifdef __XC__
 extern "C" {
