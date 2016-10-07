@@ -4,13 +4,14 @@ TSN library change log
 7.0.3
 -----
 
-  * Bug fix in in media clock word length calculation (#17259)
+  * Bug fix in in media clock word length calculation
   * Resolved bug where media clock generation could lock up if PTP grandmaster
-    transition happenned while entering media clock lock state (#17258)
+    transition happenned while entering media clock lock state
   * Resolved bug where 1722 timestamp valid set incorrectly with respect to
-    running DBC counter (#17226)
-  * Clamping negative pDelay value to zero rather than discarding it (#17054)
-  * Set CLOCK_SYNC_SOURCE flag in input stream descriptor (#17039)
+    running DBC counter
+  * Clamping negative pDelay value to zero rather than discarding it
+  * Set CLOCK_SYNC_SOURCE flag in input stream descriptor
+  * Fix build when PLL_OUTPUT_TIMING_CHECK enabled (#12)
   * Update to source code license
 
 7.0.2
