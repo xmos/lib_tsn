@@ -7,7 +7,7 @@
 /* Talker configuration */
 
 /** The total number of AVB sources (streams that are to be transmitted). */
-#define AVB_NUM_SOURCES 1
+#define AVB_NUM_SOURCES 8
 /** The total number or Talker components (typically the number of
   * tasks running the `avb_1722_talker` function). */
 #define AVB_NUM_TALKER_UNITS 1
@@ -19,7 +19,7 @@
 /* Listener configuration */
 
 /** The total number of AVB sinks (incoming streams that can be listened to) */
-#define AVB_NUM_SINKS 1
+#define AVB_NUM_SINKS 8
 /** The total number or listener components
   * (typically the number of tasks running the `avb_1722_listener` function) */
 #define AVB_NUM_LISTENER_UNITS 1
@@ -50,6 +50,8 @@
 
 /** Enable 1722 MAAP on the device, required for Talkers */
 #define AVB_ENABLE_1722_MAAP 1
+
+#define MAX_AVB_STREAMS_PER_LISTENER 8
 
 /******** 1722.1 parameters *****************************************************************/
 
