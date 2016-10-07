@@ -43,8 +43,10 @@ int check_packet(const unsigned char buf[], int size, int ts_interval_samples, i
   index = (ts_interval_samples - (hdr_1722->DBC % ts_interval_samples)) % ts_interval_samples;
 
   /* called for each packet, so print details of frame that closed the packet */
+#ifdef DEBUG
   printf("frame=%d:%d DBC=%d TV=%d ts=%u -> num_samples=%d index=%d\n",
     frame_index, frame_timestamp, hdr_1722->DBC, AVBTP_TV(hdr_avbtp), ts, num_samples, index);
+#endif
 
   result = 0;
 
@@ -128,8 +130,10 @@ void test(unsigned num_channels, unsigned samplerate, unsigned num_frames)
 
   ts_interval_us_nominal = 1000000 * stream_info.ts_interval / samplerate;
 
+#ifdef DEBUG
   printf("+%d channels %d frames %d, SYT_INTERVAL %d samples = %dus\n",
     num_channels, num_frames, samplerate, stream_info.ts_interval, ts_interval_us_nominal);
+#endif
 
   ts_prev = 0;
 
