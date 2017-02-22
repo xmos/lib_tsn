@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2013-2017, XMOS Ltd, All rights reserved
 #ifndef __avb_mrp_types_h__
 #define __avb_mrp_types_h__
 
