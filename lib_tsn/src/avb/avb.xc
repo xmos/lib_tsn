@@ -441,7 +441,7 @@ static void update_source_state(unsigned source_num,
           *c <: (int)source->stream.local_id;
         }
 
-        debug_printf("%s #%d off\n", stream_string, source_num);
+        debug_printf("%s #%d off (disabled)\n", stream_string, source_num);
 
 #if MRP_NUM_PORTS == 1
       int vid = source->reservation.vlan_id;

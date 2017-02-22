@@ -54,8 +54,10 @@
               if (MRP_DEBUG_STATE_CHANGE) debug_print_applicant_state_change((st), (event), (new)); \
             } \
           } \
-          else \
-         (st)->applicant_state = (new);        \
+          else { \
+            if (MRP_DEBUG_STATE_CHANGE) debug_print_applicant_state_change((st), (event), (new)); \
+            (st)->applicant_state = (new); \
+          } \
        } while(0)
 
 #define mrp_change_event_state(st, event, new) \

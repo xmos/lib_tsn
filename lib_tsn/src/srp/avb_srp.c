@@ -923,7 +923,7 @@ static int encode_listener_message(char *buf,
 
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        debug_printf("Port %d out: MSRP_LISTENER, stream %x:%x\n", st->port_num, streamId[0], streamId[1]);
+        debug_printf("TX: MSRP_LISTENER, stream %x:%x\n", streamId[0], streamId[1]);
       }
 
     }
@@ -1129,7 +1129,7 @@ static int encode_talker_message(char *buf,
 
       if (MRP_DEBUG_ATTR_EGRESS)
       {
-        debug_printf("Port %d out: MSRP_TALKER_ADVERTISE, stream %x:%x\n", st->port_num, attribute_info->stream_id[0], attribute_info->stream_id[1]);
+        debug_printf("TX: MSRP_TALKER_ADVERTISE, stream %x:%x\n", attribute_info->stream_id[0], attribute_info->stream_id[1]);
       }
 
       if (attribute_info->vlan_id) {

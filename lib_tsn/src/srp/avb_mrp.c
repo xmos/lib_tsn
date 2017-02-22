@@ -474,7 +474,7 @@ static void doTx(mrp_attribute_state *st,
         stream_id[0] = sink_info->reservation.stream_id[0];
         stream_id[1] = sink_info->reservation.stream_id[1];
       }
-      debug_printf("Port %d out: %s %s, stream %x:%x\n", port_to_transmit, debug_attribute_type[(st)->attribute_type], debug_attribute_event[(vector)], stream_id[0], stream_id[1]);
+      debug_printf("TX: %s %s, stream %x:%x\n", debug_attribute_type[(st)->attribute_type], debug_attribute_event[(vector)], stream_id[0], stream_id[1]);
     }
   }
   send(i_eth, port_to_transmit);
@@ -1481,8 +1481,7 @@ void avb_mrp_process_packet(unsigned char *buf, int etype, int len, unsigned int
 
         if (MRP_DEBUG_ATTR_INGRESS)
         {
-          if (attr_type == MSRP_LISTENER) debug_printf("Port %d in: MSRP_LISTENER\n", port_num);
-          if (attr_type == MSRP_TALKER_ADVERTISE) debug_printf("Port %d in: MSRP_TALKER_ADVERTISE\n", port_num);
+          debug_printf("IN: %s\n", debug_attribute_type[attr_type]);
         }
 
         // This allows the application state machines to respond to the message

@@ -100,7 +100,10 @@ typedef struct mrp_attribute_state {
   //! While sorting the attributes, this contains a linked list of sorted attributes
   struct mrp_attribute_state *next;
 
+  //! Attribute originated on this participant
   char here;
+
+  //! Propagated to another bridge port (always cleared on end stations)
   char propagated;
 
   //! Generic pointer to allow random data to be stored alongside the attribute
