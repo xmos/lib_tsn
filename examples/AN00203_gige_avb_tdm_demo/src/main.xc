@@ -95,6 +95,7 @@ on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 void buffer_manager_to_tdm(server i2s_callback_if tdm,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
+                           streaming chanend c_sound_activity,
                            client output_gpio_if dac_reset,
                            client output_gpio_if adc_reset,
                            client output_gpio_if pll_select,
@@ -104,6 +105,8 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
   audio_double_buffer_t *unsafe double_buffer;
   int32_t *unsafe sample_out_buf;
   unsigned send_count = 0;
+  const int sound_activity_threshold = 1000;
+  int sound_activity_update = 0;
   timer tmr;
 
   audio_clock_CS2100CP_init(i2c);
@@ -209,6 +212,18 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
           c_audio <: p_in_frame;
           p_in_frame = new_frame;
         }
+        sound_activity_update++;
+        if (sound_activity_update == 2500) {
+          int channel_mask = 0;
+#pragma loop unroll
+          for (int i = 0; i < 4; i++) {
+            channel_mask |= ((sample_out_buf[i] > sound_activity_threshold ||
+                             sample_out_buf[i] < -sound_activity_threshold) << i);
+          }
+          c_sound_activity <: channel_mask;
+          soutct(c_sound_activity, XS1_CT_PAUSE);
+          sound_activity_update = 0;
+        }
       }
       break; // End of send
     }
@@ -218,18 +233,24 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
 
 [[combinable]]
 void ar8035_phy_driver(client interface smi_if smi,
-                client interface ethernet_cfg_if eth) {
+                client interface ethernet_cfg_if eth,
+                streaming chanend c_sound_activity)
+{
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
   ethernet_speed_t link_speed = LINK_1000_MBPS_FULL_DUPLEX;
   const int phy_reset_delay_ms = 1;
   const int link_poll_period_ms = 1000;
   const int phy_address = 0x4;
-  timer tmr;
-  int t;
+  timer tmr, tmr2;
+  int t, t2;
+  int flashing_on = 0;
+  int channel_mask = 0;
   tmr :> t;
+  tmr2 :> t2;
   p_eth_reset <: 0;
   delay_milliseconds(phy_reset_delay_ms);
   p_eth_reset <: 0xf;
+  p_leds_column <: 0xf;
 
   eth.set_ingress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
   eth.set_egress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
@@ -270,6 +291,13 @@ void ar8035_phy_driver(client interface smi_if smi,
         eth.set_link_state(0, new_state, link_speed);
       }
       t += link_poll_period_ms * XS1_TIMER_KHZ;
+      break;
+    case c_sound_activity :> channel_mask:
+      break;
+    case tmr2 when timerafter(t2) :> void:
+      p_leds_row <: ~(flashing_on * channel_mask);
+      flashing_on ^= 1;
+      t2 += 10000000;
       break;
     }
   }
@@ -365,6 +393,7 @@ int main(void)
   interface pull_if i_audio_in_pull;
   interface push_if i_audio_out_push;
   interface pull_if i_audio_out_pull;
+  streaming chan c_sound_activity;
 
   par
   {
@@ -376,7 +405,7 @@ int main(void)
                                    ETHERNET_DISABLE_SHAPER);
 
     on tile[1].core[0]: rgmii_ethernet_mac_config(i_eth_cfg, NUM_ETH_CFG_CLIENTS, c_rgmii_cfg);
-    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
+    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER], c_sound_activity);
 
     on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
@@ -402,7 +431,7 @@ int main(void)
                  clk_tdm_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C],
+    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity,
                                                      i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_TDM_IO);
