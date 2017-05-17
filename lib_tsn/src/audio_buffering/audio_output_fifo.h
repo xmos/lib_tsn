@@ -93,7 +93,8 @@ void enable_audio_output_fifo(buffer_handle_t s,
  *  perform tasks such as informing the clock recovery thread
  *  of some new timing information.
  *
- *  \param s the fifo to maintain
+ *  \param s handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param buf_ctl a channel end that links the FIFO to the media clock service
  *  \param notified_buf_ctl pointer to a flag which is set when the media clock has been notified of a timing event in the FIFO
  */
@@ -115,7 +116,8 @@ audio_output_fifo_maintain(buffer_handle_t s,
  *  The 1722 listener thread uses this to put samples from the decoded
  *  packet into the audio FIFOs.
  *
- *  \param s0 the FIFO to push samples into
+ *  \param s0 handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param sample_ptr a pointer to a block of samples in the 1722 packet
  *  \param stride the number of words between successive samples for this FIFO
  *  \param n the number of samples to push into the buffer
@@ -136,13 +138,15 @@ audio_output_fifo_strided_push(buffer_handle_t s0,
  *  ref clock time is passed into the function, and the FIFO will record this
  *  time if the sample which has been removed was the marked sample
  *
- *  \param s the FIFO to remove a sample from
+ *  \param s0 handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param timestamp the ref clock time of the sample playout
  */
  /*
 unsigned int
-audio_output_fifo_pull_sample(buffer_handle_t s,
-                                  unsigned int timestamp);
+audio_output_fifo_pull_sample(buffer_handle_t s0,
+                              unsigned index,
+                              unsigned int timestamp);
 */
 __attribute__((always_inline))
 unsafe static inline unsigned int
@@ -192,7 +196,8 @@ audio_output_fifo_pull_sample(buffer_handle_t s0,
  *  If the FIFO already has a marked timestamped sample within the
  *  buffer then it does not record the new timestamp.
  *
- *  \param s0 the media fifo which is being updated
+ *  \param s0 handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param timestamp the 32 bit PTP timestamp
  *  \param sample_number the sample, counted from the end of the FIFO, which the timestamp applies to
  *
@@ -212,6 +217,8 @@ void audio_output_fifo_set_ptp_timestamp(buffer_handle_t s0,
  *  recovery thread over that channel.
  *
  *  \param buf_ctl  the communication channel with the clock recovery service
+ *  \param s0 handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param stream_num  the number of the stream which is being handled
  *  \param buf_ctl_notified pointer to the flag which indicates whether the clock recovery thread has been notified of a timing event
  */
@@ -225,7 +232,8 @@ audio_output_fifo_handle_buf_ctl(chanend buf_ctl,
 /**
  *  \brief Set the volume control multiplier for the media FIFO
  *
- *  \param s0 the media fifo to set the volume for
+ *  \param s0 handle to FIFO buffers
+ *  \param index which buffer to operate on
  *  \param volume the 2.30 signed fixed point linear volume multiplier
  */
 void
