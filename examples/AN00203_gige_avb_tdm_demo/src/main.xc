@@ -16,6 +16,7 @@
 #include "ethernet.h"
 #include "smi.h"
 #include "audio_buffering.h"
+#include "sinewave.h"
 
 // Ports and clocks used by the application
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
@@ -96,6 +97,7 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
                            streaming chanend c_sound_activity,
+                           int use_synth_sinewave,
                            client output_gpio_if dac_reset,
                            client output_gpio_if adc_reset,
                            client output_gpio_if pll_select,
@@ -105,8 +107,10 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
   audio_double_buffer_t *unsafe double_buffer;
   int32_t *unsafe sample_out_buf;
   unsigned send_count = 0;
-  const int sound_activity_threshold = 1000;
+  const int sound_activity_threshold = 100000;
+  const int sound_activity_update_interval = 2500;
   int sound_activity_update = 0;
+  int sinewave_index = 0;
   timer tmr;
 
   audio_clock_CS2100CP_init(i2c);
@@ -194,7 +198,17 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
 
     case tdm.receive(size_t index, int32_t sample):
       unsafe {
-        p_in_frame->samples[index] = sample;
+        if (use_synth_sinewave) {
+          p_in_frame->samples[index] = sinewave[sinewave_index];
+          if (index == 0) {
+            sinewave_index++;
+            if (sinewave_index == 256)
+              sinewave_index = 0;
+          }
+        }
+        else {
+          p_in_frame->samples[index] = sample;
+        }
       }
       break;
 
@@ -213,7 +227,7 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
           p_in_frame = new_frame;
         }
         sound_activity_update++;
-        if (sound_activity_update == 2500) {
+        if (sound_activity_update == sound_activity_update_interval) {
           int channel_mask = 0;
 #pragma loop unroll
           for (int i = 0; i < 4; i++) {
@@ -250,7 +264,7 @@ void ar8035_phy_driver(client interface smi_if smi,
   p_eth_reset <: 0;
   delay_milliseconds(phy_reset_delay_ms);
   p_eth_reset <: 0xf;
-  p_leds_column <: 0xf;
+  p_leds_column <: 0x1;
 
   eth.set_ingress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
   eth.set_egress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
@@ -431,7 +445,7 @@ int main(void)
                  clk_tdm_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity,
+    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity, 1,
                                                      i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_TDM_IO);
