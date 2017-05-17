@@ -72,7 +72,7 @@ void mrp_store_ethernet_interface(CLIENT_INTERFACE(ethernet_tx_if, i)) {
 
 void debug_print_applicant_state_change(mrp_attribute_state *st, mrp_event event, int new)
 {
-  if ((st)->attribute_type == MSRP_TALKER_ADVERTISE || (st)->attribute_type == MSRP_LISTENER) {
+  if ((st)->attribute_type == MSRP_TALKER_ADVERTISE || (st)->attribute_type == MSRP_LISTENER || (st)->attribute_type == MSRP_TALKER_FAILED) {
       avb_sink_info_t *sink_info = (avb_sink_info_t *) st->attribute_info;
       int stream_id[2] = {0, 0};
 
