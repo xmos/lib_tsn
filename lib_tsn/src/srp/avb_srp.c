@@ -606,7 +606,7 @@ short avb_srp_create_and_join_talker_advertise_attrs(avb_srp_info_t *reservation
       if (!matched_listener) {
         mrp_attribute_state *listener_attr = mrp_get_attr();
         if (listener_attr) {
-          mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 1, stream_ptr);
+          mrp_attribute_init(listener_attr, MSRP_LISTENER, i, 0, stream_ptr);
           mrp_mad_begin(listener_attr);
         }
       }
@@ -732,7 +732,7 @@ short avb_srp_join_listener_attrs(unsigned int stream_id[2], short vlan_id) {
             mrp_attribute_init(talker_attr,
                                MSRP_TALKER_ADVERTISE,
                                i,
-                               1,
+                               0,
                                stream_ptr);
             mrp_mad_begin(talker_attr);
           }

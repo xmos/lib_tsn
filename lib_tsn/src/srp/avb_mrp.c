@@ -1176,7 +1176,8 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
             }
           }
         }
-        mrp_mad_join(&attrs[j], 1);
+        if (attrs[j].here)
+          mrp_mad_join(&attrs[j], 1);
       }
       else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
                 !srp_domain_boundary_port[i] &&
@@ -1186,7 +1187,8 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
         avb_stream_entry *stream_info = attrs[j].attribute_info;
         stream_info->talker_present = 1;
         debug_printf("Talker Failed -> Advertise for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
-        mrp_mad_join(&attrs[j], 1);
+        if (attrs[j].here)
+          mrp_mad_join(&attrs[j], 1);
       }
 
   #ifdef MRP_FULL_PARTICIPANT
