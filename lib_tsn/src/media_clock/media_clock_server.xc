@@ -329,7 +329,7 @@ static void update_media_clocks(chanend ?ptp_svr, int clk_time)
 
 void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
                             chanend ?ptp_svr,
-                            chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
+                            chanend buf_ctl[num_buf_ctl], unsigned num_buf_ctl,
                             out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
                             ,client interface ethernet_rx_if i_eth_rx,

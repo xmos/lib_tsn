@@ -1116,7 +1116,7 @@ void avb_1722_talker(chanend c_ptp,
  *  \param audio_output_buf a client interface to get a handle to push to the audio output buffer
  */
 void avb_1722_listener(streaming chanend c_eth_rx_hp,
-                       chanend? c_buf_ctl,
+                       chanend c_buf_ctl,
                        chanend? c_ptp_ctl,
                        chanend c_listener_ctl,
                        int num_streams,
@@ -1140,7 +1140,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
  */
 void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
                             chanend ?ptp_svr,
-                            chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
+                            chanend buf_ctl[num_buf_ctl], unsigned num_buf_ctl,
                             out buffered port:32 p_fs[],
                             client interface ethernet_rx_if i_eth_rx,
                             client interface ethernet_tx_if i_eth_tx,

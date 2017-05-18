@@ -193,7 +193,7 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
 
 #pragma unsafe arrays
 void avb_1722_listener(streaming chanend c_eth_rx_hp,
-                       chanend? c_buf_ctl,
+                       chanend c_buf_ctl,
                        chanend? c_ptp,
                        chanend c_listener_ctl,
                        int num_streams,
@@ -231,7 +231,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
 #if !defined(AVB_1722_FORMAT_61883_4)
         // Conditional due to compiler bug 11998.
         // FIXME: stream_num variable is not the stream num, it is the FIFO!
-      case !isnull(c_buf_ctl) => c_buf_ctl :> int fifo_index:
+      case c_buf_ctl :> int fifo_index:
           audio_output_fifo_handle_buf_ctl(c_buf_ctl, h, fifo_index, st.notified_buf_ctl, tmr);
         break;
 #endif
