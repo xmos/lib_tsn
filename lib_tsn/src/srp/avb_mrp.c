@@ -625,7 +625,6 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
           break;
         case MRP_QO:
           mrp_change_applicant_state(st, e, MRP_AO);
-          if (!st->here) st->remove_after_next_tx = 1;
           break;
         case MRP_QP:
           mrp_change_applicant_state(st, e, MRP_AP);
@@ -647,7 +646,6 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
         case MRP_QO:
 #ifdef MRP_FULL_PARTICIPANT
           mrp_change_applicant_state(st, e, MRP_LO);
-          if (st->registrar_state == MRP_MT) st->remove_after_next_tx = 1;
 #else
           mrp_change_applicant_state(st, e, MRP_VO);
 #endif
@@ -741,7 +739,6 @@ static void mrp_update_state(mrp_event e, mrp_attribute_state *st, int four_pack
         case MRP_AO:
         case MRP_QO:
           mrp_change_applicant_state(st, e, MRP_LO);
-          if (st->applicant_state != MRP_LA && !st->here) st->remove_after_next_tx = 1;
           break;
         case MRP_VN:
           mrp_change_applicant_state(st, e, MRP_AN);
