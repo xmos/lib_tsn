@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2017, XMOS Ltd, All rights reserved
 #ifndef _avb_internal_h_
 #define _avb_internal_h_
 

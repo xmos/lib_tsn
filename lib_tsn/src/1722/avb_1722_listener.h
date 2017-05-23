@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2017, XMOS Ltd, All rights reserved
 /**
  * \file avb_1722_listener.h
  * \brief IEC 61883-6/AVB1722 Listener definitions

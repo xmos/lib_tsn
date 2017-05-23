@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2013-2017, XMOS Ltd, All rights reserved
 #include "avb_1722_1_aecp_controls.h"
 #include "avb.h"
 #include "avb_1722_common.h"

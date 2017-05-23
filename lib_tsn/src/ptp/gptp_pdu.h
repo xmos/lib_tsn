@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2011-2017, XMOS Ltd, All rights reserved
 #ifndef _PTP_MESSAGE_FORMAT_H_
 #define _PTP_MESSAGE_FORMAT_H_   1
 
