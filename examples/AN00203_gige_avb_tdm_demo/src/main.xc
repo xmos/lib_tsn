@@ -369,7 +369,8 @@ static char gpio_pin_map[4] =  {
 };
 
 [[combinable]] void application_task(client interface avb_interface avb,
-                                     server interface avb_1722_1_control_callbacks i_1722_1_entity);
+                                     server interface avb_1722_1_control_callbacks i_1722_1_entity,
+                                     int debug_counters);
 
 int main(void)
 {
@@ -483,7 +484,7 @@ int main(void)
                      c_talker_ctl,
                      i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
                      i_media_clock_ctl);
-        application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity);
+        application_task(i_avb[AVB_MANAGER_TO_DEMO], i_1722_1_entity, 0);
         avb_1722_1_maap_srp_task(i_avb[AVB_MANAGER_TO_1722_1],
                                 i_1722_1_entity,
                                 qspi_ports,
@@ -502,10 +503,13 @@ int main(void)
 // The main application control task
 [[combinable]]
 void application_task(client interface avb_interface avb,
-                      server interface avb_1722_1_control_callbacks i_1722_1_entity)
+                      server interface avb_1722_1_control_callbacks i_1722_1_entity,
+                      int debug_counters)
 {
   const unsigned default_sample_rate = 48000;
   unsigned char aem_identify_control_value = 0;
+  timer debug_timer;
+  int t;
 
   // Initialize the media clock
   avb.set_device_media_clock_type(0, DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED);
@@ -533,6 +537,8 @@ void application_task(client interface avb_interface avb,
     avb.set_sink_sync(j, 0);
     avb.set_sink_channels(j, channels_per_stream);
   }
+
+  debug_timer :> t;
 
   while (1)
   {
@@ -594,6 +600,18 @@ void application_task(client interface avb_interface avb,
                                                unsigned short signal_output) -> unsigned char return_status:
       {
         return_status = AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR;
+        break;
+      }
+      case debug_timer when timerafter(t) :> void:
+      {
+        if (debug_counters) {
+          struct avb_debug_counters counters = avb.get_debug_counters();
+
+          debug_printf("sent_1722=%d received_1722=%d\n",
+            counters.sent_1722,
+            counters.received_1722);
+        }
+        t += 100000000;
         break;
       }
     }

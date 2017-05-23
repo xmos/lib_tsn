@@ -13,6 +13,8 @@
 #include "nettypes.h"
 #include "avb_1722_router.h"
 #include "avb_1722_1_acmp.h"
+#include "avb_1722_talker.h"
+#include "avb_1722_listener.h"
 
 #if AVB_ENABLE_1722_1
 #include "avb_1722_1.h"
@@ -462,6 +464,35 @@ static void update_source_state(unsigned source_num,
   }
 }
 
+static void get_debug_counters(struct avb_debug_counters &counters)
+{
+  memset(&counters, 0, sizeof(struct avb_debug_counters));
+
+  for (int i = 0; i < max_talker_stream_id; i++) {
+    struct talker_counters tc;
+    unsafe {
+      chanend * unsafe c = sources[i].talker_ctl;
+      master {
+        *c <: AVB1722_GET_COUNTERS;
+        *c :> tc;
+      }
+    }
+    counters.sent_1722 += tc.sent_1722;
+  }
+
+  for (int i = 0; i < max_listener_stream_id; i++) {
+    struct listener_counters lc;
+    unsafe {
+      chanend * unsafe c = sinks[i].listener_ctl;
+      master {
+        *c <: AVB1722_GET_COUNTERS;
+        *c :> lc;
+      }
+    }
+    counters.received_1722 += lc.received_1722;
+  }
+}
+
 // Wrappers for interface calls from C
 int avb_get_source_state(client interface avb_interface avb, unsigned source_num, enum avb_source_state_t &state) {
   return avb.get_source_state(source_num, state);
@@ -543,6 +574,10 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
         c_media_ctl[0] <: info.rate;
       }
       i_media_clock_ctl.set_clock_info(clock_num, info);
+      break;
+    case avb[int i]._get_debug_counters(void)
+      -> struct avb_debug_counters counters:
+      get_debug_counters(counters);
       break;
     }
   }

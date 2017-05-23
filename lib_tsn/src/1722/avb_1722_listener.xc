@@ -116,6 +116,8 @@ void avb_1722_listener_init(chanend c_listener_ctl,
     st.listener_streams[i].active = 0;
     st.listener_streams[i].state = 0;
   }
+
+  st.counters.received_1722 = 0;
 }
 
 void avb_1722_listener_handle_packet(unsigned int rxbuf[],
@@ -143,6 +145,7 @@ void avb_1722_listener_handle_packet(unsigned int rxbuf[],
                                      stream_id,
                                      st.notified_buf_ctl,
                                      h);
+    st.counters.received_1722++;
   }
 }
 
@@ -183,6 +186,9 @@ void avb_1722_listener_handle_cmd(chanend c_listener_ctl,
         }
       case AVB1722_GET_ROUTER_LINK:
         c_listener_ctl <: st.router_link;
+        break;
+      case AVB1722_GET_COUNTERS:
+        c_listener_ctl <: st.counters;
         break;
       default:
         break;

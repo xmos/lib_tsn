@@ -112,6 +112,11 @@ typedef struct avb_sink_info_t
     int map[AVB_MAX_CHANNELS_PER_LISTENER_STREAM];
 } avb_sink_info_t;
 
+struct avb_debug_counters {
+  unsigned sent_1722;
+  unsigned received_1722;
+};
+
 
 #ifdef __XC__
 /** The core AVB interface API for interacting with the endpoint */
@@ -128,6 +133,8 @@ interface avb_interface {
   media_clock_info_t _get_media_clock_info(unsigned clock_num);
   /** Intended for internal use within client interface get and set extensions only */
   void _set_media_clock_info(unsigned clock_num, media_clock_info_t info);
+  /** Intended for internal use within client interface extension only */
+  struct avb_debug_counters _get_debug_counters(void);
 };
 
 interface media_clock_if {
@@ -964,6 +971,15 @@ extends client interface avb_interface : {
     return 1;
   }
 
+  /** Read back debug counters
+    *
+    * \return structure of counters passed by value
+    *
+    **/
+  static inline struct avb_debug_counters get_debug_counters(client interface avb_interface i)
+  {
+    return i._get_debug_counters();
+  }
 }
 
 /** An interface used to register and deregister stream reservations via MSRP */

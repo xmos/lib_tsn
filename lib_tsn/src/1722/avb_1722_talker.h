@@ -109,6 +109,10 @@ int avb1722_create_packet(unsigned char Buf[],
 #define MAX_PKT_BUF_SIZE_TALKER (AVB_ETHERNET_HDR_SIZE + AVB_TP_HDR_SIZE + AVB_CIP_HDR_SIZE + AVB1722_TALKER_MAX_NUM_SAMPLES_PER_CHANNEL * AVB_MAX_CHANNELS_PER_TALKER_STREAM * 4 + 4)
 #endif
 
+struct talker_counters {
+  unsigned sent_1722;
+};
+
 typedef struct avb_1722_talker_state_s {
   unsigned int tx_buf[AVB_NUM_SOURCES][(MAX_PKT_BUF_SIZE_TALKER + 3) / 4];
   unsigned int tx_buf_fill_size[AVB_NUM_SOURCES];
@@ -118,6 +122,7 @@ typedef struct avb_1722_talker_state_s {
   int cur_avb_stream;
   unsigned char mac_addr[6];
   int vlan;
+  struct talker_counters counters;
 } avb_1722_talker_state_t;
 
 #endif // AVB_NUM_SOURCES > 0

@@ -125,6 +125,8 @@ void avb_1722_talker_init(chanend c_talker_ctl,
 
   for (int i = 0; i < AVB_MAX_STREAMS_PER_TALKER_UNIT; i++)
     st.talker_streams[i].active = 0;
+
+  st.counters.sent_1722 = 0;
 }
 
 
@@ -190,6 +192,9 @@ void avb_1722_talker_handle_cmd(chanend c_talker_ctl,
       c_talker_ctl :> st.vlan; // Should we maintain a VLAN state per stream, or just set it in the buffer as below?
       avb1722_set_buffer_vlan(st.vlan,(st.tx_buf[stream_num],unsigned char[]));
       break;
+    case AVB1722_GET_COUNTERS:
+      c_talker_ctl <: st.counters;
+      break;
     default:
       break;
     }
@@ -228,6 +233,7 @@ unsafe void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
       if (packet_size) {
         ethernet_send_hp_packet(c_eth_tx_hp, &(st.tx_buf[i], unsigned char[])[2], packet_size, ETHERNET_ALL_INTERFACES);
         st.tx_buf_fill_size[i] = 0;
+        st.counters.sent_1722++;
         break;
       }
     }

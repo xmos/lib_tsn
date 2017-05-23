@@ -62,10 +62,15 @@ int avb_1722_listener_process_packet(chanend buf_ctl,
                                      buffer_handle_t h);
 #endif
 
+struct listener_counters {
+  unsigned received_1722;
+};
+
 typedef struct avb_1722_listener_state_s {
   avb_1722_stream_info_t listener_streams[MAX_AVB_STREAMS_PER_LISTENER];
   int notified_buf_ctl;
   int router_link;
+  struct listener_counters counters;
 } avb_1722_listener_state_t;
 
 
