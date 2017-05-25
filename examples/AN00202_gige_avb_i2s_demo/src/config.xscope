@@ -3,6 +3,7 @@
     <Probe name="Media Clock Wordlen" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
     <Probe name="Media Clock Ierror" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
     <Probe name="Media Clock Perror" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
+    <Probe name="Media Output FIFO Fill" type="CONTINUOUS" datatype="INT" units="Value" enabled="true"/>
     <Probe name="Listener 1722 Seq Num Mismatch" type="CONTINUOUS" datatype="UINT" units="Value" enabled="false"/>
     <Probe name="RDPTR" type="CONTINUOUS" datatype="UINT" units="Value" enabled="true"/>
 </xSCOPEconfig>
