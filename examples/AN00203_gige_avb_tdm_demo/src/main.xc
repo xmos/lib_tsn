@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2014-2017, XMOS Ltd, All rights reserved
 #include <xs1.h>
 #include <platform.h>
 #include <print.h>
@@ -97,7 +97,7 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
                            streaming chanend c_sound_activity,
-                           int use_synth_sinewave,
+                           int synth_sinewave_channel_mask,
                            client output_gpio_if dac_reset,
                            client output_gpio_if adc_reset,
                            client output_gpio_if pll_select,
@@ -111,6 +111,7 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
   const int sound_activity_update_interval = 2500;
   int sound_activity_update = 0;
   int sinewave_index = 0;
+  int channel_mask = 0;
   timer tmr;
 
   audio_clock_CS2100CP_init(i2c);
@@ -198,16 +199,16 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
 
     case tdm.receive(size_t index, int32_t sample):
       unsafe {
-        if (use_synth_sinewave) {
+        if (synth_sinewave_channel_mask & (1 << index)) {
           p_in_frame->samples[index] = sinewave[sinewave_index];
-          if (index == 0) {
-            sinewave_index++;
-            if (sinewave_index == 256)
-              sinewave_index = 0;
-          }
         }
         else {
           p_in_frame->samples[index] = sample;
+        }
+        if (synth_sinewave_channel_mask && index == 0) {
+          sinewave_index++;
+          if (sinewave_index == 256)
+            sinewave_index = 0;
         }
       }
       break;
@@ -218,6 +219,15 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
           c_audio :> sample_out_buf;
         }
         sample = sample_out_buf[send_count];
+        if ((index & 1) == 0) {
+          int32_t stereo_sample_average =
+             (sample_out_buf[send_count] >> 1) + (sample_out_buf[send_count + 1] >> 1);
+
+          int is_active = (stereo_sample_average > sound_activity_threshold ||
+                           stereo_sample_average < -sound_activity_threshold);
+
+          channel_mask |= (is_active << (index >> 1));
+        }
         send_count++;
         if (send_count == (AVB_NUM_MEDIA_OUTPUTS/8)) send_count = 0;
         if (index == (AVB_NUM_MEDIA_INPUTS-7)) {
@@ -225,18 +235,13 @@ void buffer_manager_to_tdm(server i2s_callback_if tdm,
           audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
           c_audio <: p_in_frame;
           p_in_frame = new_frame;
-        }
-        sound_activity_update++;
-        if (sound_activity_update == sound_activity_update_interval) {
-          int channel_mask = 0;
-#pragma loop unroll
-          for (int i = 0; i < 4; i++) {
-            channel_mask |= ((sample_out_buf[i] > sound_activity_threshold ||
-                             sample_out_buf[i] < -sound_activity_threshold) << i);
+          sound_activity_update++;
+          if (sound_activity_update == sound_activity_update_interval) {
+            c_sound_activity <: channel_mask;
+            soutct(c_sound_activity, XS1_CT_PAUSE);
+            sound_activity_update = 0;
+            channel_mask = 0;
           }
-          c_sound_activity <: channel_mask;
-          soutct(c_sound_activity, XS1_CT_PAUSE);
-          sound_activity_update = 0;
         }
       }
       break; // End of send
@@ -446,7 +451,7 @@ int main(void)
                  clk_tdm_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity, 1,
+    on tile[0]: [[distribute]] buffer_manager_to_tdm(i_tdm, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity, 0x3,
                                                      i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_TDM_IO);
