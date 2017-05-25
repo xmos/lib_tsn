@@ -16,6 +16,7 @@
 #include "ethernet.h"
 #include "smi.h"
 #include "audio_buffering.h"
+#include "sinewave.h"
 
 // Ports and clocks used by the application
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
@@ -92,6 +93,8 @@ on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 void buffer_manager_to_i2s(server i2s_callback_if i2s,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
+                           streaming chanend c_sound_activity,
+                           int synth_sinewave_channel_mask,
                            client output_gpio_if dac_reset,
                            client output_gpio_if adc_reset,
                            client output_gpio_if pll_select,
@@ -101,6 +104,11 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
   audio_double_buffer_t *unsafe double_buffer;
   int32_t *unsafe sample_out_buf;
   unsigned cur_sample_rate;
+  const int sound_activity_threshold = 100000;
+  const int sound_activity_update_interval = 2500;
+  int sound_activity_update = 0;
+  int sinewave_index = 0;
+  int channel_mask = 0;
   timer tmr;
 
   audio_clock_CS2100CP_init(i2c);
@@ -202,7 +210,17 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
 
     case i2s.receive(size_t index, int32_t sample):
       unsafe {
-        p_in_frame->samples[index] = sample;
+        if (synth_sinewave_channel_mask & (1 << index)) {
+          p_in_frame->samples[index] = sinewave[sinewave_index];
+        }
+        else {
+          p_in_frame->samples[index] = sample;
+        }
+        if (synth_sinewave_channel_mask && index == 0) {
+          sinewave_index++;
+          if (sinewave_index == 256)
+            sinewave_index = 0;
+        }
       }
       break;
 
@@ -212,11 +230,27 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           c_audio :> sample_out_buf;
         }
         sample = sample_out_buf[index];
+        if ((index & 1) == 0) {
+          int32_t stereo_sample_average =
+             (sample_out_buf[index] >> 1) + (sample_out_buf[index + 1] >> 1);
+
+          int is_active = (stereo_sample_average > sound_activity_threshold ||
+                           stereo_sample_average < -sound_activity_threshold);
+
+          channel_mask |= (is_active << (index >> 1));
+        }
         if (index == (AVB_NUM_MEDIA_INPUTS-1)) {
           tmr :> p_in_frame->timestamp;
           audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
           c_audio <: p_in_frame;
           p_in_frame = new_frame;
+          sound_activity_update++;
+          if (sound_activity_update == sound_activity_update_interval) {
+            c_sound_activity <: channel_mask;
+            soutct(c_sound_activity, XS1_CT_PAUSE);
+            sound_activity_update = 0;
+            channel_mask = 0;
+          }
         }
       }
       break; // End of send
@@ -227,18 +261,22 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
 
 [[combinable]]
 void ar8035_phy_driver(client interface smi_if smi,
-                client interface ethernet_cfg_if eth) {
+                client interface ethernet_cfg_if eth,
+                streaming chanend c_sound_activity) {
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
   ethernet_speed_t link_speed = LINK_1000_MBPS_FULL_DUPLEX;
   const int phy_reset_delay_ms = 1;
   const int link_poll_period_ms = 1000;
   const int phy_address = 0x4;
-  timer tmr;
-  int t;
+  timer tmr, tmr2;
+  int t, t2;
+  int flashing_on = 0;
+  int channel_mask = 0;
   tmr :> t;
   p_eth_reset <: 0;
   delay_milliseconds(phy_reset_delay_ms);
   p_eth_reset <: 0xf;
+  p_leds_column <: 0x1;
 
   eth.set_ingress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
   eth.set_egress_timestamp_latency(0, LINK_1000_MBPS_FULL_DUPLEX, 200);
@@ -279,6 +317,13 @@ void ar8035_phy_driver(client interface smi_if smi,
         eth.set_link_state(0, new_state, link_speed);
       }
       t += link_poll_period_ms * XS1_TIMER_KHZ;
+      break;
+    case c_sound_activity :> channel_mask:
+      break;
+    case tmr2 when timerafter(t2) :> void:
+      p_leds_row <: ~(flashing_on * channel_mask);
+      flashing_on ^= 1;
+      t2 += 10000000;
       break;
     }
   }
@@ -376,6 +421,7 @@ int main(void)
   interface pull_if i_audio_in_pull;
   interface push_if i_audio_out_push;
   interface pull_if i_audio_out_pull;
+  streaming chan c_sound_activity;
 
   par
   {
@@ -387,7 +433,7 @@ int main(void)
                                    ETHERNET_DISABLE_SHAPER);
 
     on tile[1].core[0]: rgmii_ethernet_mac_config(i_eth_cfg, NUM_ETH_CFG_CLIENTS, c_rgmii_cfg);
-    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
+    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER], c_sound_activity);
 
     on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
@@ -418,7 +464,7 @@ int main(void)
                  clk_i2s_mclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C],
+    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity, 0x3,
                                                      i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
