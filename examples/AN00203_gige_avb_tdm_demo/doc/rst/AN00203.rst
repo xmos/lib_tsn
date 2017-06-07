@@ -128,7 +128,7 @@ Makefile additions for this example
 This example uses XMOS libraries which can be included in
 the project via the ``USED_MODULES`` variable in the ``Makefile``::
 
- USED_MODULES = lib_tsn(>=7.0.0) lib_i2s(>=2.0.1)
+ USED_MODULES = lib_tsn lib_i2s
 
 A version number requirement is specified with the libraries to guarantee
 compatibility.
