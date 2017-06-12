@@ -1,8 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xSCOPEconfig enabled="true" ioMode="basic">
-    <Probe name="Media Clock Wordlen" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
-    <Probe name="Media Clock Ierror" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
-    <Probe name="Media Clock Perror" type="CONTINUOUS" datatype="INT" units="Value" enabled="false"/>
-    <Probe name="Listener 1722 Seq Num Mismatch" type="CONTINUOUS" datatype="UINT" units="Value" enabled="false"/>
-    <Probe name="RDPTR" type="CONTINUOUS" datatype="UINT" units="Value" enabled="true"/>
 </xSCOPEconfig>

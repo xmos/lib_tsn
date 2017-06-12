@@ -152,7 +152,9 @@ static void manage_buffer(buf_info_t &b,
   if (fill < 0)
     fill += AUDIO_OUTPUT_FIFO_WORD_SIZE;
 
+#ifdef MEDIA_OUTPUT_FIFO_FILL
   xscope_int(MEDIA_OUTPUT_FIFO_FILL, fill);
+#endif
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
   ptp_get_local_time_info_mod64(timeInfo);
