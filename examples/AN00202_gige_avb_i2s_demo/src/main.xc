@@ -133,7 +133,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
       dac_reset.output(0);
       adc_reset.output(0);
 
-      // Select 48Khz family clock (24.576Mhz)
+      // Select 44.1kHz family clock (22.5792MHz)
       mclk_select.output(0);
       pll_select.output(1);
 
@@ -370,7 +370,7 @@ enum gpio_shared_audio_pins {
   GPIO_DAC_RST_N = 1,
   GPIO_PLL_SEL = 5,     // 1 = CS2100, 0 = Phaselink clock source
   GPIO_ADC_RST_N = 6,
-  GPIO_MCLK_FSEL = 7,   // Select frequency on Phaselink clock. 0 = 24.576MHz for 48k, 1 = 22.5792MHz for 44.1k.
+  GPIO_MCLK_FSEL = 7,   // Select frequency on Phaselink clock. 0 = 22.5792MHz for 44.1k, 1 = 24.576MHz for 48k.
 };
 
 static char gpio_pin_map[4] =  {
