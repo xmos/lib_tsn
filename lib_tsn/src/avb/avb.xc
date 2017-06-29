@@ -245,10 +245,10 @@ static void update_sink_state(unsigned sink_num,
         *c :> router_link;
       }
 
-      ethernet_macaddr_filter_t stream_mutlicast_filter;
-      stream_mutlicast_filter.appdata = sink->stream.local_id;
-      memcpy(stream_mutlicast_filter.addr, sink->reservation.dest_mac_addr, 6);
-      i_eth_cfg.add_macaddr_filter(0, 1, stream_mutlicast_filter);
+      ethernet_macaddr_filter_t stream_multicast_filter;
+      stream_multicast_filter.appdata = sink->stream.local_id;
+      memcpy(stream_multicast_filter.addr, sink->reservation.dest_mac_addr, 6);
+      i_eth_cfg.add_macaddr_filter(0, 1, stream_multicast_filter);
 
       if (isnull(i_srp)) {
         debug_printf("MSRP: Register attach request %x:%x\n", sink->reservation.stream_id[0], sink->reservation.stream_id[1]);
@@ -271,10 +271,10 @@ static void update_sink_state(unsigned sink_num,
         *c <: (int)sink->stream.local_id;
       }
 
-      ethernet_macaddr_filter_t stream_mutlicast_filter;
-      stream_mutlicast_filter.appdata = sink->stream.local_id;
-      memcpy(stream_mutlicast_filter.addr, sink->reservation.dest_mac_addr, 6);
-      i_eth_cfg.del_macaddr_filter(0, 1, stream_mutlicast_filter);
+      ethernet_macaddr_filter_t stream_multicast_filter;
+      stream_multicast_filter.appdata = sink->stream.local_id;
+      memcpy(stream_multicast_filter.addr, sink->reservation.dest_mac_addr, 6);
+      i_eth_cfg.del_macaddr_filter(0, 1, stream_multicast_filter);
 
       if (isnull(i_srp)) {
         debug_printf("MSRP: Deregister attach request %x:%x\n", sink->reservation.stream_id[0], sink->reservation.stream_id[1]);
