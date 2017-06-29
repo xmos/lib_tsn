@@ -3,7 +3,7 @@ Gigabit Ethernet AVB endpoint example using I2S master
 
 .. appnote:: AN00202
 
-.. version:: 1.0.3
+.. version:: 1.0.4
 
 Summary
 -------

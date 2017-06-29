@@ -3,7 +3,7 @@
 
 .. appnote:: AN01032
 
-.. version:: 1.0.1
+.. version:: 1.0.2
 
 Summary
 -------
@@ -20,13 +20,7 @@ The example also shows plug-and-play multichannel recording and playback with Ap
 Required tools and libraries
 ............................
 
-The code in this application note is known to work on version 14.1.1 of the xTIMEcomposer tools suite, it
-may work on other versions.
-
-The application depends on the following libraries:
-
-    - lib_tsn (>=7.0.0)
-    - lib_i2s (>=2.0.1)
+.. appdeps::
 
 Required hardware
 .................

@@ -4,15 +4,22 @@ TSN library change log
 8.0.0
 -----
 
-  * RESOLVED: MRP applicant state machine discarded irreversibly (issue #28)
+  * RESOLVED: MRP applicant state machine discarded irreversibly (#28)
   * RESOLVED: Listener converting Talker Failed to Advertise makes itself a
-    second talker (issue #26)
+    second talker (#26)
   * RESOLVED: Undo partial support for listeners that don't require a buffer
-    management channel (issue #21)
+    management channel (#21)
+  * RESOLVED: Use lib_random instead of a local copy of the random number
+    generator (#31)
   * ADDED: Debug instrumentation such as packet counters, xSCOPE probes, sound
     activity LEDs, precomputed sinewave and xSCOPE probes
   * CHANGED: Update dependencies and copyright notice
-  * RESOLVED: Documentation update (issue #27)
+  * RESOLVED: Documentation, naming and comment updates and corrections (#27,
+    #29 and #31)
+
+  * Changes to dependencies:
+
+    - lib_random: Added dependency 1.0.0
 
 7.0.3
 -----
@@ -250,5 +257,4 @@ Legacy release history
   * Added 8-channel TDM audio interface
   * Added uip IP/UDP/TCP server for adding configuration layer
   * Various bug fixes
-
 
