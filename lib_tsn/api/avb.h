@@ -34,7 +34,7 @@ enum avb_sink_state_t
 {
   AVB_SINK_STATE_DISABLED,  /*!< The sink is disabled */
   AVB_SINK_STATE_POTENTIAL, /*!< The sink is enabled and will pass audio when a Talker requests it */
-  AVB_SINK_STATE_ENABLED,   /*!< The sink is enabled and passing audio */
+  AVB_SINK_STATE_ENABLED,   /*!< The sink is enabled and set to streaming by AEM */
 };
 
 /** The state of a media clock */
@@ -147,6 +147,7 @@ interface media_clock_if {
 
 extends client interface avb_interface : {
   /** Get the format of an AVB source.
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param format     the format of the stream
    *  \param rate       the sample rate of the stream in Hz
@@ -173,6 +174,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param format     the format of the stream
    *  \param rate       the sample rate of the stream in Hz
@@ -193,6 +195,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the channel count of an AVB source.
+   *  \param i          interface to AVB manager
    *  \param source_num   the local source number
    *  \param channels     the number of channels
    */
@@ -214,6 +217,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i            interface to AVB manager
    *  \param source_num   the local source number
    *  \param channels     the number of channels
    */
@@ -232,6 +236,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the media clock of an AVB source.
+   *  \param i            interface to AVB manager
    *  \param source_num   the local source number
    *  \param sync         the media clock number
    */
@@ -250,6 +255,7 @@ extends client interface avb_interface : {
    *
    *  Sets the media clock of the stream.
    *
+   *  \param i            interface to AVB manager
    *  \param source_num   the local source number
    *  \param sync         the media clock number
    */
@@ -268,6 +274,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the presentation time offset of an AVB source.
+   *  \param i            interface to AVB manager
    *  \param source_num       the local source number to set
    *  \param presentation     the presentation offset in ms
    */
@@ -291,6 +298,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i                interface to AVB manager
    *  \param source_num       the local source number to set
    *  \param presentation     the presentation offset in ms
    *
@@ -312,6 +320,7 @@ extends client interface avb_interface : {
 
 
   /** Get the destination vlan of an AVB source.
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param vlan       the destination vlan id
    */
@@ -334,6 +343,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param vlan       the destination vlan id
    */
@@ -350,6 +360,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the current state of an AVB source.
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param state      the state of the source
    */
@@ -368,9 +379,10 @@ extends client interface avb_interface : {
    *
    *  Sets the current state of an AVB source. You cannot set the
    *  state to ``ENABLED``. Changing the state to ``AVB_SOURCE_STATE_POTENTIAL`` turns the stream
-   *  on and it will automatically change to ``ENABLED`` when connected to
+   *  on and SRP will automatically set it to ``ENABLED`` when connected to
    *  a listener and streaming.
    *
+   *  \param i          interface to AVB manager
    *  \param source_num the local source number
    *  \param state      the state of the source
    */
@@ -387,6 +399,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the channel map of an avb source.
+   *  \param i   interface to AVB manager
    *  \param source_num the local source number to set
    *  \param map the map, an array of integers giving the input FIFOs that
    *             make up the stream
@@ -413,6 +426,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i   interface to AVB manager
    *  \param source_num the local source number to set
    *  \param map the map, an array of integers giving the input FIFOs that
    *             make up the stream
@@ -437,6 +451,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the destination address of an avb source.
+   *  \param i            interface to AVB manager
    *  \param source_num   the local source number
    *  \param addr         the destination address as an array of 6 bytes
    *  \param len          the length of the address, should always be equal to 6
@@ -459,6 +474,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the source
    *  state moves from disabled to potential.
    *
+   *  \param i            interface to AVB manager
    *  \param source_num   the local source number
    *  \param addr         the destination address as an array of 6 bytes
    *  \param len          the length of the address, should always be equal to 6
@@ -492,6 +508,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the stream id that an AVB sink listens to.
+   * \param i            interface to AVB manager
    * \param sink_num      the number of the sink
    * \param stream_id     int array containing the 64-bit of the stream
    */
@@ -513,6 +530,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the sink
    *  state moves from disabled to potential.
    *
+   * \param i             interface to AVB manager
    * \param sink_num      the number of the sink
    * \param stream_id     int array containing the 64-bit of the stream
    *
@@ -533,6 +551,7 @@ extends client interface avb_interface : {
 
 
    /** Get the format of an AVB sink.
+   *  \param i          interface to AVB manager
    *  \param sink_num the local sink number
    *  \param format     the format of the stream
    *  \param rate       the sample rate of the stream in Hz
@@ -558,6 +577,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the sink
    *  state moves from disabled to potential.
    *
+   *  \param i            interface to AVB manager
    *  \param sink_num     the local sink number
    *  \param format       the format of the stream
    *  \param rate         the sample rate of the stream in Hz
@@ -578,6 +598,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the channel count of an AVB sink.
+   *  \param i            interface to AVB manager
    *  \param sink_num     the local sink number
    *  \param channels     the number of channels
    */
@@ -599,6 +620,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the sink
    *  state moves from disabled to potential.
    *
+   *  \param i            interface to AVB manager
    *  \param sink_num     the local sink number
    *  \param channels     the number of channels
    */
@@ -617,7 +639,8 @@ extends client interface avb_interface : {
   }
 
   /** Get the media clock of an AVB sink.
-   *  \param sink_num   the local sink number
+   *  \param i            interface to AVB manager
+   *  \param sink_num     the local sink number
    *  \param sync         the media clock number
    */
   static inline int get_sink_sync(client interface avb_interface i, unsigned sink_num,
@@ -635,7 +658,8 @@ extends client interface avb_interface : {
    *
    *  Sets the media clock of the stream.
    *
-   *  \param sink_num   the local sink number
+   *  \param i            interface to AVB manager
+   *  \param sink_num     the local sink number
    *  \param sync         the media clock number
    */
   static inline int set_sink_sync(client interface avb_interface i, unsigned sink_num,
@@ -653,6 +677,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the virtual lan id of an AVB sink.
+   * \param i        interface to AVB manager
    * \param sink_num the number of the sink
    * \param vlan     the vlan id of the sink
    */
@@ -674,6 +699,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the sink
    *  state moves from disabled to potential.
    *
+   * \param i        interface to AVB manager
    * \param sink_num the number of the sink
    * \param vlan     the vlan id of the sink
    *
@@ -693,6 +719,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the incoming destination mac address of an avb sink.
+   *  \param i            Interface to AVB manager
    *  \param sink_num     The local sink number
    *  \param addr         The mac address as an array of 6 bytes.
    *  \param len          The length of the address, should always be equal to 6.
@@ -718,6 +745,7 @@ extends client interface avb_interface : {
    *  This setting will not take effect until the next time the sink
    *  state moves from disabled to potential.
    *
+   *  \param i            Interface to AVB manager
    *  \param sink_num     The local sink number
    *  \param addr         The mac address as an array of 6 bytes.
    *  \param len          The length of the address, should always be equal to 6.
@@ -740,6 +768,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the state of an AVB sink.
+   * \param i     interface to AVB manager
    * \param sink_num the number of the sink
    * \param state the state of the sink
    */
@@ -758,9 +787,9 @@ extends client interface avb_interface : {
    *
    *  Sets the current state of an AVB sink. You cannot set the
    *  state to ``ENABLED``. Changing the state to ``POTENTIAL`` turns the stream
-   *  on and it will automatically change to ``ENABLED`` when connected to
-   *  a talker and receiving samples.
+   *  on and it will automatically pass audio once audio is available.
    *
+   * \param i     interface to AVB manager
    * \param sink_num the number of the sink
    * \param state the state of the sink
    *
@@ -778,6 +807,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the map of an AVB sink.
+   * \param i          interface to AVB manager
    * \param sink_num   the number of the sink
    * \param map        array containing the media output FIFOs that the
    *                   stream will be split into
@@ -802,6 +832,7 @@ extends client interface avb_interface : {
    *
    *  This setting will take affect immediately.
    *
+   * \param i          interface to AVB manager
    * \param sink_num   the number of the sink
    * \param map        array containing the media output FIFOs that the
    *                   stream will be split into
@@ -824,6 +855,7 @@ extends client interface avb_interface : {
 
 
   /** Get the rate of a media clock.
+   *  \param i    interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param rate the rate of the clock in Hz
    */
@@ -842,6 +874,7 @@ extends client interface avb_interface : {
    *
    *  Sets the rate of the media clock.
    *
+   *  \param i    interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param rate the rate of the clock in Hz
    *
@@ -859,6 +892,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the state of a media clock.
+   *  \param i     interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param state the state of the clock
    */
@@ -879,6 +913,7 @@ extends client interface avb_interface : {
    *
    *  This function can be used to enabled/disable a media clock.
    *
+   *  \param i     interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param state the state of the clock
    **/
@@ -896,6 +931,7 @@ extends client interface avb_interface : {
   }
 
   /** Get the source of a media clock.
+   *  \param i      interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param source the output FIFO number to base the clock on
    */
@@ -915,6 +951,7 @@ extends client interface avb_interface : {
    *  For clocks that are derived from an output FIFO. This function
    *  gets/sets which FIFO the clock should be derived from.
    *
+   *  \param i      interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param source the output FIFO number to base the clock on
    *
@@ -934,6 +971,7 @@ extends client interface avb_interface : {
 
   /** Get the type of a media clock.
    *
+   *  \param i          interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param clock_type the type of the clock
    */
@@ -951,6 +989,7 @@ extends client interface avb_interface : {
 
   /** Set the type of a media clock.
    *
+   *  \param i          interface to AVB manager
    *  \param clock_num the number of the media clock
    *  \param clock_type the type of the clock
    *
@@ -973,6 +1012,7 @@ extends client interface avb_interface : {
 
   /** Read back debug counters
     *
+    * \param i          interface to AVB manager
     * \return structure of counters passed by value
     *
     **/

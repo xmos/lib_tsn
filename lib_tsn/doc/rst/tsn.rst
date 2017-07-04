@@ -556,12 +556,64 @@ For example:
 
 |newpage|
 
+Operation
+---------
+
+Sources and Sinks in the AVB Manager task
+.........................................
+
+Sources transition between disabled, potential and enabled states:
+
+     | ``AVB_SOURCE_STATE_DISABLED``
+     | ``AVB_SOURCE_STATE_POTENTIAL``
+     | ``AVB_SOURCE_STATE_ENABLED``
+
+Sinks transition between disabled and potential states:
+
+     | ``AVB_SINK_STATE_DISABLED``
+     | ``AVB_SINK_STATE_POTENTIAL``
+
+There is also a sink enabled state controlled by AECP AEM start and stop streaming commands, but it has no special treatment in the AVB manager. We ignore it in the endpoint.
+
+Source and sink state transitions are interface calls to the AVB Manager task, ``update_source_state`` and ``update_sink_state``.
+
+The transitions between disabled and potential are driven by the ACMP connection sequence. When connecting a stream from the 1722.1 controller, ``CONNECT_TX_COMMAND`` sets source to to potential and ``CONNECT_TX_RESPONSE`` sets sink to potential. When disconnecting from controller, we do the sink first. ``DISCONNECT_RX_COMMAND`` to set sink to disabled and ``DISCONNECT_TX_COMMAND`` to set source to disabled (if listener disconnecting is the last listener for given stream).
+
+  .. figure:: images/acmp_connection_sequence.png
+     :width: 60%
+     :align: center
+
+     1722.1 ACMP connection sequence
+
+The above behavior is implemented in callback functions such as ``talker_on_listener_connect`` or ``listener_on_talker_disconnect``. These have default implementations that print console messages that you can use to identify source and sink state transitions. Messages when connecting (disabled to potential) and disconnecting (enabled to disabled or potential to disabled) a source look like this::
+
+   CONNECTING Talker stream #0 (229780CB90000) -> Listener 0:22:97:FF:FE:80:7:FF
+   DISCONNECTING Talker stream #0 (229780CB90000) -> Listener 0:22:97:FF:FE:80:7:FF
+
+Messages when connecting and disconnecting a sink look like this::
+
+   CONNECTING Listener sink #0 -> Talker stream 2297807FF0000, DA: 91:E0:F0:0:58:AC
+   DISCONNECTING Listener sink #0 -> Talker stream FFFFFFFFFFFFFFFF, DA: FF:FF:FF:FF:FF:FF
+
+The FFs are a known issue, where 1772.1 task only keeps the last ACMP message and by the time the print comes, DICONNECT_RX_COMMAND has already been overwritten by DISCONNECT_TX_RESPONSE from talker.
+
+There are no messages printed when a source enters or leaves enabled state, but the conseqeuent starting and stopping of talker task has a message. These are good enough as an indicator of the source entering a leaving enabled state, and they look like this::
+
+   Talker stream #0 on
+   Talker stream #0 off (disabled)
+
+In addition, source transitions between potential and enabled states based on listener SRP reservations. A MAD Listener Ready Join indication sets source to enabled and Listener Ready Leave indication sets source to potential.
+
+It is following the source enabled-potential transitions when talker task actually starts or stops sending 1722 packets. For receiving 1722 packets by listener task, sink disabled-potential transitions add or remove a MAC filter with address assigned to given stream.
+
+Source will transition from enabled to potential on cable disconnection or last listener leaving, because these will invalidate the existing Listener Ready registration. But note that source will skip potential and go from enabled directly to disabled on an ACMP disconnect message.
+
 API
 ---
 
 All AVB/TSN functions can be accessed via the ``avb.h`` header::
 
-  #include <avb.h>
+  #include "avb.h"
 
 You will also have to add ``lib_tsn`` to the
 ``USED_MODULES`` field of your application Makefile.
