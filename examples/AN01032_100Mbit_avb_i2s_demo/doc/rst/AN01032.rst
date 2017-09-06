@@ -10,7 +10,7 @@ Introduction
 
 The XMOS xCORE microcontroller family is an ideal platform for implementing Audio Video Bridging (AVB) endpoints.
 This application note describes how a standards-compliant endpoint can be instantiated and configured on the
-xCORE-200 General Purpose SliceKIT using the AVB/TSN library and interfaced to audio codecs using an I2S master interface.
+xCORE-200 sliceKIT using the AVB/TSN library and interfaced to audio codecs using an I2S master interface.
 
 The example endpoint application features:
 
@@ -31,7 +31,7 @@ Block diagram
    :scale: 70%
    :align: center
 
-   Block diagram of the xCORE-200 General Purpose SliceKIT hardware relevant to AVB
+   Block diagram of the xCORE-200 sliceKIT hardware relevant to AVB
 
 
 Ethernet AVB endpoint example
@@ -84,37 +84,37 @@ Example directory structure description
 
 .. table:: Key application files
 
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | File                              | Description                                                             |
-  +===================================+=========================================================================+
-  | ``Makefile``                      | An XMOS application makefile containing board target, used modules      |
-  |                                   | (libraries) and compiler flags                                          |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``app_build_info``                | Application specific build step, used to pre-process 1722.1 descriptors |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/1722_1_callbacks.xc``       | Callback functions that are executed on 1722.1 connection events        |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/SLICEKIT-XL216.xn``         | XN target file for the xCORE-200 General Purpose SliceKIT. Describes    |
-  |                                   | system frequency, oscillator values and QSPI flash type                 |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/aem_descriptors.h.in``      | Header file containing 1722.1 AEM descriptors and templates for the AVB |
-  |                                   | endpoint. Pre-processed by a Python script to generate the actual header|
-  |                                   | file.                                                                   |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/aem_entity_strings.h.in``   | Header file containing 1722.1 AEM descriptor strings for the AVB        |
-  |                                   | endpoint. Pre-processed by a Python script to generate the actual header|
-  |                                   | file.                                                                   |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/generate.py``               | Python script for the pre-processing of the AEM descriptors             |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/avb_conf.h``                | Main configuration header file for application and TSN library          |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/config.xscope``             | XScope configuration file containing probes and printing parameters     |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/debug_conf.h``              | Configuration parameters for the lib_logging debug printing library     |
-  +-----------------------------------+-------------------------------------------------------------------------+
-  | ``src/main.xc``                   | Application code and multicore main() function                          |
-  +-----------------------------------+-------------------------------------------------------------------------+
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | File                                                 | Description                                                             |
+  +======================================================+=========================================================================+
+  | ``Makefile``                                         | An XMOS application makefile containing board target, used modules      |
+  |                                                      | (libraries) and compiler flags                                          |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``app_build_info``                                   | Application specific build step, used to pre-process 1722.1 descriptors |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``SLICEKIT...xn``                                    | XN target file for the xCORE-200 sliceKIT. Describes                    |
+  |                                                      | system frequency, oscillator values and QSPI flash type                 |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/1722_1_callbacks.xc``                          | Callback functions that are executed on 1722.1 connection events        |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/aem_descriptors.h.in``                         | Header file containing 1722.1 AEM descriptors and templates for the AVB |
+  |                                                      | endpoint. Pre-processed by a Python script to generate the actual header|
+  |                                                      | file.                                                                   |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/aem_entity_strings.h.in``                      | Header file containing 1722.1 AEM descriptor strings for the AVB        |
+  |                                                      | endpoint. Pre-processed by a Python script to generate the actual header|
+  |                                                      | file.                                                                   |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/generate.py``                                  | Python script for the pre-processing of the AEM descriptors             |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/avb_conf.h``                                   | Main configuration header file for application and TSN library          |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/config.xscope``                                | XScope configuration file containing probes and printing parameters     |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/debug_conf.h``                                 | Configuration parameters for the lib_logging debug printing library     |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
+  | ``src/main.xc``                                      | Application code and multicore main() function                          |
+  +------------------------------------------------------+-------------------------------------------------------------------------+
 
 |newpage|
 
@@ -159,8 +159,8 @@ Declaring resources used by the application
 The example uses several hardware ports and clocks to drive and read I/O. These are declared at the beginning of ``main.xc``
 
 .. literalinclude:: main.xc
-   :start-on: Ports and clocks
-   :end-on: p_CODEC_RST_N
+   :start-on: PORT_AUD_PLL
+   :end-on: PORT_AUD_CTRL
 
 These ports are mapped to external pins on the xCORE-200 device. Some ports can be moved if required to support
 a different hardware portmap on another board.
@@ -264,7 +264,7 @@ application. The prototype of the I2S handling task is as below:
 
 .. literalinclude:: main.xc
    :start-on: [[always_inline]][[distributable]]
-   :end-on: p_LEDS)
+   :end-on: p_codec_rst_leds
 
 Note that:
 
@@ -336,8 +336,8 @@ Setting the Ethernet MAC address
 ................................
 
 A unique Ethernet MAC address is required for every device on an Ethernet network. XMOS has
-preprogrammed the OTP memory on the xCORE-200 General Purpose SliceKITs to contain a unique
-MAC address in the XMOS OUI-24 range.
+preprogrammed the OTP memory on the xCORE-200 sliceKITs to contain a unique MAC address in
+the XMOS OUI-24 range.
 
 This MAC address can be read using the XMOS ``lib_otpinfo`` library and setup in the MAC using
 the ``set_macaddr`` interface function on the MAC configuration interface as follows.
@@ -414,15 +414,25 @@ as required.
 Demo hardware setup and requirements
 ------------------------------------
 
-The application note is designed to run on the XMOS xCORE-General Purpose Slice, Audio-PLL and Ethernet Slice.
+The application note is designed to run on the xCORE-200 sliceKIT, Audio-PLL and Ethernet Slice.
 
-.. figure:: images/xCORE-200-GPSliceKit.*
-   :scale: 70%
+.. figure:: images/hardware_setup.png
+   :scale: 85%
    :align: center
    
-   xCORE-200 General Purpose SliceKIT
+   xCORE-200 sliceKIT
 
-A full overview of the hardware and its features is provide in the xCORE-200 General Purpose SliceKIT Hardware Manual.
+#. Connect the XTAG USB debug adapter to the sliceKIT via the supplied adaptor board
+
+#. Connect the Audio-PLL sliceCARD to the **TILE 0 TRIANGLE** slot of the sliceKIT
+
+#. Connect the Ethernet sliceCARD to the **TILE 1 TRIANGLE** slot of the sliceKIT. Then, connect
+   the slice to the host PC or to the network switch using an ethernet cable.
+
+#. On the xCORE-200 series sliceKIT ensure that the xCONNECT LINK (xSCOPE) switch is set to ON,
+   as per the image, to allow xSCOPE to function.
+
+A full overview of the hardware and its features is provide in the xCORE-200 sliceKIT Hardware Manual.
 
 This example firmware is a fully compliant AVB endpoint that will interoperate with other compliant, third-party
 endpoints. An early 2011 MacBook Pro running OS X version 10.10.5 is used to demonstrate this capability. An
@@ -472,7 +482,7 @@ To run the example, a *Run Configuration* needs to be set up:
    :menuitem:`New`.
 
 #. Select the :menuitem:`Run on: hardware` option and from the target list select the xTAG connected to the
-   xCORE-200 General Purpose SliceKIT.
+   xCORE-200 sliceKIT.
 
 #. Within the :menuitem:`Target I/O options` section, the :menuitem:`xSCOPE (via xCONNECT/UART)` option should be
    selected.
@@ -489,7 +499,7 @@ Apple Mac OS X AVB setup
 
 To enumerate the XMOS AVB device as an audio device under OS X 10.10:
 
-#. Connect the xCORE-200 General Purpose SliceKIT to the Mac via the Ethernet port or Thunderbolt to Ethernet adapter.
+#. Connect the xCORE-200 sliceKIT to the Mac via the Ethernet port or Thunderbolt to Ethernet adapter.
 #. Open the *Audio MIDI Setup* utility.
 #. In the menu bar, select :menuitem:`Window,Show Network Device Browser`.
 
@@ -497,7 +507,7 @@ To enumerate the XMOS AVB device as an audio device under OS X 10.10:
        :scale: 65%
        :align: center
 
-#. The endpoint will enumerate in this list as *xCORE-200 General Purpose SliceKIT*. Select the checkbox to the left of the entry to connect
+#. The endpoint will enumerate in this list as *xCORE-200 sliceKIT*. Select the checkbox to the left of the entry to connect
    the device.
 
     .. image:: images/device_browser.*
@@ -534,7 +544,7 @@ References
 
     http://www.xmos.com/published/xmos-programming-guide
 
-  * xCore-200 General-purpose sliceKIT Board Hardware Manual  
+  * xCORE-200 sliceKIT Hardware Manual  
 
     http://www.xmos.com/
 
