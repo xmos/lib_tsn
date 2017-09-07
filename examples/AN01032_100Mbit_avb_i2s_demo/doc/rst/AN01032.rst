@@ -414,13 +414,13 @@ as required.
 Demo hardware setup and requirements
 ------------------------------------
 
-The application note is designed to run on the xCORE-200 sliceKIT, Audio-PLL and Ethernet Slice.
+The application note is designed to run on the xCORE-200 sliceKIT, Audio-PLL and Ethernet sliceCARDs.
 
-.. figure:: images/hardware_setup.png
+.. figure:: images/hardware_setup.*
    :scale: 85%
    :align: center
    
-   xCORE-200 sliceKIT
+   xCORE-200 sliceKIT with Audio-PLL and Ethernet sliceCARDs
 
 #. Connect the XTAG USB debug adapter to the sliceKIT via the supplied adaptor board
 
