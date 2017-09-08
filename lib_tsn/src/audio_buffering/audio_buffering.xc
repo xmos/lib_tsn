@@ -27,7 +27,7 @@ unsafe void media_ctl_register(chanend media_ctl,
   for (int i=0;i<num_out;i++) {
     int fifo_index;
     media_ctl :> fifo_index;
-    media_ctl <: output_fifos[i];
+    media_ctl <: output_fifos[fifo_index];
 
     audio_output_fifo_init((buffer_handle_t)output_fifos, fifo_index);
   }
