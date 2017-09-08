@@ -520,6 +520,7 @@ void application_task(client interface avb_interface avb,
   avb.set_device_media_clock_type(0, DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED);
   avb.set_device_media_clock_rate(0, default_sample_rate);
   avb.set_device_media_clock_state(0, DEVICE_MEDIA_CLOCK_STATE_ENABLED);
+  avb.set_device_media_clock_source(0, 0);
 
   for (int j=0; j < AVB_NUM_SOURCES; j++)
   {
