@@ -3,7 +3,7 @@
 
 .. appnote:: AN01032
 
-.. version:: 1.0.2
+.. version:: 1.0.3
 
 Summary
 -------
@@ -27,11 +27,11 @@ Required hardware
 
 The application note is designed to run on the following hardware : 
     
-    - XMOS xCORE-General purpose SliceKit (XP-SKC-XL216 - 1v1);
+    - X200 sliceKIT 1V0 (XK-SK-X200-ST);
 
-    - XMOS Ethernet Slice (XA-SK-E100 - 1V1);
+    - Ethernet sliceCARD (XA-SK-E100 1V1);
 
-    - XMOS Audio-pll Slice (XA-SK-AUDIO-PLL - 1v0).
+    - Audio-PLL sliceCARD (XA-SK-AUDIO-PLL 1v0).
 
 
 The described hardware setup is used for example purposes only.  The firmware can be modified to run on any xCORE-200 series device with the required external hardware.

@@ -22,47 +22,39 @@
 on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
                                                             // MAC address and serial number
 // Fixed QSPI flash ports that are used for firmware upgrade and persistent data storage
-on tile[0]: fl_QSPIPorts qspi_ports =
+fl_QSPIPorts qspi_ports =
 {
-  XS1_PORT_1B,
-  XS1_PORT_1C,
-  XS1_PORT_4B,
-  XS1_CLKBLK_1
+  PORT_SQI_CS,
+  PORT_SQI_SCLK,
+  PORT_SQI_SIO,
+  on tile[0]: XS1_CLKBLK_1
 };
 
 
-// Ports required for the Ethernet Slice in slot 4
-on tile[1]: in port p_rxclk = XS1_PORT_1J;
-on tile[1]: in port p_rxer  = XS1_PORT_1P; 
-on tile[1]: in port p_rxd   = XS1_PORT_4E; 
-on tile[1]: in port p_rxdv  = XS1_PORT_1K;
-on tile[1]: in port p_txclk = XS1_PORT_1I;
-on tile[1]: out port p_txen = XS1_PORT_1L;
-on tile[1]: out port p_txd  = XS1_PORT_4F;
-on tile[1]: port p_smi_mdio = XS1_PORT_1M;
-on tile[1]: port p_smi_mdc  = XS1_PORT_1N;
-on tile[1]: clock eth_rxclk = XS1_CLKBLK_1;
-on tile[1]: clock eth_txclk = XS1_CLKBLK_2;
+in port p_rxclk = PORT_ETH_RXCLK;
+in port p_rxer  = PORT_ETH_RXER; 
+in port p_rxd   = PORT_ETH_RXD; 
+in port p_rxdv  = PORT_ETH_RXDV;
+in port p_txclk = PORT_ETH_TXCLK;
+out port p_txen = PORT_ETH_TXEN;
+out port p_txd  = PORT_ETH_TXD;
+port p_smi_mdio = PORT_SMI_MDIO;
+port p_smi_mdc  = PORT_SMI_MDC;
+clock eth_rxclk = on tile[1]: XS1_CLKBLK_1;
+clock eth_txclk = on tile[1]: XS1_CLKBLK_2;
 
-// Ports required for the i2C interface to the CODECs and PLL on the AUDIO slice in slot 2
-on tile[0]: port p_scl = XS1_PORT_1M;
-on tile[0]: port p_sda = XS1_PORT_1N;
+port p_scl = PORT_AUD_SCL;
+port p_sda = PORT_AUD_SDA;
 
-// Ports required for the I2S and clocks on the AUDIO slice in slot 2
-
-on tile[0]: out buffered port:32 p_fs[1] = { XS1_PORT_1P }; // Low frequency PLL frequency reference
-on tile[0]: out buffered port:32 p_i2s_lrclk = XS1_PORT_1I;
-on tile[0]: out buffered port:32 p_i2s_bclk = XS1_PORT_1K;
-on tile[0]: in port p_i2s_mclk = XS1_PORT_1E;
-on tile[0]: out buffered port:32 p_aud_dout[2] = {XS1_PORT_1O, XS1_PORT_1H};
-on tile[0]: in buffered port:32 p_aud_din[2] = {XS1_PORT_1J, XS1_PORT_1L};
-on tile[0]: clock clk_i2s_bclk = XS1_CLKBLK_3;
-on tile[0]: clock clk_i2s_mclk = XS1_CLKBLK_4;
-
-
-
-on tile[0]: out port p_LEDS = XS1_PORT_4F;                 //LED1 = bit0;LED1=bit=1;
-on tile[0]: out port p_CODEC_RST_N = XS1_PORT_4E;          //bit0
+out buffered port:32 p_fs[1] = { PORT_AUD_PLL }; // Low frequency PLL frequency reference
+out buffered port:32 p_i2s_lrclk = PORT_AUD_LRCLK;
+out buffered port:32 p_i2s_bclk = PORT_AUD_SCLK;
+in port p_i2s_mclk = PORT_AUD_MCLK;
+out buffered port:32 p_aud_dout[2] = {PORT_AUD_DAC0, PORT_AUD_DAC1};
+in buffered port:32 p_aud_din[2] = {PORT_AUD_ADC0, PORT_AUD_ADC1};
+clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_2;
+clock clk_i2s_mclk = on tile[0]: XS1_CLKBLK_3;
+out port p_codec_rst_leds = PORT_AUD_CTRL;
 
 // I2C addresses for the CODECS
 const int codec1_addr = 0x48;
@@ -83,8 +75,7 @@ const int codec2_addr = 0x49;
 void buffer_manager_to_i2s(server i2s_callback_if i2s,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
-                           out port p_CODEC_RST_N,
-                           out port p_LEDS)
+                           out port p_codec_rst_leds)
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
@@ -112,7 +103,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
       i2s_config.mclk_bclk_ratio = mclk / ( cur_sample_rate * num_bits);
 
       // Bring the CODECs out of reset (They both share a reset line).
-      p_CODEC_RST_N <: 0xF;      
+      p_codec_rst_leds <: 0x01;
 
       // Let the CODEC come out reset
       delay_microseconds(10);
@@ -191,8 +182,8 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
       i2c.write_reg(codec1_addr, CODEC_PWR_CTRL_ADDR, 0x00);       
       i2c.write_reg(codec2_addr, CODEC_PWR_CTRL_ADDR, 0x00);
 
-      /* LEDS */
-      p_LEDS <: 0x3;      
+      /* Turn on LEDS */
+      p_codec_rst_leds <: 0x0D;
 
       break;
 
@@ -407,7 +398,7 @@ int main(void)
                  clk_i2s_mclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_CODEC_RST_N, p_LEDS);
+    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_codec_rst_leds);
 
     on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
 
