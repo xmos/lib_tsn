@@ -143,7 +143,7 @@ void avb_1722_maap_request_addresses(int num_addr, char (&?start_address)[])
 
   timeout_val = MAAP_PROBE_INTERVAL_BASE_CS+(maap_addr.base[5]&7);
 #if AVB_DEBUG_MAAP
-  debug_printf("MAAP: Set probe interval %d\n", timeout_val*10)
+  debug_printf("MAAP: Set probe interval %d\n", timeout_val*10);
 #endif
   start_avb_timer(maap_timer, timeout_val);
 }
