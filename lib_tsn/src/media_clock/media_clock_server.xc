@@ -55,6 +55,7 @@ void update_stream_derived_clocks(int source_num,
                                   int locked,
                                   int fill)
 {
+#if (AVB_NUM_SINKS > 0)
   for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
     if (media_clocks[i].info.active &&
         media_clocks[i].info.clock_type == DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED &&
@@ -68,11 +69,13 @@ void update_stream_derived_clocks(int source_num,
                                        fill);
       }
   }
+#endif
 }
 
 
 void inform_media_clocks_of_lock(int source_num)
 {
+#if (AVB_NUM_SINKS > 0)
  for (int i=0;i<AVB_NUM_MEDIA_CLOCKS;i++) {
     if (media_clocks[i].info.active &&
         media_clocks[i].info.clock_type == DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED &&
@@ -81,6 +84,7 @@ void inform_media_clocks_of_lock(int source_num)
         inform_media_clock_of_lock(i);
       }
  }
+#endif
 }
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
@@ -332,7 +336,7 @@ static void update_media_clocks(chanend ?ptp_svr, int clk_time)
 
 void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
                             chanend ?ptp_svr,
-                            chanend buf_ctl[num_buf_ctl], unsigned num_buf_ctl,
+                            chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                             out buffered port:32 p_fs[]
 #if COMBINE_MEDIA_CLOCK_AND_PTP
                             ,client interface ethernet_rx_if i_eth_rx,
@@ -351,9 +355,9 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
   int registered[MAX_CLK_CTL_CLIENTS];
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
   unsigned char buf_ctl_cmd;
+  unsigned fifo_init_count = AVB_NUM_MEDIA_OUTPUTS;
 #endif
   timer clk_timers[AVB_NUM_MEDIA_CLOCKS];
-  unsigned fifo_init_count = AVB_NUM_MEDIA_OUTPUTS;
 
 
 #if COMBINE_MEDIA_CLOCK_AND_PTP
@@ -362,6 +366,10 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
 
 #if (AVB_NUM_MEDIA_OUTPUTS != 0)
   init_buffers();
+  if( isnull(buf_ctl) )
+  {
+    num_buf_ctl = 0;
+  }
 #endif
 
   for (int i=0;i<MAX_CLK_CTL_CLIENTS;i++)
@@ -460,8 +468,10 @@ void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
 #endif
 
       case media_clock_ctl.set_buf_fifo(unsigned i, int fifo):
+#if (AVB_NUM_MEDIA_OUTPUTS != 0)
         buf_info[i].fifo = fifo;
         fifo_init_count--;
+#endif
         break;
       case media_clock_ctl.register_clock(unsigned i, unsigned clock_num):
         registered[i] = clock_num;

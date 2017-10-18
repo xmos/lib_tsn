@@ -96,8 +96,10 @@ void avb_1722_1_aem_descriptors_init(unsigned int serial_num)
   {
     // mac_address in AVB Interface Descriptor
     desc_avb_interface_0[70+i] = my_mac_addr[i];
+#if (AVB_NUM_SINKS > 0)
     // clock_source_identifier in clock source descriptor
     desc_clock_source_0[74+i] = my_mac_addr[i];
+#endif
   }
 
   // TODO: Should be stored centrally, possibly query PTP for ID per interface
@@ -193,7 +195,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
         desc_size_bytes = sizeof(aem_desc_audio_cluster_t);
       }
       break;
-#if (AVB_NUM_SOURCES > 0)
+#if (AVB_NUM_SINKS > 0)
     case AEM_STREAM_INPUT_TYPE:
       if (read_id < AVB_NUM_SINKS) {
         descriptor = &desc_stream_input_0[0];
@@ -251,19 +253,25 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
     {
       memset(cluster->object_name, 0, 64);
       strcpy((char *)cluster->object_name, "Input ");
+#if (AVB_NUM_SINKS > 0)
       generate_object_name((char *)cluster->object_name, (int)id_num, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS);
+#else
+      generate_object_name((char *)cluster->object_name, (int)id_num, 0);
+#endif
     }
 
     if (read_type == AEM_STREAM_PORT_OUTPUT_TYPE) {
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
       hton_16(stream_port->base_cluster, AVB_NUM_MEDIA_OUTPUTS + (read_id * AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES));
-      hton_16(stream_port->base_map, AVB_NUM_SOURCES + read_id);
+      hton_16(stream_port->base_map, AVB_NUM_SINKS + read_id);
     }
+#if (AVB_NUM_SINKS > 0)
     else if (read_type == AEM_STREAM_PORT_INPUT_TYPE) {
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
       hton_16(stream_port->base_cluster, read_id * AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS);
       hton_16(stream_port->base_map, read_id);
     }
+#endif
 
     found_descriptor = 1;
   }
@@ -298,7 +306,11 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 
       for (int i=0; i < num_mappings; i++)
       {
+#if (AVB_NUM_SINKS > 0)
         hton_16(audio_map->mappings[i].mapping_stream_index, read_id % AVB_NUM_SINKS);
+#else
+        hton_16(audio_map->mappings[i].mapping_stream_index, read_id);
+#endif
         hton_16(audio_map->mappings[i].mapping_stream_channel, i);
         hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
         hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // Single channel audio clusters

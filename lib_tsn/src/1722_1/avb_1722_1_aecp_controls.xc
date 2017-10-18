@@ -446,7 +446,7 @@ unsafe void process_aem_cmd_startstop_streaming(avb_1722_1_aecp_packet_t *unsafe
       }
       else
       {
-        if (state == AVB_SINK_STATE_ENABLED)
+        if (state == AVB_SOURCE_STATE_ENABLED)
         {
           avb.set_source_state(stream_index, AVB_SOURCE_STATE_POTENTIAL);
         }

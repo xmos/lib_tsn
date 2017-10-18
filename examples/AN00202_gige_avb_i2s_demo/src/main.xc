@@ -44,7 +44,9 @@ on tile[0]: out buffered port:32 p_fs[1] = { XS1_PORT_1A }; // Low frequency PLL
 on tile[0]: out buffered port:32 p_i2s_lrclk = XS1_PORT_1G;
 on tile[0]: out buffered port:32 p_i2s_bclk = XS1_PORT_1H;
 on tile[0]: in port p_i2s_mclk = XS1_PORT_1F;
+#if AVB_NUM_MEDIA_OUTPUTS
 on tile[0]: out buffered port:32 p_aud_dout[4] = {XS1_PORT_1M, XS1_PORT_1N, XS1_PORT_1O, XS1_PORT_1P};
+#endif
 on tile[0]: in buffered port:32 p_aud_din[4] = {XS1_PORT_1I, XS1_PORT_1J, XS1_PORT_1K, XS1_PORT_1L};
 on tile[0]: clock clk_i2s_bclk = XS1_CLKBLK_3;
 on tile[0]: clock clk_i2s_mclk = XS1_CLKBLK_4;
@@ -93,7 +95,9 @@ on tile[0]: out port p_audio_shared = XS1_PORT_8C;
 void buffer_manager_to_i2s(server i2s_callback_if i2s,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
+#if AVB_NUM_MEDIA_OUTPUTS
                            streaming chanend c_sound_activity,
+#endif
                            int synth_sinewave_channel_mask,
                            client output_gpio_if dac_reset,
                            client output_gpio_if adc_reset,
@@ -102,14 +106,19 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
+#if AVB_NUM_MEDIA_OUTPUTS
   int32_t *unsafe sample_out_buf;
-  unsigned cur_sample_rate;
   const int sound_activity_threshold = 100000;
   const int sound_activity_update_interval = 2500;
   int sound_activity_update = 0;
-  int sinewave_index = 0;
   int channel_mask = 0;
+#else
+  unsigned sample_out_count = 0;
+#endif
+  unsigned cur_sample_rate;
+  int sinewave_index = 0;
   timer tmr;
+
 
   audio_clock_CS2100CP_init(i2c);
 
@@ -194,6 +203,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
       break;
 
     case i2s.restart_check() -> i2s_restart_t restart:
+#if AVB_NUM_MEDIA_OUTPUTS
       unsafe {
         if (sample_out_buf[8]) {
           restart = I2S_RESTART;
@@ -206,6 +216,9 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           restart = I2S_NO_RESTART;
         }
       }
+#else
+      restart = I2S_NO_RESTART;
+#endif
       break; // End of restart check
 
     case i2s.receive(size_t index, int32_t sample):
@@ -221,10 +234,23 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           if (sinewave_index == 256)
             sinewave_index = 0;
         }
+
+#if !AVB_NUM_MEDIA_OUTPUTS
+        sample_out_count++;
+        if( sample_out_count == AVB_NUM_MEDIA_INPUTS )
+        {
+          tmr :> p_in_frame->timestamp;
+          audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
+          c_audio <: p_in_frame;
+          p_in_frame = new_frame;
+          sample_out_count = 0;
+        }
+#endif
       }
       break;
 
     case i2s.send(size_t index) -> int32_t sample:
+#if AVB_NUM_MEDIA_OUTPUTS
       unsafe {
         if (index == 0) {
           c_audio :> sample_out_buf;
@@ -253,6 +279,7 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
           }
         }
       }
+#endif
       break; // End of send
     }
   }
@@ -261,8 +288,11 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
 
 [[combinable]]
 void ar8035_phy_driver(client interface smi_if smi,
-                client interface ethernet_cfg_if eth,
-                streaming chanend c_sound_activity) {
+                client interface ethernet_cfg_if eth
+#if AVB_NUM_MEDIA_OUTPUTS
+                , streaming chanend c_sound_activity
+#endif
+                ) {
   ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
   ethernet_speed_t link_speed = LINK_1000_MBPS_FULL_DUPLEX;
   const int phy_reset_delay_ms = 1;
@@ -318,8 +348,10 @@ void ar8035_phy_driver(client interface smi_if smi,
       }
       t += link_poll_period_ms * XS1_TIMER_KHZ;
       break;
+#if AVB_NUM_MEDIA_OUTPUTS
     case c_sound_activity :> channel_mask:
       break;
+#endif
     case tmr2 when timerafter(t2) :> void:
       p_leds_row <: ~(flashing_on * channel_mask);
       flashing_on ^= 1;
@@ -332,13 +364,13 @@ void ar8035_phy_driver(client interface smi_if smi,
 enum mac_rx_lp_clients {
   MAC_TO_MEDIA_CLOCK_PTP = 0,
   MAC_TO_1722_1,
-  NUM_ETH_TX_LP_CLIENTS
+  NUM_ETH_RX_LP_CLIENTS
 };
 
 enum mac_tx_lp_clients {
   MEDIA_CLOCK_PTP_TO_MAC = 0,
   AVB1722_1_TO_MAC,
-  NUM_ETH_RX_LP_CLIENTS
+  NUM_ETH_TX_LP_CLIENTS
 };
 
 enum mac_cfg_clients {
@@ -389,7 +421,9 @@ int main(void)
   ethernet_cfg_if i_eth_cfg[NUM_ETH_CFG_CLIENTS];
   ethernet_rx_if i_eth_rx_lp[NUM_ETH_RX_LP_CLIENTS];
   ethernet_tx_if i_eth_tx_lp[NUM_ETH_TX_LP_CLIENTS];
+#if AVB_NUM_LISTENER_UNITS
   streaming chan c_eth_rx_hp;
+#endif
   streaming chan c_eth_tx_hp;
   smi_if i_smi;
   streaming chan c_rgmii_cfg;
@@ -399,8 +433,10 @@ int main(void)
 
   // AVB unit control
   chan c_talker_ctl[AVB_NUM_TALKER_UNITS];
+#if AVB_NUM_LISTENER_UNITS
   chan c_listener_ctl[AVB_NUM_LISTENER_UNITS];
   chan c_buf_ctl[AVB_NUM_LISTENER_UNITS];
+#endif
 
   // Media control
   chan c_media_ctl[AVB_NUM_MEDIA_UNITS];
@@ -419,27 +455,46 @@ int main(void)
   streaming chan c_audio;
   interface push_if i_audio_in_push;
   interface pull_if i_audio_in_pull;
+#if AVB_NUM_LISTENER_UNITS
   interface push_if i_audio_out_push;
+#endif
+#if AVB_NUM_MEDIA_OUTPUTS || AVB_NUM_LISTENER_UNITS
   interface pull_if i_audio_out_pull;
+#endif
+#if AVB_NUM_MEDIA_OUTPUTS
   streaming chan c_sound_activity;
+#endif
 
   par
   {
     on tile[1]: rgmii_ethernet_mac(i_eth_rx_lp, NUM_ETH_RX_LP_CLIENTS,
                                    i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
-                                   c_eth_rx_hp, c_eth_tx_hp,
+#if AVB_NUM_LISTENER_UNITS
+                                   c_eth_rx_hp,
+#else
+                                   null,
+#endif
+                                   c_eth_tx_hp,
                                    c_rgmii_cfg,
                                    rgmii_ports,
                                    ETHERNET_DISABLE_SHAPER);
 
     on tile[1].core[0]: rgmii_ethernet_mac_config(i_eth_cfg, NUM_ETH_CFG_CLIENTS, c_rgmii_cfg);
-    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER], c_sound_activity);
+    on tile[1].core[0]: ar8035_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]
+#if AVB_NUM_MEDIA_OUTPUTS
+                                                           , c_sound_activity
+#endif
+                                                           );
 
     on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
     on tile[0]: gptp_media_clock_server(i_media_clock_ctl,
                                         null,
+#if AVB_NUM_LISTENER_UNITS
                                         c_buf_ctl,
+#else
+                                        null,
+#endif
                                         AVB_NUM_LISTENER_UNITS,
                                         p_fs,
                                         i_eth_rx_lp[MAC_TO_MEDIA_CLOCK_PTP],
@@ -456,7 +511,12 @@ int main(void)
       configure_clock_src(clk_i2s_mclk, p_i2s_mclk);
       start_clock(clk_i2s_mclk);
       i2s_master(i_i2s,
-                 p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
+#if AVB_NUM_MEDIA_OUTPUTS
+                 p_aud_dout,
+#else
+                 null,
+#endif
+                 AVB_NUM_MEDIA_OUTPUTS/2,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
                  p_i2s_bclk,
                  p_i2s_lrclk,
@@ -464,10 +524,21 @@ int main(void)
                  clk_i2s_mclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], c_sound_activity, 0xC,
+    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C],
+#if AVB_NUM_MEDIA_OUTPUTS
+                                                     c_sound_activity,
+#endif
+                                                     0xC,
                                                      i_gpio[0], i_gpio[1], i_gpio[2], i_gpio[3]);
 
-    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
+    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push,
+#if AVB_NUM_MEDIA_OUTPUTS || AVB_NUM_LISTENER_UNITS
+                                      i_audio_out_pull,
+#else
+                                      null,
+#endif
+                                      c_media_ctl[0], 
+                                      AUDIO_I2S_IO);
 
     on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
 
@@ -477,7 +548,9 @@ int main(void)
                                 AVB_NUM_SOURCES,
                                 i_audio_in_pull);
 
-    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
+#if AVB_NUM_LISTENER_UNITS
+    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push,
+                                                          i_audio_out_pull);
 
     on tile[0]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
@@ -485,6 +558,8 @@ int main(void)
                                   c_listener_ctl[0],
                                   AVB_NUM_SINKS,
                                   i_audio_out_push);
+#endif
+
 
     on tile[0]: {
       char mac_address[6];
@@ -497,7 +572,11 @@ int main(void)
         avb_manager(i_avb, NUM_AVB_MANAGER_CHANS,
                      null,
                      c_media_ctl,
+#if AVB_NUM_LISTENER_UNITS
                      c_listener_ctl,
+#else
+                     null,
+#endif
                      c_talker_ctl,
                      i_eth_cfg[MAC_CFG_TO_AVB_MANAGER],
                      i_media_clock_ctl);
@@ -526,7 +605,11 @@ void application_task(client interface avb_interface avb,
   unsigned char aem_identify_control_value = 0;
 
   // Initialize the media clock
+#if (AVB_NUM_SINKS > 0)
   avb.set_device_media_clock_type(0, DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED);
+#else
+  avb.set_device_media_clock_type(0, DEVICE_MEDIA_CLOCK_LOCAL_CLOCK);
+#endif
   avb.set_device_media_clock_rate(0, default_sample_rate);
   avb.set_device_media_clock_state(0, DEVICE_MEDIA_CLOCK_STATE_ENABLED);
   avb.set_device_media_clock_source(0, 0);
@@ -542,6 +625,7 @@ void application_task(client interface avb_interface avb,
     avb.set_source_channels(j, channels_per_stream);
   }
 
+#if AVB_NUM_SINKS
   for (int j=0; j < AVB_NUM_SINKS; j++)
   {
     const int channels_per_stream = AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS;
@@ -552,6 +636,7 @@ void application_task(client interface avb_interface avb,
     avb.set_sink_sync(j, 0);
     avb.set_sink_channels(j, channels_per_stream);
   }
+#endif
 
   while (1)
   {

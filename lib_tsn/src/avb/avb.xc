@@ -160,7 +160,10 @@ void avb_init(chanend c_media_ctl[],
   unsigned char mac_addr[6];
   i_eth_cfg.get_macaddr(0, mac_addr);
   register_talkers(c_talker_ctl, mac_addr);
-  register_listeners(c_listener_ctl);
+  if( !isnull(c_listener_ctl) )
+  {
+    register_listeners(c_listener_ctl);
+  }
 }
 
 static int valid_to_leave_vlan(int vlan)
@@ -555,12 +558,14 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
       info = sinks[sink_num];
       break;
     case avb[int i]._set_sink_info(unsigned sink_num, avb_sink_info_t info):
+#if AVB_NUM_LISTENER_UNITS
       enum avb_sink_state_t prev_state = sinks[sink_num].stream.state;
       sinks[sink_num] = info;
       unsafe {
         update_sink_state(sink_num, prev_state, info.stream.state, i_eth_cfg,
                           i_media_clock_ctl, i_srp);
       }
+#endif
       break;
     case avb[int i]._get_media_clock_info(unsigned clock_num)
       -> media_clock_info_t info:

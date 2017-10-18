@@ -47,7 +47,9 @@ enum device_media_clock_state_t
 /** The type of source to use as a media clock */
 enum device_media_clock_type_t
 {
+#if (AVB_NUM_SINKS > 0)
   DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED, /*!< The clock is sourced from the media clock of an Input Stream */
+#endif
   DEVICE_MEDIA_CLOCK_LOCAL_CLOCK           /*!< The clock is sourced from within the entity from the local crystal oscillator */
 };
 
@@ -1004,8 +1006,10 @@ extends client interface avb_interface : {
     info = i._get_media_clock_info(clock_num);
     info.clock_type = clock_type;
     debug_printf("Setting clock source:");
-    if (info.clock_type) debug_printf(" LOCAL_CLOCK\n");
-    else debug_printf(" INPUT_STREAM_DERIVED\n");
+    if (info.clock_type == DEVICE_MEDIA_CLOCK_LOCAL_CLOCK) 
+      debug_printf(" LOCAL_CLOCK\n");
+    else
+      debug_printf(" INPUT_STREAM_DERIVED\n");
     i._set_media_clock_info(clock_num, info);
     return 1;
   }
@@ -1196,7 +1200,7 @@ void avb_1722_listener(streaming chanend c_eth_rx_hp,
  */
 void gptp_media_clock_server(server interface media_clock_if media_clock_ctl,
                             chanend ?ptp_svr,
-                            chanend buf_ctl[num_buf_ctl], unsigned num_buf_ctl,
+                            chanend (&?buf_ctl)[num_buf_ctl], unsigned num_buf_ctl,
                             out buffered port:32 p_fs[],
                             client interface ethernet_rx_if i_eth_rx,
                             client interface ethernet_tx_if i_eth_tx,

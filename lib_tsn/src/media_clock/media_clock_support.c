@@ -113,7 +113,6 @@ unsigned int update_media_clock(chanend ptp_svr,
 								unsigned int t2,
 								int period0) {
 	clock_info_t *clock_info = &clock_states[clock_index];
-	long long diff_local;
 	int clock_type = mclock->info.clock_type;
 
 	switch (clock_type) {
@@ -121,7 +120,9 @@ unsigned int update_media_clock(chanend ptp_svr,
 		return local_wordlen_to_external_wordlen(clock_info->wordlen);
 		break;
 
+#if (AVB_NUM_SINKS > 0)
 	case DEVICE_MEDIA_CLOCK_INPUT_STREAM_DERIVED: {
+		long long diff_local;
 		long long ierror, perror;
 
 		// If the stream info isn't valid at all, then return the default clock rate
@@ -159,23 +160,22 @@ unsigned int update_media_clock(chanend ptp_svr,
 			} else
 				perror = ierror - clock_info->ierror;
 
-			clock_info->ierror = ierror;
+				clock_info->ierror = ierror;
 
 #if 0
-			// These values were tuned for CS2300-CP PLL
-			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 32) - ((ierror / diff_local) / 4);
+				// These values were tuned for CS2300-CP PLL
+				clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 32) - ((ierror / diff_local) / 4);
 #else
-			// and these for CS2100-CP PLL
-			clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 80)/11 - ((ierror / diff_local) * 1) / 5;
+				// and these for CS2100-CP PLL
+				clock_info->wordlen = clock_info->wordlen - ((perror / diff_local) * 80)/11 - ((ierror / diff_local) * 1) / 5;
 #endif
 
-			clock_info->stream_info1 = clock_info->stream_info2;
-			clock_info->stream_info2.valid = 0;
+				clock_info->stream_info1 = clock_info->stream_info2;
+				clock_info->stream_info2.valid = 0;
+			}
 		}
 		break;
-	}
-
-		break;
+#endif
 	}
 
 	return local_wordlen_to_external_wordlen(clock_info->wordlen);
