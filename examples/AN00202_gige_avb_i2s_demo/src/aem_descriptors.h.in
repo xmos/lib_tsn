@@ -64,7 +64,11 @@ unsigned char desc_configuration_0[] =
   U16(AEM_AVB_INTERFACE_TYPE),
   U16(1),
   U16(AEM_CLOCK_SOURCE_TYPE),
+#if (AVB_NUM_SINKS > 0)
   U16(2),
+#else
+  U16(1),
+#endif
   U16(AEM_LOCALE_TYPE),
   U16(1),
   U16(AEM_MEMORY_OBJECT_TYPE),
@@ -225,7 +229,11 @@ unsigned char desc_stream_port_output_0[] =
   U16(0),                                     /* number_of_controls */
   U16(0),                                     /* base_control */
   U16(AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES),  /* number_of_clusters */
+#if (AVB_NUM_SINKS > 0)
   U16(AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS),   /* base_cluster */
+#else
+  U16(0),                                     /* base_cluster */
+#endif
   U16(1),                                     /* number_of_maps */
   U16(1)                                      /* base_map */
 };
@@ -437,16 +445,16 @@ unsigned char desc_stream_output_0[] =
   AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
   0, // label_midi_cnt[0:3], label_smptecnt[4:]
   // 96 
-  0x00, 0xa0, 0x04, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x00, 0xa0, 0x04, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
-  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
+  AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
   0, // label_midi_cnt[0:3], label_smptecnt[4:]
   // 192
-  0x00, 0xa0, 0x06, AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS,
+  0x00, 0xa0, 0x06, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES,
   0x40, // b[0], nb[1], reserved[2:]
   0, // label_iec_60958_cnt
-  AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS, // label_mbla_cnt
+  AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES, // label_mbla_cnt
   0 // label_midi_cnt[0:3], label_smptecnt[4:]
 };
 #endif
@@ -509,6 +517,7 @@ unsigned char desc_clock_source_0[] =
 {
   U16(AEM_CLOCK_SOURCE_TYPE),                 /* 0-1 descriptor_type */
   U16(0),                                     /* 2-3 descriptor_id */
+#if (AVB_NUM_SINKS > 0)
   "Input Stream",                             /* 4-67 object_name */
   U16(AEM_NO_STRING),                         /* 68-69 localized_description */
   U16(AEM_CLOCK_SOURCE_FLAGS_LOCAL_ID),       /* 70-71 clock_source_flags */
@@ -522,6 +531,7 @@ unsigned char desc_clock_source_1[] =
 {
   U16(AEM_CLOCK_SOURCE_TYPE),                 /* 0-1 descriptor_type */
   U16(1),                                     /* 2-3 descriptor_id */
+#endif
   "Internal Clock",                           /* 4-67 object_name */
   U16(AEM_NO_STRING),                         /* 68-69 localized_description */
   U16(0),                                     /* 70-71 clock_source_flags */
@@ -601,7 +611,11 @@ unsigned int aem_descriptor_list[] =
   AEM_JACK_INPUT_TYPE, 1, sizeof(desc_jack_input_0), (unsigned)desc_jack_input_0,
   AEM_JACK_OUTPUT_TYPE, 1, sizeof(desc_jack_output_0), (unsigned)desc_jack_output_0,
   AEM_AVB_INTERFACE_TYPE, 1, sizeof(desc_avb_interface_0), (unsigned)desc_avb_interface_0,
+#if (AVB_NUM_SINKS > 0)
   AEM_CLOCK_SOURCE_TYPE, 2, sizeof(desc_clock_source_0), (unsigned)desc_clock_source_0, sizeof(desc_clock_source_1), (unsigned)desc_clock_source_1,
+#else
+  AEM_CLOCK_SOURCE_TYPE, 1, sizeof(desc_clock_source_0), (unsigned)desc_clock_source_0,
+#endif
   AEM_MEMORY_OBJECT_TYPE, 1, sizeof(desc_upgrade_image_memory_object_0), (unsigned)desc_upgrade_image_memory_object_0,
   AEM_LOCALE_TYPE, 1, sizeof(desc_locale_0), (unsigned)desc_locale_0,
   AEM_STRINGS_TYPE, 1, sizeof(desc_strings_0), (unsigned)desc_strings_0,

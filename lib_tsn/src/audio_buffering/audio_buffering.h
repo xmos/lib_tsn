@@ -58,7 +58,7 @@ typedef enum audio_io_t
 
 void audio_buffer_manager(streaming chanend c_audio,
                            client push_if audio_input_buf,
-                           client pull_if audio_output_buf,
+                           client pull_if? audio_output_buf,
                            chanend c_media_ctrl,
                            const audio_io_t audio_io_type);
 unsafe void media_ctl_register(chanend media_ctl,

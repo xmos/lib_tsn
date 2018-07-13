@@ -207,27 +207,34 @@ unsafe void avb_1722_talker_send_packets(streaming chanend c_eth_tx_hp,
                                         audio_double_buffer_t &sample_buffer)
 {
   volatile audio_double_buffer_t *unsafe p_buffer =  (audio_double_buffer_t *unsafe) &sample_buffer;
-  if (!p_buffer->data_ready) {
-    return;
-  }
-
-  unsigned rd_buf = !p_buffer->active_buffer;
-  audio_frame_t * unsafe frame = (audio_frame_t *)&p_buffer->buffer[rd_buf];
 
   if (st.max_active_avb_stream != -1) {
-    for (int i=0; i < (st.max_active_avb_stream+1); i++) {
-      if (st.talker_streams[i].active==2) { // TODO: Replace int with enum
-        int packet_size = avb1722_create_packet((st.tx_buf[i], unsigned char[]),
-                                                st.talker_streams[i],
-                                                timeInfo,
-                                                frame, i);
-        if (!st.tx_buf_fill_size[i]) st.tx_buf_fill_size[i] = packet_size;
-      }
-      if (i == st.max_active_avb_stream) {
-        p_buffer->data_ready = 0;
+    if (p_buffer->data_ready) {
+
+      unsigned rd_buf = !p_buffer->active_buffer;
+      audio_frame_t * unsafe frame = (audio_frame_t *)&p_buffer->buffer[rd_buf];
+
+      for (int i=0; i < (st.max_active_avb_stream+1); i++) {
+        if (st.talker_streams[i].active==2) { // TODO: Replace int with enum
+          int packet_size = st.tx_buf_fill_size[i];
+          if (packet_size) { // Buffer contains queued packet -- send immediately before overwriting data
+            ethernet_send_hp_packet(c_eth_tx_hp, &(st.tx_buf[i], unsigned char[])[2], packet_size, ETHERNET_ALL_INTERFACES);
+            st.tx_buf_fill_size[i] = 0;
+            st.counters.sent_1722++;
+          }
+          packet_size = avb1722_create_packet((st.tx_buf[i], unsigned char[]),
+                                                    st.talker_streams[i],
+                                                    timeInfo,
+                                                    frame, i);
+          if (!st.tx_buf_fill_size[i]) st.tx_buf_fill_size[i] = packet_size;
+        }
+        if (i == st.max_active_avb_stream) {
+          p_buffer->data_ready = 0;
+        }
       }
     }
 
+    // Flush queued buffers (one per call to function)
     for (int i=0; i < (st.max_active_avb_stream+1); i++) {
       int packet_size = st.tx_buf_fill_size[i];
       if (packet_size) {

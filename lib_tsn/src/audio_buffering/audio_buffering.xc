@@ -39,7 +39,7 @@ static void init_audio_input_buffer(audio_double_buffer_t &buffer)
   buffer.data_ready = 0;
 }
 
-static void init_audio_output_fifos(struct output_finfo &inf,
+void init_audio_output_fifos(struct output_finfo &inf,
                        audio_output_fifo_data_t ofifo_data[],
                        int n)
 {
@@ -49,7 +49,6 @@ static void init_audio_output_fifos(struct output_finfo &inf,
     }
   }
 }
-
 
 [[always_inline]]
 #pragma unsafe arrays
@@ -109,7 +108,7 @@ void audio_output_sample_buffer(server push_if i_push, server pull_if i_pull)
 #pragma unsafe arrays
 void audio_buffer_manager(streaming chanend c_audio,
                          client push_if audio_input_buf,
-                         client pull_if audio_output_buf,
+                         client pull_if? audio_output_buf,
                          chanend c_media_ctl,
                          const audio_io_t audio_io_type)
 {
@@ -117,12 +116,18 @@ void audio_buffer_manager(streaming chanend c_audio,
     buffer_handle_t h_in = audio_input_buf.get_handle();
     audio_double_buffer_t *unsafe input_sample_buf = ((struct input_finfo *)h_in)->p_buffer;
 
-    buffer_handle_t h_out = audio_output_buf.get_handle();
-    audio_output_fifo_t *unsafe output_sample_buf = (audio_output_fifo_t *unsafe)((struct output_finfo *)h_out)->p_buffer;
-    media_ctl_register(c_media_ctl, AVB_NUM_MEDIA_INPUTS,
-                      output_sample_buf, AVB_NUM_MEDIA_OUTPUTS, 0);
+    buffer_handle_t h_out = null;
+    audio_output_fifo_t *unsafe output_sample_buf = null;
     unsigned ctl_command;
     unsigned sample_rate;
+
+    if( !isnull(audio_output_buf) && AVB_NUM_MEDIA_OUTPUTS )
+    {
+      h_out = audio_output_buf.get_handle();
+      output_sample_buf = (audio_output_fifo_t *unsafe)((struct output_finfo *)h_out)->p_buffer;
+    }
+    media_ctl_register(c_media_ctl, AVB_NUM_MEDIA_INPUTS,
+                      output_sample_buf, AVB_NUM_MEDIA_OUTPUTS, 0);
 
     c_media_ctl :> ctl_command;
     c_media_ctl :> sample_rate;
@@ -164,30 +169,33 @@ void audio_buffer_manager(streaming chanend c_audio,
             break;
 
           default:
-            unsafe {
-              if (audio_io_type == AUDIO_I2S_IO) {
-                #pragma loop unroll
-                for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
-                                                                    timestamp);
+            if( !isnull(audio_output_buf) )
+            {
+              unsafe {
+                if (audio_io_type == AUDIO_I2S_IO) {
+                  #pragma loop unroll
+                  for (int i=0;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
+                    sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
+                                                                      timestamp);
+                  }
+                  #pragma loop unroll
+                  for (int i=1;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
+                    sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
+                                                                      timestamp);
+                  }
+                  c_audio <: (int32_t *unsafe)&sample_out_buf;
                 }
-                #pragma loop unroll
-                for (int i=1;i<AVB_NUM_MEDIA_OUTPUTS;i+=2) {
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, i,
-                                                                    timestamp);
+                else {
+                  #pragma loop unroll
+                  for (int i=0;i<AVB_NUM_SINKS;i++) { // FIXME: This should be number of TDM lines
+                    int index = channel + (i*8);
+                    sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, index,
+                                                                      timestamp);
+                  }
+                  c_audio <: (int32_t *unsafe)&sample_out_buf;
+                  channel++;
+                  if (channel == 8) channel = 0;
                 }
-                c_audio <: (int32_t *unsafe)&sample_out_buf;
-              }
-              else {
-                #pragma loop unroll
-                for (int i=0;i<AVB_NUM_SINKS;i++) { // FIXME: This should be number of TDM lines
-                  int index = channel + (i*8);
-                  sample_out_buf[i] = audio_output_fifo_pull_sample(h_out, index,
-                                                                    timestamp);
-                }
-                c_audio <: (int32_t *unsafe)&sample_out_buf;
-                channel++;
-                if (channel == 8) channel = 0;
               }
             }
             break;
