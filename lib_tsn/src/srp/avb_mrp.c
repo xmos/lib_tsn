@@ -1157,36 +1157,59 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 
       avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
 
-      if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[i]) {
-        debug_printf("Talker Advertise -> Failed for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
-        attrs[j].attribute_type = MSRP_TALKER_FAILED;
-        if (reservation) {
-          avb_stream_entry *stream_info = attrs[j].attribute_info;
-          stream_info->talker_present = 0;
-          reservation->failure_code = 8;
-          for (int i=0; i < 8; i++) {
-            mrp_ethernet_hdr *hdr = (mrp_ethernet_hdr *) &send_buf[0];
-            if (i < 2) {
-              reservation->failure_bridge_id[i] = 0;
-            } else {
-              reservation->failure_bridge_id[i] = hdr->src_addr[i];
+      // AVB_mrp_mad_join() is supposed to handle DECLARATIONS that an XMOS talker has made. 
+      // Unfortunately it runs this code for registrations as well and the join will turn 
+      // the registration into a declaration. That is bad behavior and can result in 
+      // listener only devices declaring themselves as talkers.      
+      // the work around is to make sure that AVB_mrp_mad_join() is only called for attributes 
+      // that are declaring.
+      if (attrs[j].applicant_state == AVB_MRP_VP ||
+          attrs[j].applicant_state == AVB_MRP_VN ||
+          attrs[j].applicant_state == AVB_MRP_AN ||
+          attrs[j].applicant_state == AVB_MRP_AA |
+          attrs[j].applicant_state == AVB_MRP_QA ||
+          attrs[j].applicant_state == AVB_MRP_LA ||
+          attrs[j].applicant_state == AVB_MRP_AP)
+      {
+        if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[i]) 
+        {
+          debug_printf("Talker Advertise -> Failed for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
+          attrs[j].attribute_type = MSRP_TALKER_FAILED;
+          
+          if (reservation) 
+          {
+            avb_stream_entry *stream_info = attrs[j].attribute_info;
+            stream_info->talker_present = 0;
+            reservation->failure_code = 8;
+            for (int i=0; i < 8; i++) 
+            {
+              mrp_ethernet_hdr *hdr = (mrp_ethernet_hdr *) &send_buf[0];
+              if (i < 2) 
+              {
+                reservation->failure_bridge_id[i] = 0;
+              } 
+              else 
+              {
+                reservation->failure_bridge_id[i] = hdr->src_addr[i];
+              }
             }
           }
+          if (attrs[j].here)
+            mrp_mad_join(&attrs[j], 1);
         }
-        if (attrs[j].here)
-          mrp_mad_join(&attrs[j], 1);
-      }
-      else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
-                !srp_domain_boundary_port[i] &&
-                reservation && reservation->failure_code == 8
-              ) {
-        attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
-        avb_stream_entry *stream_info = attrs[j].attribute_info;
-        stream_info->talker_present = 1;
-        debug_printf("Talker Failed -> Advertise for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
-        if (attrs[j].here)
-          mrp_mad_join(&attrs[j], 1);
-      }
+        else if ((attrs[j].attribute_type == MSRP_TALKER_FAILED) &&
+                  !srp_domain_boundary_port[i] &&
+                  reservation && reservation->failure_code == 8
+                ) 
+        {
+          attrs[j].attribute_type = MSRP_TALKER_ADVERTISE;
+          avb_stream_entry *stream_info = attrs[j].attribute_info;
+          stream_info->talker_present = 1;
+          debug_printf("Talker Failed -> Advertise for stream %x%x\n", reservation->stream_id[0], reservation->stream_id[1]);
+          if (attrs[j].here)
+            mrp_mad_join(&attrs[j], 1);
+        }
+      }      
 
   #ifdef MRP_FULL_PARTICIPANT
       if (avb_timer_expired(&attrs[j].leaveTimer))
