@@ -1157,19 +1157,19 @@ void mrp_periodic(CLIENT_INTERFACE(avb_interface, avb))
 
       avb_srp_info_t *reservation = (avb_srp_info_t *) attrs[j].attribute_info;
 
-      // AVB_mrp_mad_join() is supposed to handle DECLARATIONS that an XMOS talker has made. 
+      // mrp_mad_join() is supposed to handle DECLARATIONS that an XMOS talker has made. 
       // Unfortunately it runs this code for registrations as well and the join will turn 
       // the registration into a declaration. That is bad behavior and can result in 
       // listener only devices declaring themselves as talkers.      
-      // the work around is to make sure that AVB_mrp_mad_join() is only called for attributes 
+      // the work around is to make sure that mrp_mad_join() is only called for attributes 
       // that are declaring.
-      if (attrs[j].applicant_state == AVB_MRP_VP ||
-          attrs[j].applicant_state == AVB_MRP_VN ||
-          attrs[j].applicant_state == AVB_MRP_AN ||
-          attrs[j].applicant_state == AVB_MRP_AA |
-          attrs[j].applicant_state == AVB_MRP_QA ||
-          attrs[j].applicant_state == AVB_MRP_LA ||
-          attrs[j].applicant_state == AVB_MRP_AP)
+      if (attrs[j].applicant_state == MRP_VP ||
+          attrs[j].applicant_state == MRP_VN ||
+          attrs[j].applicant_state == MRP_AN ||
+          attrs[j].applicant_state == MRP_AA |
+          attrs[j].applicant_state == MRP_QA ||
+          attrs[j].applicant_state == MRP_LA ||
+          attrs[j].applicant_state == MRP_AP)
       {
         if ((attrs[j].attribute_type == MSRP_TALKER_ADVERTISE) && srp_domain_boundary_port[i]) 
         {
