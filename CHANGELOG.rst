@@ -1,6 +1,12 @@
 TSN library change log
 ======================
 
+UNRELEASED
+----------
+
+  * CHANGED:   Added support for xcommon-cmake build system 
+  * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo  
+
 8.0.0
 -----
 
