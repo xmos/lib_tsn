@@ -4,7 +4,7 @@
 #include <print.h>
 #include <string.h>
 #include <xscope.h>
-#include "gpio.h"
+// #include "gpio.h"
 #include "i2s.h"
 #include "i2c.h"
 #include "avb.h"
@@ -31,6 +31,7 @@ fl_QSPIPorts qspi_ports =
 };
 
 
+
 in port p_rxclk = PORT_ETH_RXCLK;
 in port p_rxer  = PORT_ETH_RXER; 
 in port p_rxd   = PORT_ETH_RXD; 
@@ -48,12 +49,11 @@ port p_sda = PORT_AUD_SDA;
 
 out buffered port:32 p_fs[1] = { PORT_AUD_PLL }; // Low frequency PLL frequency reference
 out buffered port:32 p_i2s_lrclk = PORT_AUD_LRCLK;
-out buffered port:32 p_i2s_bclk = PORT_AUD_SCLK;
+out port p_i2s_bclk = PORT_AUD_SCLK;
 in port p_i2s_mclk = PORT_AUD_MCLK;
 out buffered port:32 p_aud_dout[2] = {PORT_AUD_DAC0, PORT_AUD_DAC1};
 in buffered port:32 p_aud_din[2] = {PORT_AUD_ADC0, PORT_AUD_ADC1};
 clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_2;
-clock clk_i2s_mclk = on tile[0]: XS1_CLKBLK_3;
 out port p_codec_rst_leds = PORT_AUD_CTRL;
 
 // I2C addresses for the CODECS
@@ -72,14 +72,14 @@ const int codec2_addr = 0x49;
 
 #pragma unsafe arrays
 [[always_inline]][[distributable]]
-void buffer_manager_to_i2s(server i2s_callback_if i2s,
+void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
                            streaming chanend c_audio,
                            client interface i2c_master_if i2c,
                            out port p_codec_rst_leds)
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
-  int32_t *unsafe sample_out_buf;
+  int32_t *unsafe sample_out_buf = NULL;
   unsigned cur_sample_rate;
   timer tmr;
 
@@ -190,8 +190,10 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
     case i2s.restart_check() -> i2s_restart_t restart:
 
       unsafe {
-        if (sample_out_buf[8]) {
-          restart = I2S_RESTART;
+        /* Ensure we have received our first sample buf first and then
+           check for magic value which indicates a sample rate change */
+        if (sample_out_buf != NULL && sample_out_buf[AVB_NUM_MEDIA_INPUTS + AVB_NUM_MEDIA_OUTPUTS]) {
+          restart = I2S_RESTART;        
           while (!stestct(c_audio)) {
             c_audio :> int;
           }
@@ -203,25 +205,26 @@ void buffer_manager_to_i2s(server i2s_callback_if i2s,
       }
       break; // End of restart check
 
-    case i2s.receive(size_t index, int32_t sample):
-      unsafe {
-        p_in_frame->samples[index] = sample;
+    case i2s.receive(size_t num_in, int32_t samples[num_in]):
+      for(int index = 0; index < num_in; index++){
+        unsafe {
+          p_in_frame->samples[index] = samples[index];
+        }
       }
       break;
 
-    case i2s.send(size_t index) -> int32_t sample:
-    
-     unsafe {
-        if (index == 0) {
-          c_audio :> sample_out_buf;
+    case i2s.send(size_t num_out, int32_t samples[num_out]):
+      unsafe{
+        c_audio :> sample_out_buf;        
+        for(int index = 0; index < num_out; index++){
+          samples[index] = sample_out_buf[index];
         }
-        sample = sample_out_buf[index];
-        if (index == (AVB_NUM_MEDIA_INPUTS-1)) {
-          tmr :> p_in_frame->timestamp;
-          audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
-          c_audio <: p_in_frame;
-          p_in_frame = new_frame;
-        }
+        
+        tmr :> p_in_frame->timestamp;
+        audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
+        c_audio <: p_in_frame;
+        p_in_frame = new_frame;
+        
       }
       break; // End of send
     }
@@ -344,7 +347,7 @@ int main(void)
   i2c_master_if i_i2c[NUM_I2C_IFS];
 
   // I2S and audio buffering interfaces
-  i2s_callback_if i_i2s;
+  i2s_frame_callback_if i_i2s;
   streaming chan c_audio;
   interface push_if i_audio_in_push;
   interface pull_if i_audio_in_pull;
@@ -386,16 +389,14 @@ int main(void)
 
 
     on tile[0]: {
-      set_core_high_priority_on();
-      configure_clock_src(clk_i2s_mclk, p_i2s_mclk);
-      start_clock(clk_i2s_mclk);
-      i2s_master(i_i2s,
+      i2s_frame_master(i_i2s,
                  p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
+                 32,
                  p_i2s_bclk,
                  p_i2s_lrclk,
-                 clk_i2s_bclk,
-                 clk_i2s_mclk);
+                 p_i2s_mclk,
+                 clk_i2s_bclk);
     }
 
     on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_codec_rst_leds);
@@ -422,7 +423,11 @@ int main(void)
     on tile[0]: {
       char mac_address[6];
       if (otp_board_info_get_mac(otp_ports0, 0, mac_address) == 0) {
-        fail("No MAC address programmed in OTP");
+        const char mac_address_manual[] = {0x12, 0x34, 0x56, 0x67, 0x89, 0xab};
+        debug_printf("No MAC address programmed in OTP, falling back to %x:%x:%x:%x:%x:%x\n",
+            mac_address_manual[0], mac_address_manual[1], mac_address_manual[2],
+            mac_address_manual[3], mac_address_manual[4], mac_address_manual[5]);
+        memcpy(mac_address, mac_address_manual, sizeof(mac_address));
       }
       i_eth_cfg[MAC_CFG_TO_AVB_MANAGER].set_macaddr(0, mac_address);
       [[combine]]

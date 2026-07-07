@@ -28,3 +28,5 @@ examples/AN01032_100Mbit_avb_i2s_demo/doc/pdf/
 .*.swp
 .settings
 */doc/pdf/tsn.pdf
+examples/AN01032_100Mbit_avb_i2s_demo/src/aem_descriptors.generated/aem_descriptors.h
+examples/AN01032_100Mbit_avb_i2s_demo/src/aem_descriptors.generated/aem_entity_strings.h

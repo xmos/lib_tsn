@@ -47,6 +47,8 @@ def do_replace(read_file, write_file, replace_defines):
 def main():
     srcpath = sys.argv[1]
     dstpath = sys.argv[2]
+    if not os.path.exists(dstpath):
+        os.makedirs(dstpath)
     read_file = open(os.path.join(srcpath, 'aem_descriptors.h.in'), 'r')
     write_file = open(os.path.join(dstpath, 'aem_descriptors.h'), 'w')
 
@@ -60,3 +62,13 @@ def main():
     print "AEM descriptor header file generation complete"
 
 main()
+
+# ensure we exit cleanly when we run from cmake
+try:
+    sys.stdout.close()
+except:
+    pass
+try:
+    sys.stderr.close()
+except:
+    pass

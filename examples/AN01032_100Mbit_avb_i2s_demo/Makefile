@@ -34,7 +34,7 @@ XCC_FLAGS_main.xc = $(XCC_FLAGS) -falways-inline -O3
 
 # The USED_MODULES variable lists other module used by the application.
 
-USED_MODULES = lib_tsn(>=8.0.0) lib_i2s(>=2.3.0)
+USED_MODULES = lib_tsn(>=8.0.0) lib_i2s(>=2.3.0) lib_gpio
 
 VERBOSE=0
 
