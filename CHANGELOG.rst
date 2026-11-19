@@ -1,11 +1,24 @@
-TSN library change log
-======================
+lib_tsn change log
+==================
 
 UNRELEASED
 ----------
 
   * CHANGED:   Added support for xcommon-cmake build system 
-  * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo  
+  * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo
+  * CHANGED:   Removed legacy module_build_info and example Makefile/app_build_info
+  * FIXED:     Example CMake builds use the correct XN target, Python 3 for AEM
+               generation and lib_gpio dependency
+  * Changes to dependencies:
+
+    - lib_ethernet: develop -> 4.1.0
+    - lib_logging: 2.1.0 -> 3.4.0
+    - lib_xassert: 4.3.1 -> 4.3.2
+    - lib_otpinfo: 2.1.0 -> 2.2.1
+
+  * Example applications: lib_i2s pinned to 5.1.0 (lib_i2s 6.x removed the
+    sample-based i2s_callback_if used by AN00202 and AN00203). AN00202,
+    AN00203 and AN01032 build against this version.  
 
 8.0.0
 -----

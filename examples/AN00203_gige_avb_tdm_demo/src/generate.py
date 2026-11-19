@@ -1,9 +1,14 @@
-import sys
-import re
-import string
+#!/usr/bin/env python3
+"""Generate AEM descriptor headers from the *.h.in templates.
+
+Usage: generate.py <source_dir> <output_dir>
+"""
 import os
+import re
+import sys
 
 string_regex = re.compile(r'"[^"]*"')
+
 
 def convert_string_to_char_array(str):
     s = []
@@ -47,16 +52,18 @@ def do_replace(read_file, write_file, replace_defines):
 def main():
     srcpath = sys.argv[1]
     dstpath = sys.argv[2]
-    read_file = open(os.path.join(srcpath, 'aem_descriptors.h.in'), 'r')
-    write_file = open(os.path.join(dstpath, 'aem_descriptors.h'), 'w')
+    os.makedirs(dstpath, exist_ok=True)
 
-    do_replace(read_file, write_file, 0)
+    with open(os.path.join(srcpath, 'aem_descriptors.h.in'), 'r') as read_file, \
+            open(os.path.join(dstpath, 'aem_descriptors.h'), 'w') as write_file:
+        do_replace(read_file, write_file, 0)
 
-    read_file = open(os.path.join(srcpath, 'aem_entity_strings.h.in'), 'r')
-    write_file = open(os.path.join(dstpath, 'aem_entity_strings.h'), 'w')
+    with open(os.path.join(srcpath, 'aem_entity_strings.h.in'), 'r') as read_file, \
+            open(os.path.join(dstpath, 'aem_entity_strings.h'), 'w') as write_file:
+        do_replace(read_file, write_file, 1)
 
-    do_replace(read_file, write_file, 1)
+    print("AEM descriptor header file generation complete")
 
-    print "AEM descriptor header file generation complete"
 
-main()
+if __name__ == '__main__':
+    main()

@@ -1,10 +1,10 @@
 set(LIB_NAME lib_tsn)
 set(LIB_VERSION 8.0.0)
-set(LIB_DEPENDENT_MODULES   "lib_ethernet(develop)"
+set(LIB_DEPENDENT_MODULES   "lib_ethernet(4.1.0)"
                             "lib_i2c(6.4.0)"
-                            "lib_logging(2.1.0)"
-                            "lib_xassert(4.3.1)"
-                            "lib_otpinfo(2.1.0)"
+                            "lib_logging(3.4.0)"
+                            "lib_xassert(4.3.2)"
+                            "lib_otpinfo(2.2.1)"
                             "lib_random(1.2.0)")
 
 set(LIB_OPTIONAL_HEADERS    "ethernet_conf.h"
