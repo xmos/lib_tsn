@@ -7,6 +7,8 @@ UNRELEASED
   * CHANGED:   Added support for xcommon-cmake build system 
   * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo
   * CHANGED:   Removed legacy module_build_info and example Makefile/app_build_info
+  * CHANGED:   dbc_timestamp_valid test migrated from xmostest to pytest with
+               test_support (Pyxsim) and an XCommon CMake build
   * FIXED:     Example CMake builds use the correct XN target, Python 3 for AEM
                generation and lib_gpio dependency
   * Changes to dependencies:
