@@ -4,11 +4,10 @@
 #include <print.h>
 #include <string.h>
 #include <xscope.h>
-// #include "gpio.h"
 #include "i2s.h"
 #include "i2c.h"
 #include "avb.h"
-#include "audio_clock_CS2100CP.h"
+#include "an02054_board.h"
 #include "xassert.h"
 #include "debug_print.h"
 #include "gptp.h"
@@ -32,50 +31,41 @@ fl_QSPIPorts qspi_ports =
 
 
 
-in port p_rxclk = PORT_ETH_RXCLK;
-in port p_rxer  = PORT_ETH_RXER; 
-in port p_rxd   = PORT_ETH_RXD; 
-in port p_rxdv  = PORT_ETH_RXDV;
-in port p_txclk = PORT_ETH_TXCLK;
-out port p_txen = PORT_ETH_TXEN;
-out port p_txd  = PORT_ETH_TXD;
+// PHY 0 RMII (tile 0). Data uses the upper two bits of the 4-bit ports.
+in port p_clk50 = PHY0_CLK_50M;
+in port p_rxdv  = PHY0_RX_DV;
+out port p_txen = PHY0_TX_EN;
+port p_txd      = PHY0_TXD_4BIT;
+port p_rxd      = PHY0_RXD_4BIT;
+clock eth_rxclk = on tile[0]: XS1_CLKBLK_3;
+clock eth_txclk = on tile[0]: XS1_CLKBLK_4;
+
+// SMI management for PHY 0 (tile 1)
 port p_smi_mdio = PORT_SMI_MDIO;
 port p_smi_mdc  = PORT_SMI_MDC;
-clock eth_rxclk = on tile[1]: XS1_CLKBLK_1;
-clock eth_txclk = on tile[1]: XS1_CLKBLK_2;
 
-port p_scl = PORT_AUD_SCL;
-port p_sda = PORT_AUD_SDA;
+// Shared PHY and codec reset (tile 1)
+out port p_phy_rst = PORT_PERIPH_RST;
 
-out buffered port:32 p_fs[1] = { PORT_AUD_PLL }; // Low frequency PLL frequency reference
-out buffered port:32 p_i2s_lrclk = PORT_AUD_LRCLK;
-out port p_i2s_bclk = PORT_AUD_SCLK;
-in port p_i2s_mclk = PORT_AUD_MCLK;
-out buffered port:32 p_aud_dout[2] = {PORT_AUD_DAC0, PORT_AUD_DAC1};
-in buffered port:32 p_aud_din[2] = {PORT_AUD_ADC0, PORT_AUD_ADC1};
-clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_2;
-out port p_codec_rst_leds = PORT_AUD_CTRL;
+// Codec control bus on the 8-bit port (SCL bit 4, SDA bit 5) (tile 0)
+port p_i2c = CODEC_I2C_8BIT;
 
-// I2C addresses for the CODECS
-const int codec1_addr = 0x48;
-const int codec2_addr = 0x49;
+// Unused media clock reference output (tile 0). The board has no reference clock output.
+out buffered port:32 p_fs[1] = { PORT_UNUSED_FS };
 
-// Register Addresses for the CS4270 CODEC on the AUDIO slice
-#define CODEC_DEV_ID_ADDR           0x01
-#define CODEC_PWR_CTRL_ADDR         0x02
-#define CODEC_MODE_CTRL_ADDR        0x03
-#define CODEC_ADC_DAC_CTRL_ADDR     0x04
-#define CODEC_TRAN_CTRL_ADDR        0x05
-#define CODEC_MUTE_CTRL_ADDR        0x06
-#define CODEC_DACA_VOL_ADDR         0x07
-#define CODEC_DACB_VOL_ADDR         0x08
+// Stereo I2S on tile 1. MCLK comes from the Secondary PLL on X1D11, read back on port 1D.
+out buffered port:32 p_i2s_lrclk = PORT_I2S_LRCLK;
+out port p_i2s_bclk = PORT_I2S_BCLK;
+in port p_i2s_mclk = PORT_MCLK_APLL;
+out buffered port:32 p_aud_dout[1] = {PORT_I2S_DAC_DATA};
+in buffered port:32 p_aud_din[1] = {PORT_I2S_ADC_DATA};
+clock clk_i2s_bclk = on tile[1]: XS1_CLKBLK_2;
 
 #pragma unsafe arrays
 [[always_inline]][[distributable]]
 void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
                            streaming chanend c_audio,
-                           client interface i2c_master_if i2c,
-                           out port p_codec_rst_leds)
+                           client interface i2c_master_if i2c)
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
@@ -83,7 +73,8 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
   unsigned cur_sample_rate;
   timer tmr;
 
-   audio_clock_CS2100CP_init(i2c);
+  // Start the codec master clock before the codec is configured
+  an02054_enable_codec_mclk();
 
   while (1) {
     select {
@@ -96,95 +87,16 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
       }
 
       i2s_config.mode = I2S_MODE_I2S;
-      // I2S has 32 bits per sample. *2 as 2 channels
+      // I2S has 32 bits per sample slot. *2 as 2 channels
       const unsigned num_bits = 64;
       const unsigned mclk = 512 * 48000;
       // Calculate the MCLK to BCLK ratio using the current sample rate and bits per sample
       i2s_config.mclk_bclk_ratio = mclk / ( cur_sample_rate * num_bits);
 
-      // Bring the CODECs out of reset (They both share a reset line).
-      p_codec_rst_leds <: 0x01;
-
-      // Let the CODEC come out reset
-      delay_microseconds(10);
-
-      /* Power Control (Address: 0x02) */
-      /* bit[7] : Freeze controls (FREEZE)       : Set to 1 for freeze
-      * bit[6] : RESERVED                       :
-      * bit[5] : Power Down ADC (PDN_ADC)       : Power down ADC
-      * bit[4:2]: RESERVED                      :
-      * bit[1] : Power Down DAC (PDN_DAC)       : Power down DAC
-      * bit[0] : Power Down (PDN)               : Power down device
-      */    
-
-      i2c.write_reg(codec1_addr, CODEC_PWR_CTRL_ADDR, 0x01);       
-      i2c.write_reg(codec2_addr, CODEC_PWR_CTRL_ADDR, 0x01);       
-
-      /* Mode Control (Address: 0x03) */
-      /* bit[7:6] : RESERVED                    :
-      * bit[5:4] : ADC Functional Mode          : Slave Mode
-      * bit[3:1] : Ratio Select                 : MCLK Divide by 4
-      * bit[0]   : Popguard Transient Control   : Enabled
-      */    
-
-      i2c.write_reg(codec1_addr, CODEC_MODE_CTRL_ADDR, 0x35); 
-      i2c.write_reg(codec2_addr, CODEC_MODE_CTRL_ADDR, 0x35);     
-
-      /* ADC and DAC Control (Address: 0x04) */
-      /*bit[7] : High Pass Filter Freeze CH A : Continuous value
-      * bit[6] : High Pass Filter Freeze CH B : Continuous value
-      * bit[5] : Digital loopback             : Disabled
-      * bit[4:3]: DAC Interface format        : I2S, up to 24-bit data
-      * bit[0] : ADC Digital Interface Format : I2S, up to 24-bit data
-      */   
-
-      i2c.write_reg(codec1_addr, CODEC_ADC_DAC_CTRL_ADDR, 0x09); 
-      i2c.write_reg(codec2_addr, CODEC_ADC_DAC_CTRL_ADDR, 0x09);           
-          
-      /* Transition Control (Address: 0x05) */
-      /*bit[7] : DAC Single Volume (DAC_SNGL_VOL)   : Signal volume enabled
-      * bit[6] : Soft Ramp  (DAC_SOFT)              : Disabled
-      * bit[5] : Zero Cross Enable (DAC_ZC)         : Enabled
-      * bit[4:1]: Invert Signal Polarity            : No inversion on any ADC or DAC channels
-      * bit[0] : De-Emphasis Control (DE_EMPH)      : No De-emphasis applied
-      */ 
-
-      i2c.write_reg(codec1_addr, CODEC_TRAN_CTRL_ADDR, 0x60); 
-      i2c.write_reg(codec2_addr, CODEC_TRAN_CTRL_ADDR, 0x60);   
-
-      /* Mute Control (Address: 0x06) */
-      /*bit[7:6]: RESERVED                          : 
-      * bit[5]  : Auto Mute (AUTO_MUTE)             : Disabled
-      * bit[4:3]: ADC Channel Mute (MUTE_ADC_CHA/B) : Disabled
-      * bit[2]  : Mute Polarity (MUTE_POL)          : Low
-      * bit[1:0]: DAC Channel Mute (MUTE_DAC_CHA/B) : Disabled
-      */ 
-
-      i2c.write_reg(codec1_addr, CODEC_TRAN_CTRL_ADDR, 0x00); 
-      i2c.write_reg(codec2_addr, CODEC_TRAN_CTRL_ADDR, 0x00);
-
-      /*  DAC Channel A Volume Control (Address: 0x7) */
-      /*bit[7:0]: DAC Channel A Volume Control     : 0dB
-      */ 
-
-      i2c.write_reg(codec1_addr, CODEC_DACA_VOL_ADDR, 0x00); 
-      i2c.write_reg(codec2_addr, CODEC_DACA_VOL_ADDR, 0x00);
-
-      /*  DAC Channel B Volume Control (Address: 0x8) */
-      /*bit[7:0]: DAC Channel B Volume Control     : 0dB
-      */ 
-
-      i2c.write_reg(codec1_addr, CODEC_DACB_VOL_ADDR, 0x00); 
-      i2c.write_reg(codec2_addr, CODEC_DACB_VOL_ADDR, 0x00);
-
-      /* Power Control (Address: 0x02) */
-      /* Disable the Device power down */
-      i2c.write_reg(codec1_addr, CODEC_PWR_CTRL_ADDR, 0x00);       
-      i2c.write_reg(codec2_addr, CODEC_PWR_CTRL_ADDR, 0x00);
-
-      /* Turn on LEDS */
-      p_codec_rst_leds <: 0x0D;
-
+      // Configure the TLV320AIC3204 (slave, I2S, 24-bit, 48 kHz)
+      if (an02054_codec_init(i2c) != 0) {
+        debug_printf("Codec configuration failed\n");
+      }
       break;
 
     case i2s.restart_check() -> i2s_restart_t restart:
@@ -193,7 +105,7 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
         /* Ensure we have received our first sample buf first and then
            check for magic value which indicates a sample rate change */
         if (sample_out_buf != NULL && sample_out_buf[AVB_NUM_MEDIA_INPUTS + AVB_NUM_MEDIA_OUTPUTS]) {
-          restart = I2S_RESTART;        
+          restart = I2S_RESTART;
           while (!stestct(c_audio)) {
             c_audio :> int;
           }
@@ -215,67 +127,22 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
 
     case i2s.send(size_t num_out, int32_t samples[num_out]):
       unsafe{
-        c_audio :> sample_out_buf;        
+        c_audio :> sample_out_buf;
         for(int index = 0; index < num_out; index++){
           samples[index] = sample_out_buf[index];
         }
-        
+
         tmr :> p_in_frame->timestamp;
         audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
         c_audio <: p_in_frame;
         p_in_frame = new_frame;
-        
+
       }
       break; // End of send
     }
   }
 }
 
-
-[[combinable]]
-void LAN8710_phy_driver(client interface smi_if smi,
-                client interface ethernet_cfg_if eth) {
-  ethernet_link_state_t link_state = ETHERNET_LINK_DOWN;
-  ethernet_speed_t link_speed = LINK_100_MBPS_FULL_DUPLEX;
-  const int link_poll_period_ms = 1000;
-  const int phy_address = 0x0;
-  timer tmr;
-  int phyStatus_speed;
-  int t;
-  tmr :> t;
-
- // Set the latency accross the PHY
- eth.set_ingress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 500);
- eth.set_egress_timestamp_latency(0, LINK_100_MBPS_FULL_DUPLEX, 50);
-
-  while (smi_phy_is_powered_down(smi, phy_address));
-
-  // Enable the AutoNegotiation and advertise 10/100Mbit capability
-  smi_configure(smi, phy_address, LINK_100_MBPS_FULL_DUPLEX, SMI_ENABLE_AUTONEG);  
-
-  // Periodically check the link status
-  while (1) {
-    select {
-    case tmr when timerafter(t) :> t:
-      ethernet_link_state_t new_state = smi_get_link_state(smi, phy_address);
-      // Read LAN8710 status register (0x1F) bits 4:2 to get the current link speed
-      if (new_state == ETHERNET_LINK_UP) {
-        phyStatus_speed = (smi.read_reg(phy_address, 0x1F) >> 2) & 7;
-        if(phyStatus_speed==0x5){
-            link_speed = LINK_10_MBPS_FULL_DUPLEX; 
-        }  else if (phyStatus_speed==0x6){
-            link_speed = LINK_100_MBPS_FULL_DUPLEX;
-        }
-      }
-      if (new_state != link_state) {
-        link_state = new_state;
-        eth.set_link_state(0, new_state, link_speed);
-      }
-      t += link_poll_period_ms * XS1_TIMER_KHZ;
-      break;
-    }
-  }
-}
 
 enum mac_rx_lp_clients {
   MAC_TO_MEDIA_CLOCK_PTP = 0,
@@ -356,20 +223,25 @@ int main(void)
 
   par
   {
-
-    on tile[1]: mii_ethernet_rt_mac(i_eth_cfg, NUM_ETH_CFG_CLIENTS,
+    // PHY 0 RMII MAC on tile 0 (the Ethernet pins are on tile 0)
+    on tile[0]: rmii_ethernet_rt_mac(i_eth_cfg, NUM_ETH_CFG_CLIENTS,
                          i_eth_rx_lp, NUM_ETH_RX_LP_CLIENTS,
                          i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
                          c_eth_rx_hp,
                          c_eth_tx_hp,
-                         p_rxclk, p_rxer, p_rxd, p_rxdv,
-                         p_txclk, p_txen, p_txd,
+                         p_clk50,
+                         p_rxd, null, USE_UPPER_2B,
+                         p_rxdv,
+                         p_txen,
+                         p_txd, null, USE_UPPER_2B,
                          eth_rxclk, eth_txclk,
+                         an02054_phy0_port_timing(),
                          RX_BUFSIZE_WORDS,
                          TX_BUFSIZE_WORDS,
                          ETHERNET_DISABLE_SHAPER);
 
-    on tile[1].core[0]: LAN8710_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
+    // DP83825I PHY 0 driver and shared reset (tile 1)
+    on tile[1].core[0]: dp83825_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER], p_phy_rst);
 
     on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
@@ -384,11 +256,11 @@ int main(void)
                                         c_ptp, NUM_PTP_CHANS,
                                         PTP_GRANDMASTER_CAPABLE);
 
-    on tile[0]: [[distribute]] i2c_master(i_i2c, NUM_I2C_IFS, p_scl, p_sda, 100);
+    // Codec control bus on the 8-bit port (tile 0)
+    on tile[0]: i2c_master_single_port(i_i2c, NUM_I2C_IFS, p_i2c, 100, 4, 5, 0);
 
-
-
-    on tile[0]: {
+    // Stereo I2S master on tile 1, clocked by the MCLK read back on port 1D
+    on tile[1]: {
       i2s_frame_master(i_i2s,
                  p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
@@ -399,21 +271,21 @@ int main(void)
                  clk_i2s_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_codec_rst_leds);
+    on tile[1]: buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C]);
 
-    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
+    on tile[1]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
 
-    on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
+    on tile[1]: audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
 
-    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
+    on tile[1]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
                                 c_eth_tx_hp,
                                 c_talker_ctl[0],
                                 AVB_NUM_SOURCES,
                                 i_audio_in_pull);
 
-    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
+    on tile[1]: audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
-    on tile[0]: avb_1722_listener(c_eth_rx_hp,
+    on tile[1]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],

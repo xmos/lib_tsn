@@ -12,7 +12,7 @@
   * tasks running the `avb_1722_talker` function). */
 #define AVB_NUM_TALKER_UNITS 1
 /** The total number of media inputs (typically number of I2S input channels). */
-#define AVB_NUM_MEDIA_INPUTS 4
+#define AVB_NUM_MEDIA_INPUTS 2
 /** Enable the 1722.1 Talker functionality */
 #define AVB_1722_1_TALKER_ENABLED 1
 
@@ -24,7 +24,7 @@
   * (typically the number of tasks running the `avb_1722_listener` function) */
 #define AVB_NUM_LISTENER_UNITS 1
 /** The total number of media outputs (typically the number of I2S output channels). */
-#define AVB_NUM_MEDIA_OUTPUTS 4
+#define AVB_NUM_MEDIA_OUTPUTS 2
 /** Enable the 1722.1 Listener functionality */
 #define AVB_1722_1_LISTENER_ENABLED 1
 

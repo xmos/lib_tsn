@@ -1,11 +1,30 @@
-TSN library change log
-======================
+lib_tsn change log
+==================
 
 UNRELEASED
 ----------
 
   * CHANGED:   Added support for xcommon-cmake build system 
-  * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo  
+  * CHANGED:   Used frame (rather than sample) based lib_i2s API in AVB demo
+  * CHANGED:   Examples ported to the AN02054 QF60B board: RMII PHY 0 on tile 0,
+               TLV320AIC3204 stereo codec, stereo I2S and 2 media channels.
+               AN00202 and AN00203 are now 100 Mbit (previously gigabit) and
+               AN00203 uses stereo I2S (previously TDM). lib_gpio is no longer used.
+  * CHANGED:   Removed legacy module_build_info and example Makefile/app_build_info
+  * CHANGED:   dbc_timestamp_valid test migrated from xmostest to pytest with
+               test_support (Pyxsim) and an XCommon CMake build
+  * FIXED:     Example CMake builds use the correct XN target, Python 3 for AEM
+               generation and lib_gpio dependency
+  * Changes to dependencies:
+
+    - lib_ethernet: develop -> 4.1.0
+    - lib_logging: 2.1.0 -> 3.4.0
+    - lib_xassert: 4.3.1 -> 4.3.2
+    - lib_otpinfo: 2.1.0 -> 2.2.1
+
+  * Example applications: lib_i2s pinned to 5.1.0 (lib_i2s 6.x removed the
+    sample-based i2s_callback_if used by AN00202 and AN00203). AN00202,
+    AN00203 and AN01032 build against this version.  
 
 8.0.0
 -----

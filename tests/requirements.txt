@@ -1,0 +1,9 @@
+# Test dependencies. Install into a Python virtual environment.
+pytest==9.2.0
+
+# test_support (Pyxsim) is not published on PyPI, and its v2.0.0 setup.py does
+# not install the Pyxsim package. Use a checkout of the tag and put its Python
+# sources on PYTHONPATH:
+#
+#   git clone --branch v2.0.0 https://github.com/xmos/test_support.git
+#   export PYTHONPATH=/path/to/test_support/lib/python
