@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AN02054 dual-Ethernet board: XU316-1024-QF60B-C24 with 25 MHz crystal.
+  Port map from AN02054 (XMOS). Only PHY 0 (ETH0) and the codec are used.
+  Tile 0: QSPI boot flash, PHY 0 RMII (upper 2 bits of 4E and 4F), I2C on 8D bits 4 and 5.
+  Tile 1: codec I2S, codec MCLK (APLL output on X1D11), PERIPH_RST, PHY 0 SMI.
+-->
+<Network xmlns="http://www.xmos.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.xmos.com http://www.xmos.com">
+  <Type>Board</Type>
+  <Name>AN02054 QF60B dual-Ethernet board</Name>
+  <Declarations>
+    <Declaration>tileref tile[2]</Declaration>
+  </Declarations>
+  <Packages>
+    <Package id="0" Type="XS3-UnA-1024-QF60B">
+      <Nodes>
+        <Node Id="0" InPackageId="0" Type="XS3-L16A-1024" Oscillator="25MHz" SystemFrequency="600MHz" ReferenceFrequency="100MHz" SecondaryFrequency="49152kHz">
+          <Boot>
+            <Source Location="bootFlash"/>
+          </Boot>
+          <Tile Number="0" Reference="tile[0]">
+            <!-- QSPI boot flash (W25Q16JV) -->
+            <Port Location="XS1_PORT_1B" Name="PORT_SQI_CS"/>
+            <Port Location="XS1_PORT_1C" Name="PORT_SQI_SCLK"/>
+            <Port Location="XS1_PORT_4B" Name="PORT_SQI_SIO"/>
+
+            <!-- PHY 0 RMII: TX_EN, RX_DV, 50 MHz reference clock from PHY 0; data on upper 2 bits of 4F and 4E -->
+            <Port Location="XS1_PORT_1A" Name="PHY0_TX_EN"/>
+            <Port Location="XS1_PORT_1D" Name="PHY0_RX_DV"/>
+            <Port Location="XS1_PORT_1P" Name="PHY0_CLK_50M"/>
+            <Port Location="XS1_PORT_4F" Name="PHY0_TXD_4BIT"/>
+            <Port Location="XS1_PORT_4E" Name="PHY0_RXD_4BIT"/>
+
+            <!-- Codec I2C (SCL bit 4, SDA bit 5 of 8D) -->
+            <Port Location="XS1_PORT_8D" Name="CODEC_I2C_8BIT"/>
+
+            <!-- Unused output for the media clock reference (ETH1 TX_EN pin, PHY 1 not used) -->
+            <Port Location="XS1_PORT_1L" Name="PORT_UNUSED_FS"/>
+          </Tile>
+          <Tile Number="1" Reference="tile[1]">
+            <!-- Codec I2S. DAC_DATA and ADC_DATA are the stereo data lines -->
+            <Port Location="XS1_PORT_1A" Name="PORT_I2S_DAC_DATA"/>
+            <Port Location="XS1_PORT_1B" Name="PORT_I2S_LRCLK"/>
+            <Port Location="XS1_PORT_1C" Name="PORT_I2S_BCLK"/>
+            <Port Location="XS1_PORT_1K" Name="PORT_I2S_ADC_DATA"/>
+
+            <!-- Codec MCLK is the Secondary PLL output routed to X1D11 (port 1D is not used by software) -->
+            <Port Location="XS1_PORT_1D" Name="PORT_MCLK_APLL"/>
+
+            <!-- Shared reset for both PHYs and the codec -->
+            <Port Location="XS1_PORT_4A" Name="PORT_PERIPH_RST"/>
+
+            <!-- PHY 0 SMI management -->
+            <Port Location="XS1_PORT_1F" Name="PORT_SMI_MDC"/>
+            <Port Location="XS1_PORT_1G" Name="PORT_SMI_MDIO"/>
+          </Tile>
+        </Node>
+      </Nodes>
+    </Package>
+  </Packages>
+
+  <Nodes>
+    <Node Id="1" Type="device:" RoutingId="0x8000">
+      <Service Id="0" Proto="xscope_host_data(chanend c);">
+        <Chanend Identifier="c" end="3"/>
+      </Service>
+    </Node>
+  </Nodes>
+
+  <Links>
+    <Link Encoding="2wire" Delays="5clk" Flags="XSCOPE">
+      <LinkEndpoint NodeId="0" Link="XL0"/>
+      <LinkEndpoint NodeId="1" Chanend="1"/>
+    </Link>
+  </Links>
+
+  <ExternalDevices>
+    <Device NodeId="0" Tile="0" Class="SQIFlash" Name="bootFlash" Type="W25Q16JV" PageSize="256" SectorSize="4096" NumPages="8192">
+      <Attribute Name="PORT_SQI_CS"   Value="PORT_SQI_CS"/>
+      <Attribute Name="PORT_SQI_SCLK" Value="PORT_SQI_SCLK"/>
+      <Attribute Name="PORT_SQI_SIO"  Value="PORT_SQI_SIO"/>
+    </Device>
+  </ExternalDevices>
+
+  <JTAGChain>
+    <JTAGDevice NodeId="0"/>
+  </JTAGChain>
+</Network>

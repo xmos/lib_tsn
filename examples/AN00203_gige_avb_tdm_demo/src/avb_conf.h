@@ -7,24 +7,24 @@
 /* Talker configuration */
 
 /** The total number of AVB sources (streams that are to be transmitted). */
-#define AVB_NUM_SOURCES 4
+#define AVB_NUM_SOURCES 1
 /** The total number or Talker components (typically the number of
-  * tasks running the  `avb_1722_talker` function). */
+  * tasks running the `avb_1722_talker` function). */
 #define AVB_NUM_TALKER_UNITS 1
 /** The total number of media inputs (typically number of I2S input channels). */
-#define AVB_NUM_MEDIA_INPUTS 32
+#define AVB_NUM_MEDIA_INPUTS 2
 /** Enable the 1722.1 Talker functionality */
 #define AVB_1722_1_TALKER_ENABLED 1
 
 /* Listener configuration */
 
 /** The total number of AVB sinks (incoming streams that can be listened to) */
-#define AVB_NUM_SINKS 4
+#define AVB_NUM_SINKS 1
 /** The total number or listener components
   * (typically the number of tasks running the `avb_1722_listener` function) */
 #define AVB_NUM_LISTENER_UNITS 1
 /** The total number of media outputs (typically the number of I2S output channels). */
-#define AVB_NUM_MEDIA_OUTPUTS 32
+#define AVB_NUM_MEDIA_OUTPUTS 2
 /** Enable the 1722.1 Listener functionality */
 #define AVB_1722_1_LISTENER_ENABLED 1
 
@@ -46,12 +46,12 @@
 #define AVB_NUM_MEDIA_CLOCKS 1
 
 /** The maximum sample rate in Hz of audio that is to be input or output */
-#define AVB_MAX_AUDIO_SAMPLE_RATE 48000
+#define AVB_MAX_AUDIO_SAMPLE_RATE 192000
 
 /** Enable 1722 MAAP on the device, required for Talkers */
 #define AVB_ENABLE_1722_MAAP 1
 
-/******** 1722.1 PARAMETERS *****************************************************************/
+/******** 1722.1 parameters *****************************************************************/
 
 /** Enable 1722.1 AVDECC on the entity */
 #define AVB_ENABLE_1722_1 1
@@ -83,5 +83,11 @@ enum aem_control_indices {
 #define FLASH_MAX_UPGRADE_IMAGE_SIZE (128 * 1024)
 /** The page size of the flash used */
 #define FLASH_PAGE_SIZE (256)
+
+/******** Ethenet MAC parameters ***********************************************************/
+
+/** The size of the receive and transmit buffers in words*/
+#define RX_BUFSIZE_WORDS 1600 
+#define TX_BUFSIZE_WORDS 1600
 
 #endif
